@@ -46,6 +46,7 @@ type alias Opacity = Float
 type alias FacesChange = ( Maybe Int, Maybe Int )
 type alias AmplitudeChange = ( Maybe Float, Maybe Float, Maybe Float )
 type alias ColorShiftPatch = ( Maybe Float, Maybe Float, Maybe Float )
+type alias Time = Float -- FIXME
 type alias Speed = Float
 type alias Vignette = Float
 type alias Iris = Float
@@ -238,12 +239,15 @@ makeEntity now mouse productId layerIndex viewport model maybeScene settings mes
         speed = case lights of
             first::_ -> first.speed
             _ -> 0
-        meshSize = maybeScene
+        firstMeshSize = maybeScene
             |> Maybe.map (\scene ->
                 List.head scene.meshes)
-            |> Maybe.map (\maybeMesh ->
-                case maybeMesh of
-                    Just mesh -> ( mesh.geometry.width,  mesh.geometry.height )
+            |> Maybe.map (\maybeFirstMesh ->
+                case maybeFirstMesh of
+                    Just firstMesh ->
+                        ( firstMesh.geometry.width
+                        , firstMesh.geometry.height
+                        )
                     Nothing -> (0, 0)
                 )
             |> Maybe.withDefault (0, 0)
@@ -260,7 +264,7 @@ makeEntity now mouse productId layerIndex viewport model maybeScene settings mes
                 productId
                 viewport
                 model
-                meshSize
+                firstMeshSize
                 ( lights, speed )
                 layerIndex
                 )
@@ -522,87 +526,120 @@ getLightRows light =
     }
 
 
-adaptLights : (Int, Int) -> Speed -> List SLight -> { ambient : Mat4, diffuse : Mat4, position : Mat4, speed : Speed }
-adaptLights size speed srcLights =
-    let
-        emptyVec4 = vec4 0 0 0 0
-        emptyVec3 = vec3 0 0 0
-        emptyRows =
-            { ambient = emptyVec4
-            , diffuse = emptyVec4
-            , position = emptyVec3
-            }
-        lightRows = srcLights |> List.map getLightRows
-    in
-        case lightRows of
-            [a] ->
-                let
-                    rowA = ( a.ambient, emptyVec4, emptyVec4, emptyVec4 )
-                    rowB = ( a.diffuse, emptyVec4, emptyVec4, emptyVec4 )
-                    rowC = ( a.position, emptyVec3, emptyVec3, emptyVec3 )
-                in
-                    lightsToMatrices size speed rowA rowB rowC
-            [a,b] ->
-                let
-                    rowA = ( a.ambient, b.ambient, emptyVec4, emptyVec4 )
-                    rowB = ( a.diffuse, b.diffuse, emptyVec4, emptyVec4 )
-                    rowC = ( a.position, b.position, emptyVec3, emptyVec3 )
-                in
-                    lightsToMatrices size speed rowA rowB rowC
-            [a,b,c] ->
-                let
-                    rowA = ( a.ambient, b.ambient, c.ambient, emptyVec4 )
-                    rowB = ( a.diffuse, b.diffuse, c.diffuse, emptyVec4 )
-                    rowC = ( a.position, b.position, c.position, emptyVec3 )
-                in
-                    lightsToMatrices size speed rowA rowB rowC
-            a::b::c::d::_ ->
-                let
-                    rowA = ( a.ambient, b.ambient, c.ambient, d.ambient )
-                    rowB = ( a.diffuse, b.diffuse, c.diffuse, d.diffuse )
-                    rowC = ( a.position, b.position, c.position, d.position )
-                in
-                    lightsToMatrices size speed rowA rowB rowC
-            _ ->
-                { ambient = Mat4.identity
-                , diffuse = Mat4.identity
-                , position = Mat4.identity
-                , speed = speed
-                }
-
-lightsToMatrices
+adaptLights
     : (Int, Int)
     -> Speed
-    -> ( Vec4, Vec4, Vec4, Vec4 )
-    -> ( Vec4, Vec4, Vec4, Vec4 )
-    ->  ( Vec3, Vec3, Vec3, Vec3 )
-    ->
-    { ambient : Mat4
-    , diffuse : Mat4
-    , position : Mat4
-    , speed : Speed
-    }
-lightsToMatrices (w, h) speed ( aa, ba, ca, da ) ( ad, bd, cd, dd ) ( ap, bp, cp, dp ) =
-    { ambient = Mat4.fromRecord
-        { m11 = Vec4.getX aa, m12 = Vec4.getY aa, m13 = Vec4.getZ aa, m14 = Vec4.getW aa
-        , m21 = Vec4.getX ba, m22 = Vec4.getY ba, m23 = Vec4.getZ ba, m24 = Vec4.getW ba
-        , m31 = Vec4.getX ca, m32 = Vec4.getY ca, m33 = Vec4.getZ ca, m34 = Vec4.getW ca
-        , m41 = Vec4.getX da, m42 = Vec4.getY da, m43 = Vec4.getZ da, m44 = Vec4.getW da
-        } |> Mat4.transpose
-    , diffuse = Mat4.fromRecord
-        { m11 = Vec4.getX ad, m12 = Vec4.getY ad, m13 = Vec4.getZ ad, m14 = Vec4.getW ad
-        , m21 = Vec4.getX bd, m22 = Vec4.getY bd, m23 = Vec4.getZ bd, m24 = Vec4.getW bd
-        , m31 = Vec4.getX cd, m32 = Vec4.getY cd, m33 = Vec4.getZ cd, m34 = Vec4.getW cd
-        , m41 = Vec4.getX dd, m42 = Vec4.getY dd, m43 = Vec4.getZ dd, m44 = Vec4.getW dd
-        } |> Mat4.transpose
-    , position = Mat4.fromRecord
-        { m11 = Vec3.getX ap, m12 = Vec3.getY ap, m13 = Vec3.getZ ap, m14 = 0
-        , m21 = Vec3.getX bp, m22 = Vec3.getY bp, m23 = Vec3.getZ bp, m24 = 0
-        , m31 = Vec3.getX cp, m32 = Vec3.getY cp, m33 = Vec3.getZ cp, m34 = 0
-        , m41 = Vec3.getX dp, m42 = Vec3.getY dp, m43 = Vec3.getZ dp, m44 = 0
-        } |> Mat4.transpose
-    , speed = speed
-    }
+    -> List SLight
+    -> { ambient : Mat4, diffuse : Mat4, position : Mat4, speed : Speed }
+adaptLights size speed srcLights =
+    let
+        emptyRecords =
+            { ambient  = Mat4.identity |> Mat4.toRecord
+            , diffuse  = Mat4.identity |> Mat4.toRecord
+            , position = Mat4.identity |> Mat4.toRecord
+            , speed = 0
+            }
+        lightRows =
+            srcLights
+                |> List.map getLightRows
+        foldingF light ( recs, lightIndex ) =
+            if lightIndex < 4
+                then ( recs, lightIndex + 1 )
+                else ( recs, lightIndex + 1 )
+        toMatrices recs =
+            { ambient  = Mat4.fromRecord recs.ambient
+            , diffuse  = Mat4.fromRecord recs.diffuse
+            , position = Mat4.fromRecord recs.position
+            , speed    = recs.speed
+            }
+        transposeResults recs =
+            { ambient  = Mat4.transpose recs.ambient
+            , diffuse  = Mat4.transpose recs.diffuse
+            , position = Mat4.transpose recs.position
+            , speed    = recs.speed
+            }
+    in
+        lightRows
+            |> List.foldl
+                foldingF
+                -- ( [], 0 )
+                ( { emptyRecords
+                  | speed = speed
+                  }
+                , 0 )
+            |> Tuple.first
+            |> toMatrices
+            |> transposeResults
+        -- case lightRows of
+        --     [a] ->
+        --         let
+        --             rowA = ( a.ambient, emptyVec4, emptyVec4, emptyVec4 )
+        --             rowB = ( a.diffuse, emptyVec4, emptyVec4, emptyVec4 )
+        --             rowC = ( a.position, emptyVec3, emptyVec3, emptyVec3 )
+        --         in
+        --             lightsToMatrices size speed rowA rowB rowC
+        --     [a,b] ->
+        --         let
+        --             rowA = ( a.ambient, b.ambient, emptyVec4, emptyVec4 )
+        --             rowB = ( a.diffuse, b.diffuse, emptyVec4, emptyVec4 )
+        --             rowC = ( a.position, b.position, emptyVec3, emptyVec3 )
+        --         in
+        --             lightsToMatrices size speed rowA rowB rowC
+        --     [a,b,c] ->
+        --         let
+        --             rowA = ( a.ambient, b.ambient, c.ambient, emptyVec4 )
+        --             rowB = ( a.diffuse, b.diffuse, c.diffuse, emptyVec4 )
+        --             rowC = ( a.position, b.position, c.position, emptyVec3 )
+        --         in
+        --             lightsToMatrices size speed rowA rowB rowC
+        --     a::b::c::d::_ ->
+        --         let
+        --             rowA = ( a.ambient, b.ambient, c.ambient, d.ambient )
+        --             rowB = ( a.diffuse, b.diffuse, c.diffuse, d.diffuse )
+        --             rowC = ( a.position, b.position, c.position, d.position )
+        --         in
+        --             lightsToMatrices size speed rowA rowB rowC
+        --     _ ->
+        --         { ambient = Mat4.identity
+        --         , diffuse = Mat4.identity
+        --         , position = Mat4.identity
+        --         , speed = speed
+        --         }
+
+
+-- lightsToMatrices
+--     : (Int, Int)
+--     -> Speed
+--     -> ( Vec4, Vec4, Vec4, Vec4 )
+--     -> ( Vec4, Vec4, Vec4, Vec4 )
+--     -> ( Vec3, Vec3, Vec3, Vec3 )
+--     ->
+--     { ambient : Mat4
+--     , diffuse : Mat4
+--     , position : Mat4
+--     , speed : Speed
+--     }
+-- lightsToMatrices (w, h) speed ( aa, ba, ca, da ) ( ad, bd, cd, dd ) ( ap, bp, cp, dp ) =
+--     { ambient = Mat4.fromRecord
+--         { m11 = Vec4.getX aa, m12 = Vec4.getY aa, m13 = Vec4.getZ aa, m14 = Vec4.getW aa
+--         , m21 = Vec4.getX ba, m22 = Vec4.getY ba, m23 = Vec4.getZ ba, m24 = Vec4.getW ba
+--         , m31 = Vec4.getX ca, m32 = Vec4.getY ca, m33 = Vec4.getZ ca, m34 = Vec4.getW ca
+--         , m41 = Vec4.getX da, m42 = Vec4.getY da, m43 = Vec4.getZ da, m44 = Vec4.getW da
+--         } |> Mat4.transpose
+--     , diffuse = Mat4.fromRecord
+--         { m11 = Vec4.getX ad, m12 = Vec4.getY ad, m13 = Vec4.getZ ad, m14 = Vec4.getW ad
+--         , m21 = Vec4.getX bd, m22 = Vec4.getY bd, m23 = Vec4.getZ bd, m24 = Vec4.getW bd
+--         , m31 = Vec4.getX cd, m32 = Vec4.getY cd, m33 = Vec4.getZ cd, m34 = Vec4.getW cd
+--         , m41 = Vec4.getX dd, m42 = Vec4.getY dd, m43 = Vec4.getZ dd, m44 = Vec4.getW dd
+--         } |> Mat4.transpose
+--     , position = Mat4.fromRecord
+--         { m11 = Vec3.getX ap, m12 = Vec3.getY ap, m13 = Vec3.getZ ap, m14 = 0
+--         , m21 = Vec3.getX bp, m22 = Vec3.getY bp, m23 = Vec3.getZ bp, m24 = 0
+--         , m31 = Vec3.getX cp, m32 = Vec3.getY cp, m33 = Vec3.getZ cp, m34 = 0
+--         , m41 = Vec3.getX dp, m42 = Vec3.getY dp, m43 = Vec3.getZ dp, m44 = 0
+--         } |> Mat4.transpose
+--     , speed = speed
+--     }
 
 
 
