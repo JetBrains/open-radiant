@@ -509,23 +509,6 @@ uniforms now mouse productId v model meshSize ( lights, speed ) layerIndex =
         }
 
 
-getLightRows : SLight -> { ambient : Vec4, diffuse : Vec4, position : Vec3 }
-getLightRows light =
-    { ambient =
-        case light.ambient.rgba of
-            r::g::b::a::_ -> vec4 r g b a
-            _ -> vec4 0 0 0 0
-    , diffuse =
-        case light.diffuse.rgba of
-            r::g::b::a::_ -> vec4 r g b a
-            _ -> vec4 0 0 0 0
-    , position =
-        case light.position of
-            x::y::z::_ -> vec3 x y z
-            _ -> vec3 0 0 0
-    }
-
-
 adaptLights
     : (Int, Int)
     -> Speed
@@ -539,13 +522,10 @@ adaptLights size speed srcLights =
             , position = Mat4.identity |> Mat4.toRecord
             , speed = 0
             }
-        lightRows =
-            srcLights
-                |> List.map getLightRows
         foldingF light ( recs, lightIndex ) =
-            if lightIndex < 4
-                then ( recs, lightIndex + 1 )
-                else ( recs, lightIndex + 1 )
+            ( recs |> fillWithLight light lightIndex
+            , lightIndex + 1
+            )
         toMatrices recs =
             { ambient  = Mat4.fromRecord recs.ambient
             , diffuse  = Mat4.fromRecord recs.diffuse
@@ -559,10 +539,9 @@ adaptLights size speed srcLights =
             , speed    = recs.speed
             }
     in
-        lightRows
+        srcLights
             |> List.foldl
                 foldingF
-                -- ( [], 0 )
                 ( { emptyRecords
                   | speed = speed
                   }
@@ -570,77 +549,127 @@ adaptLights size speed srcLights =
             |> Tuple.first
             |> toMatrices
             |> transposeResults
-        -- case lightRows of
-        --     [a] ->
-        --         let
-        --             rowA = ( a.ambient, emptyVec4, emptyVec4, emptyVec4 )
-        --             rowB = ( a.diffuse, emptyVec4, emptyVec4, emptyVec4 )
-        --             rowC = ( a.position, emptyVec3, emptyVec3, emptyVec3 )
-        --         in
-        --             lightsToMatrices size speed rowA rowB rowC
-        --     [a,b] ->
-        --         let
-        --             rowA = ( a.ambient, b.ambient, emptyVec4, emptyVec4 )
-        --             rowB = ( a.diffuse, b.diffuse, emptyVec4, emptyVec4 )
-        --             rowC = ( a.position, b.position, emptyVec3, emptyVec3 )
-        --         in
-        --             lightsToMatrices size speed rowA rowB rowC
-        --     [a,b,c] ->
-        --         let
-        --             rowA = ( a.ambient, b.ambient, c.ambient, emptyVec4 )
-        --             rowB = ( a.diffuse, b.diffuse, c.diffuse, emptyVec4 )
-        --             rowC = ( a.position, b.position, c.position, emptyVec3 )
-        --         in
-        --             lightsToMatrices size speed rowA rowB rowC
-        --     a::b::c::d::_ ->
-        --         let
-        --             rowA = ( a.ambient, b.ambient, c.ambient, d.ambient )
-        --             rowB = ( a.diffuse, b.diffuse, c.diffuse, d.diffuse )
-        --             rowC = ( a.position, b.position, c.position, d.position )
-        --         in
-        --             lightsToMatrices size speed rowA rowB rowC
-        --     _ ->
-        --         { ambient = Mat4.identity
-        --         , diffuse = Mat4.identity
-        --         , position = Mat4.identity
-        --         , speed = speed
-        --         }
 
 
--- lightsToMatrices
---     : (Int, Int)
---     -> Speed
---     -> ( Vec4, Vec4, Vec4, Vec4 )
---     -> ( Vec4, Vec4, Vec4, Vec4 )
---     -> ( Vec3, Vec3, Vec3, Vec3 )
---     ->
---     { ambient : Mat4
---     , diffuse : Mat4
---     , position : Mat4
---     , speed : Speed
---     }
--- lightsToMatrices (w, h) speed ( aa, ba, ca, da ) ( ad, bd, cd, dd ) ( ap, bp, cp, dp ) =
---     { ambient = Mat4.fromRecord
---         { m11 = Vec4.getX aa, m12 = Vec4.getY aa, m13 = Vec4.getZ aa, m14 = Vec4.getW aa
---         , m21 = Vec4.getX ba, m22 = Vec4.getY ba, m23 = Vec4.getZ ba, m24 = Vec4.getW ba
---         , m31 = Vec4.getX ca, m32 = Vec4.getY ca, m33 = Vec4.getZ ca, m34 = Vec4.getW ca
---         , m41 = Vec4.getX da, m42 = Vec4.getY da, m43 = Vec4.getZ da, m44 = Vec4.getW da
---         } |> Mat4.transpose
---     , diffuse = Mat4.fromRecord
---         { m11 = Vec4.getX ad, m12 = Vec4.getY ad, m13 = Vec4.getZ ad, m14 = Vec4.getW ad
---         , m21 = Vec4.getX bd, m22 = Vec4.getY bd, m23 = Vec4.getZ bd, m24 = Vec4.getW bd
---         , m31 = Vec4.getX cd, m32 = Vec4.getY cd, m33 = Vec4.getZ cd, m34 = Vec4.getW cd
---         , m41 = Vec4.getX dd, m42 = Vec4.getY dd, m43 = Vec4.getZ dd, m44 = Vec4.getW dd
---         } |> Mat4.transpose
---     , position = Mat4.fromRecord
---         { m11 = Vec3.getX ap, m12 = Vec3.getY ap, m13 = Vec3.getZ ap, m14 = 0
---         , m21 = Vec3.getX bp, m22 = Vec3.getY bp, m23 = Vec3.getZ bp, m24 = 0
---         , m31 = Vec3.getX cp, m32 = Vec3.getY cp, m33 = Vec3.getZ cp, m34 = 0
---         , m41 = Vec3.getX dp, m42 = Vec3.getY dp, m43 = Vec3.getZ dp, m44 = 0
---         } |> Mat4.transpose
---     , speed = speed
---     }
-
+-- fillWithLight
+--     : SLight
+--     -> Int
+--     -> { ambient : { m11: Float, ... }
+--        , diffuse : { m11: Float, ... }
+--        , position : { m11: Float, ... }
+--        , speed : Speed
+--        }
+--     -> { ambient : Mat4, diffuse : Mat4, position : Mat4, speed : Speed }
+fillWithLight light lightIndex recs =
+    if lightIndex < 4 then
+        let
+            prevAmbient = recs.ambient
+            prevDiffuse = recs.diffuse
+            prevPosition = recs.position
+        in
+            case lightIndex of
+                0 ->
+                    { recs
+                    | ambient =
+                        case light.ambient.rgba of
+                            r::g::b::a::_ ->
+                                { prevAmbient
+                                | m11 = r, m12 = g, m13 = b, m14 = a
+                                }
+                            _ -> prevAmbient
+                    , diffuse =
+                        case light.diffuse.rgba of
+                            r::g::b::a::_ ->
+                                { prevDiffuse
+                                | m11 = r, m12 = g, m13 = b, m14 = a
+                                }
+                            _ -> prevDiffuse
+                    , position =
+                        case light.position of
+                            x::y::z::_ ->
+                                { prevPosition
+                                | m11 = x, m12 = y, m13 = z, m14 = 0
+                                }
+                            _ ->
+                                prevPosition
+                    }
+                1 ->
+                    { recs
+                    | ambient =
+                        case light.ambient.rgba of
+                            r::g::b::a::_ ->
+                                { prevAmbient
+                                | m21 = r, m22 = g, m23 = b, m24 = a
+                                }
+                            _ -> prevAmbient
+                    , diffuse =
+                        case light.diffuse.rgba of
+                            r::g::b::a::_ ->
+                                { prevDiffuse
+                                | m21 = r, m22 = g, m23 = b, m24 = a
+                                }
+                            _ -> prevDiffuse
+                    , position =
+                        case light.position of
+                            x::y::z::_ ->
+                                { prevPosition
+                                | m21 = x, m22 = y, m23 = z, m24 = 0
+                                }
+                            _ ->
+                                prevPosition
+                    }
+                2 ->
+                    { recs
+                    | ambient =
+                        case light.ambient.rgba of
+                            r::g::b::a::_ ->
+                                { prevAmbient
+                                | m31 = r, m32 = g, m33 = b, m34 = a
+                                }
+                            _ -> prevAmbient
+                    , diffuse =
+                        case light.diffuse.rgba of
+                            r::g::b::a::_ ->
+                                { prevDiffuse
+                                | m31 = r, m32 = g, m33 = b, m34 = a
+                                }
+                            _ -> prevDiffuse
+                    , position =
+                        case light.position of
+                            x::y::z::_ ->
+                                { prevPosition
+                                | m31 = x, m32 = y, m33 = z, m34 = 0
+                                }
+                            _ ->
+                                prevPosition
+                    }
+                3 ->
+                    { recs
+                    | ambient =
+                        case light.ambient.rgba of
+                            r::g::b::a::_ ->
+                                { prevAmbient
+                                | m41 = r, m42 = g, m43 = b, m44 = a
+                                }
+                            _ -> prevAmbient
+                    , diffuse =
+                        case light.diffuse.rgba of
+                            r::g::b::a::_ ->
+                                { prevDiffuse
+                                | m41 = r, m42 = g, m43 = b, m44 = a
+                                }
+                            _ -> prevDiffuse
+                    , position =
+                        case light.position of
+                            x::y::z::_ ->
+                                { prevPosition
+                                | m41 = x, m42 = y, m43 = z, m44 = 0
+                                }
+                            _ ->
+                                prevPosition
+                    }
+                _ -> recs
+    else recs
 
 
 vertexShader : WebGL.Shader Vertex Uniforms Varyings
