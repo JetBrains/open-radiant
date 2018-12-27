@@ -8,7 +8,7 @@ Install Elm and Webpack:
 
 Then install required packages:
 
-`npm install` + `elm-install`
+`npm install` (it will automatically call `elm-install` as well)
 
 Run with:
 
@@ -16,6 +16,7 @@ Run with:
 
 If you want to build / minify, use:
 
+`npm run build:player`
 `npm run build`
 
-Then take `build/Main.min.js` from `/build` directory.
+See `./package.json` and `Dockerfile` for

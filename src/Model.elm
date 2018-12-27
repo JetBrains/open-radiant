@@ -24,8 +24,6 @@ module Model exposing
 
 
 import Dict as Dict
-import Window
-import Time exposing (Time)
 
 import WebGL.Blend as WGLBlend
 import Html.Blend as HtmlBlend
@@ -123,7 +121,7 @@ type LayerKind
 
 -- type LayerBlend
 --     = WGLB WGLBlend.Blend
---     | SVGB HtmlBlend.Blend
+--     | HTMLB HtmlBlend.Blend
 
 
 type LayerModel
