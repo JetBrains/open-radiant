@@ -217,11 +217,11 @@ function start(document, model, funcs) {
       }
     }
 
-    function addSVGBlend(folder, config, layer, index) {
+    function addHtmlBlend(folder, config, layer, index) {
       const blendControl =
         folder.add(config, 'layer' + index + 'Blend', C.SVG_BLENDS).name('blend');
       blendControl.onFinishChange((value) => {
-        funcs.changeSVGBlend(index, value);
+        funcs.changeHtmlBlend(index, value);
       });
     }
 
@@ -314,7 +314,7 @@ function start(document, model, funcs) {
       if (layer.webglOrSvg == 'webgl') {
         addWebGLBlend(folder, config, layer, index);
       } else {
-        addSVGBlend(folder, config, layer, index);
+        addHtmlBlend(folder, config, layer, index);
       }
     });
 
@@ -338,12 +338,12 @@ function start(document, model, funcs) {
 
     // const textBlend = gui.add(config, 'textBlend', SVG_BLENDS);
     // textBlend.onFinishChange((value) => {
-    //   funcs.changeSVGBlend(2, value);
+    //   funcs.changeHtmlBlend(2, value);
     // });
 
     // const logoBlend = gui.add(config, 'logoBlend', SVG_BLENDS);
     // logoBlend.onFinishChange((value) => {
-    //   funcs.changeSVGBlend(3, value);
+    //   funcs.changeHtmlBlend(3, value);
     // });
 
 

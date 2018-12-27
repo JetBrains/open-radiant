@@ -1,4 +1,4 @@
-module Svg.Blend exposing
+module Html.Blend exposing
     ( Blend(..)
     , default
     , encode

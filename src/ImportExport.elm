@@ -17,7 +17,7 @@ import Json.Decode.Pipeline as D exposing (decode, required, optional, hardcoded
 import Json.Encode as E exposing (encode, Value, string, int, float, bool, list, object)
 
 import WebGL.Blend as WGLBlend
-import Svg.Blend as SVGBlend
+import Svg.Blend as HtmlBlend
 
 import Layer.FSS as FSS
 import Product exposing (..)
@@ -75,8 +75,8 @@ encodeLayerDef layerDef =
             case layerDef.layer of
                 M.WebGLLayer _ webglBlend ->
                     WGLBlend.encodeOne webglBlend |> E.string
-                M.SVGLayer _ svgBlend ->
-                    SVGBlend.encode svgBlend |> E.string
+                M.HtmlLayer _ htmlBlend ->
+                    HtmlBlend.encode htmlBlend |> E.string
           )
         , ( "blendDesc",
             case layerDef.layer of
@@ -84,8 +84,8 @@ encodeLayerDef layerDef =
                     webglBlend
                     |> WGLBlend.encodeHumanOne { delim = "; ", space = "> " }
                     |> E.string
-                M.SVGLayer _ svgBlend ->
-                    SVGBlend.encode svgBlend |> E.string
+                M.HtmlLayer _ htmlBlend ->
+                    HtmlBlend.encode htmlBlend |> E.string
           )
         , ( "isOn", layerDef.on |> E.bool )
         , ( "model", encodeLayerModel layerDef.model )
@@ -198,13 +198,13 @@ encodePortLayer layerDef =
     , webglOrSvg =
         case layerDef.layer of
             M.WebGLLayer _ _ -> "webgl"
-            M.SVGLayer _ _ -> "svg"
+            M.HtmlLayer _ _ -> "html"
     , blend =
         case layerDef.layer of
             M.WebGLLayer _ webglBlend ->
                 ( Just webglBlend, Nothing )
-            M.SVGLayer _ svgBlend ->
-                ( Nothing, SVGBlend.encode svgBlend |> Just )
+            M.HtmlLayer _ htmlBlend ->
+                ( Nothing, HtmlBlend.encode htmlBlend |> Just )
     , name = layerDef.name
     , model = layerDef.model
         |> encodeLayerModel
@@ -228,12 +228,12 @@ decodePortLayer createLayer portLayerDef =
                     |> Tuple.first
                     |> Maybe.withDefault WGLBlend.default
                     |> M.WebGLLayer webglLayer
-            M.SVGLayer svgLayer _ ->
+            M.HtmlLayer htmlLayer _ ->
                 portLayerDef.blend
                     |> Tuple.second
-                    |> Maybe.map SVGBlend.decode
-                    |> Maybe.withDefault SVGBlend.default
-                    |> M.SVGLayer svgLayer
+                    |> Maybe.map HtmlBlend.decode
+                    |> Maybe.withDefault HtmlBlend.default
+                    |> M.HtmlLayer htmlLayer
     in
         { kind = kind
         , on = portLayerDef.isOn
@@ -300,9 +300,9 @@ layerDefDecoder createLayer =
                         WGLBlend.decodeOne blendStr
                             |> Maybe.withDefault WGLBlend.default
                             |> M.WebGLLayer webglLayer
-                    M.SVGLayer svgLayer _ ->
-                        SVGBlend.decode blendStr |>
-                            M.SVGLayer svgLayer
+                    M.HtmlLayer htmlLayer _ ->
+                        HtmlBlend.decode blendStr |>
+                            M.HtmlLayer htmlLayer
             in
                 { kind = kind
                 , on = isOn
@@ -326,7 +326,7 @@ layerDefDecoder createLayer =
 --             let
 --                 createLayer renderType model isOn =
 --                      -- TODO
---                     M.SVGLayer M.NoContent SVGBlend.default
+--                     M.HtmlLayer M.NoContent HtmlBlend.default
 --             in
 --                 D.decode createLayer
 --                     |> D.required "renderMode" D.string
@@ -334,7 +334,7 @@ layerDefDecoder createLayer =
 --                     |> D.required "isOn" D.bool
 --          -- TODO
 --         _ ->
---             M.SVGLayer M.NoContent SVGBlend.default
+--             M.HtmlLayer M.NoContent HtmlBlend.default
 --                 |> D.decode
 
 

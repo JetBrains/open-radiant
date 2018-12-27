@@ -196,7 +196,7 @@ const savePng = (hiddenLink, { size, coverSize, product, background }) => {
         trgContext.fillStyle = background;
         trgContext.fillRect(0, 0, width, height);
         trgContext.drawImage(srcCanvas, 0, 0);
-        drawToCanvas.html(document.querySelector('.svg-layers'), trgCanvas, width, height, () => {
+        drawToCanvas.html(document.querySelector('.html-layers'), trgCanvas, width, height, () => {
 
             // FIXME: a temporary hack to draw a logo on the canvas,
             // use product image itself instead
@@ -309,8 +309,8 @@ setTimeout(() => {
                     { app.ports.changeFssRenderMode.send({ layer: index, value: renderMode }) }
                 , changeWGLBlend : (index, blend) =>
                     { app.ports.changeWGLBlend.send({ layer: index, value: blend }) }
-                , changeSVGBlend : (index, blend) =>
-                    { app.ports.changeSVGBlend.send({ layer: index, value: blend }) }
+                , changeHtmlBlend : (index, blend) =>
+                    { app.ports.changeHtmlBlend.send({ layer: index, value: blend }) }
                 , changeProduct : (id) =>
                     { app.ports.changeProduct.send(id) }
                 , setCustomSize : (value) => {

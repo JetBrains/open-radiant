@@ -11,7 +11,7 @@ module Model exposing
     , LayerKind(..)
     , Layer(..)
     , WebGLLayer_(..)
-    , SVGLayer_(..)
+    , HtmlLayer_(..)
     , CreateLayer
     , Size
     , Pos
@@ -28,7 +28,7 @@ import Window
 import Time exposing (Time)
 
 import WebGL.Blend as WGLBlend
-import Svg.Blend as SVGBlend
+import Svg.Blend as HtmlBlend
 
 import Gui.Gui as Gui
 import Gui.Def exposing (..)
@@ -82,7 +82,7 @@ type Msg
     | Configure LayerIndex LayerModel
     | ChangeWGLBlend LayerIndex WGLBlend.Blend
     | AlterWGLBlend LayerIndex WGLBlend.BlendChange
-    | ChangeSVGBlend LayerIndex SVGBlend.Blend
+    | ChangeHtmlBlend LayerIndex HtmlBlend.Blend
     | RebuildFss LayerIndex FSS.SerializedScene
     --| RebuildOnClient LayerIndex FSS.SerializedScene
     | ChangeFssRenderMode LayerIndex FSS.RenderMode
@@ -112,6 +112,7 @@ type LayerKind
     = Lorenz
     | Fractal
     | Template
+    | Canvas
     | Voronoi
     | Fss
     | MirroredFss
@@ -122,7 +123,7 @@ type LayerKind
 
 -- type LayerBlend
 --     = WGLB WGLBlend.Blend
---     | SVGB SVGBlend.Blend
+--     | SVGB HtmlBlend.Blend
 
 
 type LayerModel
@@ -145,14 +146,14 @@ type WebGLLayer_
     | VignetteLayer
 
 
-type SVGLayer_
+type HtmlLayer_
     = CoverLayer
     | NoContent
 
 
 type Layer
     = WebGLLayer WebGLLayer_ WGLBlend.Blend
-    | SVGLayer SVGLayer_ SVGBlend.Blend
+    | HtmlLayer HtmlLayer_ HtmlBlend.Blend
 
 
 -- `change` is needed since we store a sample layer model
@@ -276,7 +277,7 @@ initEmpty mode =
 
 emptyLayer : Layer
 emptyLayer =
-    SVGLayer NoContent SVGBlend.default
+    HtmlLayer NoContent HtmlBlend.default
 
 
 sizePresets : UiMode -> ( Dict.Dict String ( Int, Int ), Shape )
@@ -349,7 +350,7 @@ gui from =
             , "mps"
             -- TODO
             ]
-        svgBlends =
+        htmlBlends =
             [ "normal"
             , "overlay"
             , "multiply"
@@ -368,14 +369,14 @@ gui from =
             ( "browser" :: Dict.keys currentSizePresets )
                 |> List.map ChoiceItem
                 |> nest sizePresetsShape
-        svgBlendGrid =
-            svgBlends
+        htmlBlendGrid =
+            htmlBlends
                 |> List.map ChoiceItem
                 |> nest ( 3, 3 )
-        svgControls currentBlend layerIndex =
+        htmlControls currentBlend layerIndex =
             oneLine
                 [ Toggle "visible" TurnedOn <| toggleVisibility layerIndex
-                , Choice "blend" Collapsed 0 (chooseSvgBlend layerIndex) svgBlendGrid
+                , Choice "blend" Collapsed 0 (chooseSvgBlend layerIndex) htmlBlendGrid
                 ]
         chooseProduct _ label =
             case label of
@@ -395,7 +396,7 @@ gui from =
         chooseWebGlBlend layerIndex index label =
             NoOp
         chooseSvgBlend layerIndex _ label =
-            ChangeSVGBlend layerIndex <| SVGBlend.decode label
+            ChangeHtmlBlend layerIndex <| HtmlBlend.decode label
         toggleVisibility layerIndex state =
             layerIndex |> if (state == TurnedOn) then TurnOn else TurnOff
         rotateKnobSetup =
@@ -418,9 +419,9 @@ gui from =
                                         Nested (String.toLower name) Collapsed
                                             <| fssControls from.mode fssModel webglBlend layerIndex
                                     _ -> Ghost <| "layer " ++ toString layerIndex
-                            SVGLayer _ svgBlend ->
+                            HtmlLayer _ htmlBlend ->
                                 Nested (String.toLower name) Collapsed
-                                    <| svgControls svgBlend layerIndex
+                                    <| htmlControls htmlBlend layerIndex
                     )
     in
         Gui.build <|

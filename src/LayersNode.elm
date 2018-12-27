@@ -14,7 +14,7 @@ import Svg.Blend as SVGB
 type Blend
     = None
     | WebGLBlend WGLB.Blend
-    | SVGBlend SVGB.Blend
+    | HtmlBlend SVGB.Blend
 
 
 -- kinda Either, but for ports:
@@ -51,21 +51,21 @@ convertBlend blend =
     case blend of
         None -> ( Nothing, Nothing )
         WebGLBlend webglBlend -> ( Just webglBlend, Nothing )
-        SVGBlend svgBlend -> ( Nothing, Just (SVGB.encode svgBlend) )
+        HtmlBlend htmlBlend -> ( Nothing, Just (SVGB.encode htmlBlend) )
 
 
 adaptBlend : PortBlend -> Blend
 adaptBlend portBlend =
     case portBlend of
         ( Just webGlBlend, Nothing ) -> WebGLBlend webGlBlend
-        ( Nothing, Just svgBlend ) -> SVGBlend (SVGB.decode svgBlend )
+        ( Nothing, Just htmlBlend ) -> HtmlBlend (SVGB.decode htmlBlend )
         _ -> None
 
 
 decodeOne : String -> Blend
 decodeOne str =
     if (String.startsWith "_" str) then
-        SVGB.decode (String.dropLeft 1 str) |> SVGBlend
+        SVGB.decode (String.dropLeft 1 str) |> HtmlBlend
     else
         case str of
             "" -> None
@@ -80,7 +80,7 @@ encodeOne blend =
     case blend of
         None -> "-"
         WebGLBlend webglBlend -> WGLB.encodeOne webglBlend
-        SVGBlend svgBlend -> "_" ++ SVGB.encode svgBlend
+        HtmlBlend htmlBlend -> "_" ++ SVGB.encode htmlBlend
 
 
 decodeAll : String -> List Blend
@@ -134,10 +134,10 @@ renderBlend idx blend =
                     [ webglBlend.alphaEq |> renderEq "alpha"
                     (\eq -> ChangeBlend idx (WebGLBlend { webglBlend | alphaEq = eq })) ]
                 ]
-        SVGBlend svgBlend ->
+        HtmlBlend htmlBlend ->
             g
                 [ class "blend", move 0 10 ]
-                [ text_ [] [ text ("SVG:" ++ SVGB.encode svgBlend) ] ]
+                [ text_ [] [ text ("SVG:" ++ SVGB.encode htmlBlend) ] ]
         None ->
             g
                 [ class "blend", move 0 10 ]
@@ -271,9 +271,9 @@ update msg model =
                     "webgl" -> case curBlend of
                                    WebGLBlend _ -> curBlend
                                    _ -> WebGLBlend WGLB.default
-                    "svg" -> case curBlend of
-                                   SVGBlend _ -> curBlend
-                                   _ -> SVGBlend SVGB.default
+                    "html" -> case curBlend of
+                                   HtmlBlend _ -> curBlend
+                                   _ -> HtmlBlend SVGB.default
                     _ -> None
                 model_ =
                     { model

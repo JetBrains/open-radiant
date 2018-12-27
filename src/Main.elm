@@ -21,7 +21,7 @@ import Model exposing (..)
 import Gui.Gui as Gui
 import Viewport exposing (Viewport)
 import WebGL.Blend as WGLBlend
-import Svg.Blend as SVGBlend
+import Svg.Blend as HtmlBlend
 import Controls
 import ImportExport as IE
 import Product exposing (Product)
@@ -315,7 +315,7 @@ update msg model =
             , Cmd.none
             )
 
-        ChangeSVGBlend index newBlend ->
+        ChangeHtmlBlend index newBlend ->
             ( model |> updateLayerBlend index
                 (\_ -> Nothing)
                 (\_ -> Just newBlend)
@@ -550,8 +550,8 @@ getBlendForPort layer =
         WebGLLayer _ webglBlend -> Just webglBlend
         _ -> Nothing
     , case layer of
-        SVGLayer _ svgBlend ->
-            SVGBlend.encode svgBlend |> Just
+        HtmlLayer _ htmlBlend ->
+            HtmlBlend.encode htmlBlend |> Just
         _ -> Nothing
     )
 
@@ -579,7 +579,7 @@ encodeLayerKind kind =
 --         "voronoi" -> Just Voronoi
 --         "fractal" -> Just Fractal
 --         "text" -> Just Text
---         "svg" -> Just SvgImage
+--         "html" -> Just SvgImage
 --         "vignette" -> Just Vignette
 --         _ -> Nothing
 
@@ -624,9 +624,9 @@ createLayer kind layerModel =
             -- WGLBlend.Blend Nothing (0, 1, 7) (0, 1, 7) |> VignetteLayer Vignette.init
             -- VignetteLayer Vignette.init WGLBlend.default
         ( Cover, _ ) ->
-            SVGLayer
+            HtmlLayer
             CoverLayer
-            SVGBlend.default
+            HtmlBlend.default
         _ ->
             Model.emptyLayer
 
@@ -703,7 +703,7 @@ updateLayerWithItsModel index f model =
 updateLayerBlend
     : Int
     -> (WGLBlend.Blend -> Maybe WGLBlend.Blend)
-    -> (SVGBlend.Blend -> Maybe SVGBlend.Blend)
+    -> (HtmlBlend.Blend -> Maybe HtmlBlend.Blend)
     -> Model
     -> Model
 updateLayerBlend index ifWebgl ifSvg model =
@@ -715,10 +715,10 @@ updateLayerBlend index ifWebgl ifSvg model =
                     ifWebgl webglBlend
                         |> Maybe.withDefault webglBlend
                         |> WebGLLayer webglLayer
-                SVGLayer svgLayer svgBlend ->
-                    ifSvg svgBlend
-                        |> Maybe.withDefault svgBlend
-                        |> SVGLayer svgLayer
+                HtmlLayer htmlLayer htmlBlend ->
+                    ifSvg htmlBlend
+                        |> Maybe.withDefault htmlBlend
+                        |> HtmlLayer htmlLayer
             })
 
 
@@ -785,8 +785,8 @@ subscriptions model =
         , changeWGLBlend (\{ layer, value } ->
             ChangeWGLBlend layer value
           )
-        , changeSVGBlend (\{ layer, value } ->
-            ChangeSVGBlend layer <| SVGBlend.decode value
+        , changeHtmlBlend (\{ layer, value } ->
+            ChangeHtmlBlend layer <| HtmlBlend.decode value
           )
         , configureLorenz (\{ layer, value } ->
             Configure layer (LorenzModel value)
@@ -843,13 +843,13 @@ isWebGLLayer : Layer -> Bool
 isWebGLLayer layer =
     case layer of
         WebGLLayer _ _ -> True
-        SVGLayer _ _ -> False
+        HtmlLayer _ _ -> False
 
 isSvgLayer : Layer -> Bool
 isSvgLayer layer =
     case layer of
         WebGLLayer _ _ -> False
-        SVGLayer _ _ -> True
+        HtmlLayer _ _ -> True
 
 
 mergeWebGLLayers : Model -> List WebGL.Entity
@@ -878,10 +878,10 @@ mergeHtmlLayers model =
 layerToHtml : Model -> Int -> LayerDef -> Html Msg
 layerToHtml model index { layer } =
     case layer of
-        SVGLayer svgLayer svgBlend ->
-            case svgLayer of
+        HtmlLayer htmlLayer htmlBlend ->
+            case htmlLayer of
                 CoverLayer ->
-                    Cover.view model.mode model.product model.size model.origin svgBlend
+                    Cover.view model.mode model.product model.size model.origin htmlBlend
                 NoContent -> div [] []
         _ -> div [] []
 
@@ -992,7 +992,7 @@ view model =
         --     (config |>
         --           Controls.controls numVertices theta)
            --:: WebGL.toHtmlWith
-        [ mergeHtmlLayers model |> div [ H.class "svg-layers" ]
+        [ mergeHtmlLayers model |> div [ H.class "html-layers" ]
         , if model.controlsVisible
             then ( div
                 [ H.class "overlay-panel import-export-panel hide-on-space" ]
@@ -1044,7 +1044,7 @@ view model =
                     ]
                 , onClick TriggerPause
                 ]
-        -- , mergeHtmlLayers model |> div [ H.class "svg-layers"]
+        -- , mergeHtmlLayers model |> div [ H.class "html-layers"]
         , model.gui
             |> Maybe.map Gui.view
             |> Maybe.map (Html.map GuiMessage)
@@ -1131,7 +1131,7 @@ port changeWGLBlend :
       }
     -> msg) -> Sub msg
 
-port changeSVGBlend :
+port changeHtmlBlend :
     ( { layer : Int
       , value : String
       }
