@@ -28,7 +28,7 @@ import Window
 import Time exposing (Time)
 
 import WebGL.Blend as WGLBlend
-import Svg.Blend as HtmlBlend
+import Html.Blend as HtmlBlend
 
 import Gui.Gui as Gui
 import Gui.Def exposing (..)
@@ -148,6 +148,7 @@ type WebGLLayer_
 
 type HtmlLayer_
     = CoverLayer
+    | CanvasLayer
     | NoContent
 
 

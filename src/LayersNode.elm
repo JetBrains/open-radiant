@@ -9,7 +9,7 @@ import Svg.Attributes as SA exposing (..)
 import Svg.Events as SE exposing (..)
 
 import WebGL.Blend as WGLB
-import Svg.Blend as SVGB
+import Html.Blend as SVGB
 
 type Blend
     = None

@@ -4,7 +4,7 @@ module Layer.Cover exposing
 
 import Html exposing (..)
 import Html.Attributes as HAttrs
-import Svg.Blend as Blend
+import Html.Blend as Blend
 import Product exposing (..)
 import Json.Encode as E
 

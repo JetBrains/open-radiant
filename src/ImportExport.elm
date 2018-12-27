@@ -17,7 +17,7 @@ import Json.Decode.Pipeline as D exposing (decode, required, optional, hardcoded
 import Json.Encode as E exposing (encode, Value, string, int, float, bool, list, object)
 
 import WebGL.Blend as WGLBlend
-import Svg.Blend as HtmlBlend
+import Html.Blend as HtmlBlend
 
 import Layer.FSS as FSS
 import Product exposing (..)
@@ -57,6 +57,7 @@ encodeKind_ kind =
         M.Lorenz -> "lorenz"
         M.Fractal -> "fractal"
         M.Template -> "template"
+        M.Canvas -> "canvas"
         M.Voronoi -> "voronoi"
         M.Cover -> "cover"
         M.Vignette -> "vignette"

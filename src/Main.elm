@@ -21,7 +21,7 @@ import Model exposing (..)
 import Gui.Gui as Gui
 import Viewport exposing (Viewport)
 import WebGL.Blend as WGLBlend
-import Svg.Blend as HtmlBlend
+import Html.Blend as HtmlBlend
 import Controls
 import ImportExport as IE
 import Product exposing (Product)
@@ -554,20 +554,6 @@ getBlendForPort layer =
             HtmlBlend.encode htmlBlend |> Just
         _ -> Nothing
     )
-
-
-encodeLayerKind : LayerKind -> String
-encodeLayerKind kind =
-    case kind of
-        Fss -> "fss"
-        MirroredFss -> "fss-mirror"
-        Lorenz -> "lorenz"
-        Template -> "template"
-        Voronoi -> "voronoi"
-        Fractal -> "fractal"
-        Cover -> "cover"
-        Vignette -> "vignette"
-        Empty -> "empty"
 
 
 -- decodeLayerKind : String -> Maybe LayerKind
