@@ -97,7 +97,7 @@ foldCells = foldCells_ Nothing
 foldCells_ : Maybe NestPos -> (Cell umsg -> NestPos -> a -> a) -> a -> Nest umsg -> a
 foldCells_ maybeParentPos f default { cells } =
     let
-        foldingF maybeParentPos cell ( index, v ) =
+        foldingF cell ( index, v ) =
             ( index + 1
             ,   let
                     nestPos =
@@ -114,7 +114,7 @@ foldCells_ maybeParentPos f default { cells } =
                     _ -> f cell nestPos v
             )
     in
-        List.foldl (foldingF maybeParentPos) (0, default) cells
+        List.foldl foldingF (0, default) cells
             |> Tuple.second
 
 
