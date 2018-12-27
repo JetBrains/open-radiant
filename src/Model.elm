@@ -191,7 +191,7 @@ type alias Model =
 
 -- kinda Either, but for ports:
 --    ( Just WebGLBlend, Nothing ) --> WebGL Blend
---    ( Nothing, Just String ) --> SVG Blend
+--    ( Nothing, Just String ) --> HTML Blend
 --    ( Nothing, Nothing ) --> None
 --    ( Just WebGLBlend, Just String ) --> ¯\_(ツ)_/¯
 type alias PortBlend =
@@ -216,7 +216,7 @@ type alias PortModel =
 type alias PortLayerDef =
     { kind : String
     , blend : PortBlend
-    , webglOrSvg : String
+    , webglOrHtml : String
     , isOn : Bool
     , name : String
     , model : String
@@ -375,7 +375,7 @@ gui from =
         htmlControls currentBlend layerIndex =
             oneLine
                 [ Toggle "visible" TurnedOn <| toggleVisibility layerIndex
-                , Choice "blend" Collapsed 0 (chooseSvgBlend layerIndex) htmlBlendGrid
+                , Choice "blend" Collapsed 0 (chooseHtmlBlend layerIndex) htmlBlendGrid
                 ]
         chooseProduct _ label =
             case label of
@@ -394,7 +394,7 @@ gui from =
                         |> Maybe.withDefault RequestFitToWindow
         chooseWebGlBlend layerIndex index label =
             NoOp
-        chooseSvgBlend layerIndex _ label =
+        chooseHtmlBlend layerIndex _ label =
             ChangeHtmlBlend layerIndex <| HtmlBlend.decode label
         toggleVisibility layerIndex state =
             layerIndex |> if (state == TurnedOn) then TurnOn else TurnOff

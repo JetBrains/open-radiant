@@ -108,7 +108,7 @@ const BLEND_FACTORS_IDS =
 };
 
 
-const SVG_BLENDS =
+const HTML_BLENDS =
   [ 'normal', 'overlay' ];
 
 
@@ -178,7 +178,7 @@ module.exports = {
     BLEND_FACTORS,
     BLEND_FACTORS_IDS,
     BLEND_SETS,
-    SVG_BLENDS,
+    HTML_BLENDS,
     RENDER_MODES,
     RELEASE_SIZES,
     WALLPAPER_SIZES,

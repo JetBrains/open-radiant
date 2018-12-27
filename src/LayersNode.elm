@@ -9,12 +9,12 @@ import Svg.Attributes as SA exposing (..)
 import Svg.Events as SE exposing (..)
 
 import WebGL.Blend as WGLB
-import Html.Blend as SVGB
+import Html.Blend as HTMLB
 
 type Blend
     = None
     | WebGLBlend WGLB.Blend
-    | HtmlBlend SVGB.Blend
+    | HtmlBlend HTMLB.Blend
 
 
 -- kinda Either, but for ports:
@@ -22,7 +22,7 @@ type Blend
 --    ( Nothing, Just String ) --> SVG Blend
 --    ( Nothing, Nothing ) --> None
 --    ( Just WebGLBlend, Just String ) --> ¯\_(ツ)_/¯
-type alias PortBlend = (Maybe WGLB.Blend, Maybe SVGB.PortBlend)
+type alias PortBlend = (Maybe WGLB.Blend, Maybe HTMLB.PortBlend)
 
 type alias Blends = Dict.Dict Int Blend
 
@@ -51,21 +51,21 @@ convertBlend blend =
     case blend of
         None -> ( Nothing, Nothing )
         WebGLBlend webglBlend -> ( Just webglBlend, Nothing )
-        HtmlBlend htmlBlend -> ( Nothing, Just (SVGB.encode htmlBlend) )
+        HtmlBlend htmlBlend -> ( Nothing, Just (HTMLB.encode htmlBlend) )
 
 
 adaptBlend : PortBlend -> Blend
 adaptBlend portBlend =
     case portBlend of
         ( Just webGlBlend, Nothing ) -> WebGLBlend webGlBlend
-        ( Nothing, Just htmlBlend ) -> HtmlBlend (SVGB.decode htmlBlend )
+        ( Nothing, Just htmlBlend ) -> HtmlBlend (HTMLB.decode htmlBlend )
         _ -> None
 
 
 decodeOne : String -> Blend
 decodeOne str =
     if (String.startsWith "_" str) then
-        SVGB.decode (String.dropLeft 1 str) |> HtmlBlend
+        HTMLB.decode (String.dropLeft 1 str) |> HtmlBlend
     else
         case str of
             "" -> None
@@ -80,7 +80,7 @@ encodeOne blend =
     case blend of
         None -> "-"
         WebGLBlend webglBlend -> WGLB.encodeOne webglBlend
-        HtmlBlend htmlBlend -> "_" ++ SVGB.encode htmlBlend
+        HtmlBlend htmlBlend -> "_" ++ HTMLB.encode htmlBlend
 
 
 decodeAll : String -> List Blend
@@ -137,7 +137,7 @@ renderBlend idx blend =
         HtmlBlend htmlBlend ->
             g
                 [ class "blend", move 0 10 ]
-                [ text_ [] [ text ("SVG:" ++ SVGB.encode htmlBlend) ] ]
+                [ text_ [] [ text ("SVG:" ++ HTMLB.encode htmlBlend) ] ]
         None ->
             g
                 [ class "blend", move 0 10 ]
@@ -273,7 +273,7 @@ update msg model =
                                    _ -> WebGLBlend WGLB.default
                     "html" -> case curBlend of
                                    HtmlBlend _ -> curBlend
-                                   _ -> HtmlBlend SVGB.default
+                                   _ -> HtmlBlend HTMLB.default
                     _ -> None
                 model_ =
                     { model

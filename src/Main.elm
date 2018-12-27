@@ -1,7 +1,6 @@
 port module Main exposing (main)
 
 import Array exposing (Array)
-import AnimationFrame
 import Task exposing (Task)
 
 import Html exposing (Html, text, div, span, input)
@@ -314,7 +313,7 @@ update msg model =
             , Cmd.none
             )
 
-        ChangeSVGBlend index newBlend ->
+        ChangeHtmlBlend index newBlend ->
             ( model |> updateLayerBlend index
                 (\_ -> Nothing)
                 (\_ -> Just newBlend)
@@ -549,8 +548,8 @@ getBlendForPort layer =
         WebGLLayer _ webglBlend -> Just webglBlend
         _ -> Nothing
     , case layer of
-        SVGLayer _ svgBlend ->
-            SVGBlend.encode svgBlend |> Just
+        HtmlLayer _ svgBlend ->
+            HtmlBlend.encode htmlBlend |> Just
         _ -> Nothing
     )
 
@@ -691,7 +690,7 @@ updateLayerBlend
     -> (HtmlBlend.Blend -> Maybe HtmlBlend.Blend)
     -> Model
     -> Model
-updateLayerBlend index ifWebgl ifSvg model =
+updateLayerBlend index ifWebgl ifHtml model =
     model |> updateLayerDef index
         (\layerDef ->
             { layerDef
@@ -701,7 +700,7 @@ updateLayerBlend index ifWebgl ifSvg model =
                         |> Maybe.withDefault webglBlend
                         |> WebGLLayer webglLayer
                 HtmlLayer htmlLayer htmlBlend ->
-                    ifSvg htmlBlend
+                    ifHtml htmlBlend
                         |> Maybe.withDefault htmlBlend
                         |> HtmlLayer htmlLayer
             })
@@ -834,8 +833,8 @@ isWebGLLayer layer =
         WebGLLayer _ _ -> True
         HtmlLayer _ _ -> False
 
-isSvgLayer : Layer -> Bool
-isSvgLayer layer =
+isHtmlLayer : Layer -> Bool
+isHtmlLayer layer =
     case layer of
         WebGLLayer _ _ -> False
         HtmlLayer _ _ -> True
@@ -859,7 +858,7 @@ mergeWebGLLayers model =
 mergeHtmlLayers : Model -> List (Html Msg)
 mergeHtmlLayers model =
     model.layers
-        |> List.filter (.layer >> isSvgLayer)
+        |> List.filter (.layer >> isHtmlLayer)
         |> List.filter .on
         |> List.indexedMap (layerToHtml model)
 

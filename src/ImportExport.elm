@@ -196,7 +196,7 @@ encodePortLayer : M.LayerDef -> M.PortLayerDef
 encodePortLayer layerDef =
     { kind = encodeKind_ layerDef.kind
     , isOn = layerDef.on
-    , webglOrSvg =
+    , webglOrHtml =
         case layerDef.layer of
             M.WebGLLayer _ _ -> "webgl"
             M.HtmlLayer _ _ -> "html"

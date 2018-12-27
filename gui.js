@@ -34,7 +34,7 @@ const Config = function(layers, defaults, funcs, randomize) {
     const PREDEFINED_SIZES = getSizesSet(mode);
 
     layers.forEach((layer, index) => {
-      if (layer.webglOrSvg == 'webgl') {
+      if (layer.webglOrHtml == 'webgl') {
         if (mode !== 'prod') {
 
           if (layer.blend[0]) {
@@ -61,7 +61,7 @@ const Config = function(layers, defaults, funcs, randomize) {
           this['blendColor' + index] =
               layer.blend[0].color || [ 1, 0, 0, 0 ]; // FIXME: get RGBA components
         }
-      } else { // webglOrSvg != 'webgl'
+      } else { // webglOrHtml != 'webgl'
         this['layer' + index + 'Blend'] = layer.blend[1] || 'normal';
       }
 
@@ -219,7 +219,7 @@ function start(document, model, funcs) {
 
     function addHtmlBlend(folder, config, layer, index) {
       const blendControl =
-        folder.add(config, 'layer' + index + 'Blend', C.SVG_BLENDS).name('blend');
+        folder.add(config, 'layer' + index + 'Blend', C.HTML_BLENDS).name('blend');
       blendControl.onFinishChange((value) => {
         funcs.changeHtmlBlend(index, value);
       });
@@ -311,7 +311,7 @@ function start(document, model, funcs) {
       visibitySwitch.onFinishChange(val => switchLayer(index, val));
 
       addLayerProps(folder, config, layer, index);
-      if (layer.webglOrSvg == 'webgl') {
+      if (layer.webglOrHtml == 'webgl') {
         addWebGLBlend(folder, config, layer, index);
       } else {
         addHtmlBlend(folder, config, layer, index);
@@ -336,12 +336,12 @@ function start(document, model, funcs) {
       });
 
 
-    // const textBlend = gui.add(config, 'textBlend', SVG_BLENDS);
+    // const textBlend = gui.add(config, 'textBlend', HTML_BLENDS);
     // textBlend.onFinishChange((value) => {
     //   funcs.changeHtmlBlend(2, value);
     // });
 
-    // const logoBlend = gui.add(config, 'logoBlend', SVG_BLENDS);
+    // const logoBlend = gui.add(config, 'logoBlend', HTML_BLENDS);
     // logoBlend.onFinishChange((value) => {
     //   funcs.changeHtmlBlend(3, value);
     // });
