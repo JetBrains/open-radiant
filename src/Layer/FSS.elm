@@ -28,7 +28,6 @@ import Math.Vector3 as Vec3 exposing (vec3, Vec3, getX, getY, getZ)
 import Math.Vector4 as Vec4 exposing (vec4, Vec4)
 import WebGL
 import WebGL.Settings exposing (Setting)
-import Time exposing (Time)
 
 
 import Viewport exposing (Viewport)
