@@ -24,6 +24,8 @@ module Model exposing
 
 
 import Dict as Dict
+import Time as Time
+import Browser.Dom exposing (Viewport)
 
 import WebGL.Blend as WGLBlend
 import Html.Blend as HtmlBlend
@@ -56,10 +58,10 @@ type alias CreateLayer = LayerKind -> LayerModel -> Layer
 type Msg
     = Bang
     | ChangeMode UiMode
-    | Animate Time
+    | Animate Time.Posix
     | GuiMessage (Gui.Msg Msg)
-    | Resize Window.Size
-    | ResizeFromPreset Window.Size
+    | Resize Viewport
+    | ResizeFromPreset Viewport
     | RequestFitToWindow
     | Locate Pos
     | Rotate Float
@@ -179,8 +181,8 @@ type alias Model =
     , size : Size
     , origin : Pos
     , mouse : Pos
-    , now : Time
-    , timeShift : Time
+    , now : Time.Posix
+    , timeDelta : Float
     , product : Product
     , controlsVisible : Bool
     -- voronoi : Voronoi.Config
@@ -203,7 +205,7 @@ type alias PortModel =
     , layers : List PortLayerDef
     , mode : String
     , mouse : ( Int, Int )
-    , now : Time.Time
+    , now : Time.Posix
     , origin : Pos
     , size : Size
     , theta : Float
@@ -363,15 +365,15 @@ gui from =
         productsGrid =
             products
                 |> List.map ChoiceItem
-                |> nest ( 6, 4 )
+                |> nestWithin ( 6, 4 )
         sizeGrid =
             ( "browser" :: Dict.keys currentSizePresets )
                 |> List.map ChoiceItem
-                |> nest sizePresetsShape
+                |> nestWithin sizePresetsShape
         htmlBlendGrid =
             htmlBlends
                 |> List.map ChoiceItem
-                |> nest ( 3, 3 )
+                |> nestWithin ( 3, 3 )
         htmlControls currentBlend layerIndex =
             oneLine
                 [ Toggle "visible" TurnedOn <| toggleVisibility layerIndex
@@ -453,40 +455,40 @@ webglBlendGrid mode currentBlend layerIndex =
         funcGrid =
             blendFuncs
                 |> List.map ChoiceItem
-                |> nest ( 3, 1 )
+                |> nestWithin ( 3, 1 )
         factorGrid =
             blendFactors
                 |> List.map ChoiceItem
-                |> nest ( 8, 2 )
-        chooseBlendColorFn layerIndex index label =
+                |> nestWithin ( 8, 2 )
+        chooseBlendColorFn index label =
             AlterWGLBlend layerIndex
                 (\curBlend ->
                     let ( _, colorFactor1, colorFactor2 ) = curBlend.colorEq
                     in { curBlend | colorEq =
                         ( WGLBlend.decodeFunc label, colorFactor1, colorFactor2 ) }
                 )
-        chooseBlendColorFact1 layerIndex index label =
+        chooseBlendColorFact1 index label =
             AlterWGLBlend layerIndex
                 (\curBlend ->
                     let ( colorFunc, _, colorFactor2 ) = curBlend.colorEq
                     in { curBlend | colorEq =
                         ( colorFunc, WGLBlend.decodeFactor label, colorFactor2 ) }
                 )
-        chooseBlendColorFact2 layerIndex index label =
+        chooseBlendColorFact2 index label =
             AlterWGLBlend layerIndex
                 (\curBlend ->
                     let ( colorFunc, colorFactor1, _ ) = curBlend.colorEq
                     in { curBlend | colorEq =
                         ( colorFunc, colorFactor1, WGLBlend.decodeFactor label ) }
                 )
-        chooseBlendAlphaFn layerIndex index label =
+        chooseBlendAlphaFn index label =
             AlterWGLBlend layerIndex
                 (\curBlend ->
                     let ( _, alphaFactor1, alphaFactor2 ) = curBlend.alphaEq
                     in { curBlend | alphaEq =
                         ( WGLBlend.decodeFunc label, alphaFactor1, alphaFactor2 ) }
                 )
-        chooseBlendAlphaFact1 layerIndex index label =
+        chooseBlendAlphaFact1 index label =
             AlterWGLBlend layerIndex
                 (\curBlend ->
                     let ( alphaFunc, alphaFactor1, _ ) = curBlend.alphaEq
@@ -494,7 +496,7 @@ webglBlendGrid mode currentBlend layerIndex =
                         ( alphaFunc, alphaFactor1, WGLBlend.decodeFactor label )
                     }
                 )
-        chooseBlendAlphaFact2 layerIndex index label =
+        chooseBlendAlphaFact2 index label =
             AlterWGLBlend layerIndex
                 (\curBlend ->
                     let ( alphaFunc, _, alphaFactor2 ) = curBlend.alphaEq
@@ -503,20 +505,14 @@ webglBlendGrid mode currentBlend layerIndex =
                     }
                 )
     in
-        nest ( 3, 2 )
+        nestWithin ( 3, 2 )
         -- TODO color
-            [ Choice "colorFn" Collapsed 0
-                (chooseBlendColorFn layerIndex) funcGrid
-            , Choice "colorFt1" Collapsed 1
-                (chooseBlendColorFact1 layerIndex) factorGrid
-            , Choice "colorFt2" Collapsed 0
-                (chooseBlendColorFact2 layerIndex) factorGrid
-            , Choice "alphaFn" Collapsed 0
-                (chooseBlendAlphaFn layerIndex) funcGrid
-            , Choice "alphaFt1" Collapsed 1
-                (chooseBlendAlphaFact1 layerIndex) factorGrid
-            , Choice "alphaFt2" Collapsed 0
-                (chooseBlendAlphaFact2 layerIndex) factorGrid
+            [ Choice "colorFn"  Collapsed 0 chooseBlendColorFn funcGrid
+            , Choice "colorFt1" Collapsed 1 chooseBlendColorFact1 factorGrid
+            , Choice "colorFt2" Collapsed 0 chooseBlendColorFact2 factorGrid
+            , Choice "alphaFn"  Collapsed 0 chooseBlendAlphaFn funcGrid
+            , Choice "alphaFt1" Collapsed 1 chooseBlendAlphaFact1 factorGrid
+            , Choice "alphaFt2" Collapsed 0 layerIndex factorGrid
             ]
 
 

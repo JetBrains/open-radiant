@@ -22,8 +22,8 @@ oneLine cells =
     }
 
 
-nestWith : Shape -> Cells umsg -> Nest umsg
-nestWith shape cells =
+nestWithin : Shape -> Cells umsg -> Nest umsg
+nestWithin shape cells =
     { focus = 0
     , shape = shape
     , cells = cells
