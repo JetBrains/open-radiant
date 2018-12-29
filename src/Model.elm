@@ -269,7 +269,7 @@ initEmpty mode =
     , now = 0.0
     , timeShift = 0.0
     --, range = ( 0.8, 1.0 )
-    , product = Product.CLion
+    , product = Product.JetBrains
     , controlsVisible = True
     }
 

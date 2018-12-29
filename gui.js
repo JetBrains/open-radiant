@@ -17,6 +17,7 @@ const getSizesSet = (mode) => {
   const predefinedSizes =  {
     'release': C.RELEASE_SIZES,
     'prod' : C.WALLPAPER_SIZES,
+    'dev' : C.WALLPAPER_SIZES,
     'ads' : C.ADS_SIZES } [mode];
   predefinedSizes['monitor'] = [
     window.screen.width * window.devicePixelRatio,
