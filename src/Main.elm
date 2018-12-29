@@ -41,7 +41,7 @@ sizeCoef = 1.0
 
 
 initialMode : UiMode
-initialMode = Production
+initialMode = Ads
 
 
 init : ( Model, Cmd Msg )
