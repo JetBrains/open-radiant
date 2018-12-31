@@ -3,13 +3,12 @@ module Model exposing
     , initEmpty
     , Model
     , UiMode(..)
-    , Layer
+    , Layer(..)
     , emptyLayer
     , LayerIndex
     , LayerDef
     , LayerModel(..)
     , LayerKind(..)
-    , Layer(..)
     , WebGLLayer_(..)
     , HtmlLayer_(..)
     , CreateLayer
@@ -48,6 +47,7 @@ import Layer.Vignette as Vignette
 type alias LayerIndex = Int
 
 
+type ViewportSize = ViewportSize Int Int
 type alias Size = (Int, Int)
 type alias Pos = (Int, Int)
 
@@ -60,8 +60,8 @@ type Msg
     | ChangeMode UiMode
     | Animate Time.Posix
     | GuiMessage (Gui.Msg Msg)
-    | Resize Viewport
-    | ResizeFromPreset Viewport
+    | Resize ViewportSize
+    | ResizeFromPreset ViewportSize
     | RequestFitToWindow
     | Locate Pos
     | Rotate Float
@@ -268,8 +268,8 @@ initEmpty mode =
     , size = ( 1200, 1200 )
     , origin = ( 0, 0 )
     , mouse = ( 0, 0 )
-    , now = 0.0
-    , timeShift = 0.0
+    , now = Time.millisToPosix 0
+    , timeDelta = 0.0
     --, range = ( 0.8, 1.0 )
     , product = Product.JetBrains
     , controlsVisible = True
@@ -392,7 +392,7 @@ gui from =
                 _ ->
                     currentSizePresets
                         |> Dict.get label
-                        |> Maybe.map (\(w, h) -> ResizeFromPreset <| Window.Size w h)
+                        |> Maybe.map (\(w, h) -> ResizeFromPreset <| ViewportSize w h)
                         |> Maybe.withDefault RequestFitToWindow
         chooseWebGlBlend layerIndex index label =
             NoOp
@@ -419,7 +419,7 @@ gui from =
                                     FssModel fssModel ->
                                         Nested (String.toLower name) Collapsed
                                             <| fssControls from.mode fssModel webglBlend layerIndex
-                                    _ -> Ghost <| "layer " ++ toString layerIndex
+                                    _ -> Ghost <| "layer " ++ String.fromInt layerIndex
                             HtmlLayer _ htmlBlend ->
                                 Nested (String.toLower name) Collapsed
                                     <| htmlControls htmlBlend layerIndex
@@ -512,7 +512,7 @@ webglBlendGrid mode currentBlend layerIndex =
             , Choice "colorFt2" Collapsed 0 chooseBlendColorFact2 factorGrid
             , Choice "alphaFn"  Collapsed 0 chooseBlendAlphaFn funcGrid
             , Choice "alphaFt1" Collapsed 1 chooseBlendAlphaFact1 factorGrid
-            , Choice "alphaFt2" Collapsed 0 layerIndex factorGrid
+            , Choice "alphaFt2" Collapsed 0 chooseBlendAlphaFact2 factorGrid
             ]
 
 
@@ -531,11 +531,11 @@ fssControls mode fssModel currentBlend layerIndex =
         changeHue val = ShiftColor layerIndex ( Just val, Nothing, Nothing )
         changeSaturation val = ShiftColor layerIndex ( Nothing, Just val, Nothing )
         changeBrightness val = ShiftColor layerIndex ( Nothing, Nothing, Just val )
-        toggleMirror layerIndex state =
+        toggleMirror state =
             layerIndex |> if (state == TurnedOn) then MirrorOn else MirrorOff
-        toggleVisibility layerIndex state =
+        toggleVisibility state =
             layerIndex |> if (state == TurnedOn) then TurnOn else TurnOff
-        chooseMesh layerIndex _ label =
+        chooseMesh _ label =
             FSS.decodeRenderMode label |> ChangeFssRenderMode layerIndex
         defaultKnobSetup defaultVal =
             { min = 0.0, max = 1.0, step = 0.05, roundBy = 100, default = defaultVal }
@@ -548,8 +548,8 @@ fssControls mode fssModel currentBlend layerIndex =
             { min = -1.0, max = 1.0, step = 0.05, roundBy = 100, default = defaultVal }
     in
         oneLine
-            [ Toggle "visible" TurnedOn <| toggleVisibility layerIndex
-            , Toggle "mirror" TurnedOff <| toggleMirror layerIndex
+            [ Toggle "visible" TurnedOn toggleVisibility
+            , Toggle "mirror" TurnedOff toggleMirror
             -- , Knob "opacity" TurnedOff <| toggleMirror layerIndex
             , Knob "lights" lightSpeedSetup (toFloat lightSpeed)
                 <| round >> ChangeLightSpeed layerIndex
@@ -562,7 +562,7 @@ fssControls mode fssModel currentBlend layerIndex =
                 (toFloat facesY)
                 changeFacesY
             , Nested "fog" Collapsed <|
-                nest ( 2, 1 )
+                nestWithin ( 2, 1 )
                     [ Knob "shine"
                         (defaultKnobSetup vignette)
                         vignette <| ChangeVignette layerIndex
@@ -570,13 +570,13 @@ fssControls mode fssModel currentBlend layerIndex =
                         (defaultKnobSetup iris)
                         iris <| ChangeIris layerIndex
                     ]
-            , Choice "mesh" Collapsed 0 (chooseMesh layerIndex) <|
-                nest ( 2, 1 )
+            , Choice "mesh" Collapsed 0 chooseMesh <|
+                nestWithin ( 2, 1 )
                     [ ChoiceItem "triangles"
                     , ChoiceItem "lines"
                     ]
             , Nested "ranges" Collapsed <|
-                    nest ( 3, 1 )
+                    nestWithin ( 3, 1 )
                         [ Knob "horizontal"
                             (defaultKnobSetup amplitudeX)
                             amplitudeX changeAmplutudeX
@@ -588,7 +588,7 @@ fssControls mode fssModel currentBlend layerIndex =
                             amplitudeZ changeAmplutudeZ
                         ]
             , Nested "hsb" Collapsed <|
-                nest ( 3, 1 )
+                nestWithin ( 3, 1 )
                     [ Knob "hue"
                         (colorShiftKnobSetup hueShift)
                         hueShift changeHue

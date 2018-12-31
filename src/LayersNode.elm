@@ -97,17 +97,17 @@ encodeAll blends =
 
 move : Int -> Int -> Svg.Attribute Msg
 move x y =
-    transform ("translate(" ++ toString x ++ ", " ++ toString y ++ ")")
+    transform ("translate(" ++ String.fromInt x ++ ", " ++ String.fromInt y ++ ")")
 
 
 renderBlendFrom : Blends -> Int -> Int -> Svg Msg
 renderBlendFrom blends count idx =
     g
         [ SA.style "alignment-baseline: hanging;"
-        , class ("layer layer-" ++ toString idx)
+        , class ("layer layer-" ++ String.fromInt idx)
         , move 0 ((count - idx - 1) * 90)
         ]
-        [ text_ [ fill "black" ] [ text ("Layer " ++ toString idx) ]
+        [ text_ [ fill "black" ] [ text ("Layer " ++ String.fromInt idx) ]
         , blends
             |> Dict.get idx
             |> Maybe.withDefault None
@@ -192,32 +192,38 @@ getFill : WGLB.Blend -> String
 getFill { color } =
     color
         |> Maybe.withDefault { r = 0, g = 0, b = 0, a = 0 }
-        |> (\c -> "rgba(" ++ toString c.r ++ "," ++ toString c.g ++ ","
-                          ++ toString c.b ++ "," ++ toString c.a ++ ")")
+        |> (\c -> "rgba(" ++ String.fromInt c.r ++ "," ++ String.fromInt c.g ++ ","
+                          ++ String.fromInt c.b ++ "," ++ String.fromInt c.a ++ ")")
 
 
 init : ( Model, Cmd Msg )
 init =
-    { layerCount =  0
-    , size = ( 100, 100 )
-    , blends = Dict.empty
-    , colors = Dict.empty
-    } ! []
+    (
+        { layerCount =  0
+        , size = ( 100, 100 )
+        , blends = Dict.empty
+        , colors = Dict.empty
+        }
+    , Cmd.none []
+    )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         ChangeBlend layerId newBlend ->
-            let model_
-                = { model
-                  | blends = model.blends |> Dict.insert layerId newBlend
-                  }
+            let
+                model_
+                    = { model
+                    | blends = model.blends |> Dict.insert layerId newBlend
+                    }
             in
-                model_ !
+                ( model_
+                , Cmd.batch
                     [ sendNewBlend { layer = layerId, blend = convertBlend newBlend }
                     , sendNewCodeFrom model_.blends
                     ]
+                )
         ApplyAllBlends blends ->
             let newBlends =
                     decodeAll blends
@@ -231,18 +237,23 @@ update msg model =
                 sendOneBlend (layerId, newBlend) =
                     sendNewBlend { layer = layerId, blend = convertBlend newBlend }
             in
-                model_ !
-                    ((newBlends |> List.map sendOneBlend)
-                    ++ [ sendNewCodeFrom model_.blends ])
+                ( model_
+                , ((newBlends |> List.map sendOneBlend)
+                  ++ [ sendNewCodeFrom model_.blends ])
+                )
         ApplyColors colors ->
-            { model | colors = colors
-            }
-            ! (let colors_ =
-                Dict.map
-                    (\layerId colors ->
-                        sendNewColors { layer = layerId, colors = colors }
-                    ) colors
-              in colors_ |> Dict.values)
+            ( { model
+              | colors = colors
+              }
+            , Cmd.batch <|
+                let
+                    colors_ =
+                        Dict.map
+                            (\layerId layerColors ->
+                                sendNewColors { layer = layerId, colors = layerColors }
+                            ) colors
+                in colors_ |> Dict.values
+            )
             -- ! ( colors
             --         |> Dict.map
             --             (\layerId colors ->
@@ -251,19 +262,22 @@ update msg model =
             --         |> Dict.values
             --   )
         ChangeLayerCount newCount ->
-            { model
-            | layerCount = newCount
-            , blends =
-                List.range 0 (model.layerCount - 1)
-                    |> List.map (\idx ->
-                           ( idx
-                           , model.blends
-                                |> Dict.get idx
-                                |> Maybe.withDefault None
-                           )
-                       )
-                    |> Dict.fromList
-            } ! []
+            (
+                { model
+                | layerCount = newCount
+                , blends =
+                    List.range 0 (model.layerCount - 1)
+                        |> List.map (\idx ->
+                            ( idx
+                            , model.blends
+                                    |> Dict.get idx
+                                    |> Maybe.withDefault None
+                            )
+                        )
+                        |> Dict.fromList
+                }
+            , Cmd.none
+            )
         SetBlendType layerId blendType ->
             let
                 curBlend = Dict.get layerId model.blends |> Maybe.withDefault None
@@ -280,11 +294,12 @@ update msg model =
                     | blends = model.blends |> Dict.insert layerId newBlend
                     }
             in
-                model_ !
+                ( model_, Cmd.batch
                     [ sendNewBlend { layer = layerId, blend = convertBlend newBlend }
                     , sendNewCodeFrom model_.blends
                     ]
-        Resize newSize -> { model | size = newSize } ! []
+                )
+        Resize newSize -> ( { model | size = newSize }, Cmd.none )
 
 
 queueBlends : List (Int, Blend) -> List (Cmd Msg)
@@ -328,7 +343,7 @@ subscriptions model =
 view : Model -> Html.Html Msg
 view { layerCount, size, blends } =
     svg
-        (case size of ( w, h ) -> [ width (toString w), height (toString h) ])
+        (case size of ( w, h ) -> [ width (String.fromInt w), height (String.fromInt h) ])
         (List.range 0 (layerCount - 1) |> List.map (renderBlendFrom blends layerCount) )
 
 
