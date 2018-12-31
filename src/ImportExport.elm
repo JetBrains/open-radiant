@@ -356,28 +356,28 @@ layerModelDecoder kind =
                     shareMesh
                     vignette
                     iris =
-                case ( faces, amplitude, colorShift, opacity, clip ) of
-                    ( [facesX, facesY]
-                    , [amplitudeX, amplitudeY, amplitudeZ]
-                    , [hue, saturation, brightness]
-                    , opacity
-                    , [clipX, clipY]
-                    ) ->
-                        M.FssModel
-                            { renderMode = FSS.decodeRenderMode renderModeStr
-                            , faces = ( facesX, facesY )
-                            , amplitude = ( amplitudeX, amplitudeY, amplitudeZ )
-                            , colorShift = ( hue, saturation, brightness )
-                            , opacity = opacity
-                            , mirror = mirror
-                            , clip = Just ( clipX, clipY )
-                            , lightSpeed = lightSpeed
-                            , shareMesh = shareMesh
-                            , vignette = vignette
-                            , iris = iris
-                            }
-                    _ -> M.NoModel
-                    -- _ -> Debug.log "failed to parse model" M.NoModel
+                    case ( faces, amplitude, colorShift, opacity, clip ) of
+                        ( [facesX, facesY]
+                        , [amplitudeX, amplitudeY, amplitudeZ]
+                        , [hue, saturation, brightness]
+                        , opacity
+                        , [clipX, clipY]
+                        ) ->
+                            M.FssModel
+                                { renderMode = FSS.decodeRenderMode renderModeStr
+                                , faces = ( facesX, facesY )
+                                , amplitude = ( amplitudeX, amplitudeY, amplitudeZ )
+                                , colorShift = ( hue, saturation, brightness )
+                                , opacity = opacity
+                                , mirror = mirror
+                                , clip = Just ( clipX, clipY )
+                                , lightSpeed = lightSpeed
+                                , shareMesh = shareMesh
+                                , vignette = vignette
+                                , iris = iris
+                                }
+                        _ -> M.NoModel
+                        -- _ -> Debug.log "failed to parse model" M.NoModel
             in
                 D.decode createFssModel
                     |> D.required "renderMode" D.string

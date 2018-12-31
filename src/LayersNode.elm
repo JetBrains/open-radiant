@@ -1,5 +1,6 @@
 port module LayersNode exposing (..)
 
+import Browser
 import Dict as Dict exposing (Dict)
 import Array as Array exposing (Array)
 import Html
@@ -192,8 +193,8 @@ getFill : WGLB.Blend -> String
 getFill { color } =
     color
         |> Maybe.withDefault { r = 0, g = 0, b = 0, a = 0 }
-        |> (\c -> "rgba(" ++ String.fromInt c.r ++ "," ++ String.fromInt c.g ++ ","
-                          ++ String.fromInt c.b ++ "," ++ String.fromInt c.a ++ ")")
+        |> (\c -> "rgba(" ++ String.fromFloat c.r ++ "," ++ String.fromFloat c.g ++ ","
+                          ++ String.fromFloat c.b ++ "," ++ String.fromFloat c.a ++ ")")
 
 
 init : ( Model, Cmd Msg )
@@ -204,7 +205,7 @@ init =
         , blends = Dict.empty
         , colors = Dict.empty
         }
-    , Cmd.none []
+    , Cmd.none
     )
 
 
@@ -238,8 +239,8 @@ update msg model =
                     sendNewBlend { layer = layerId, blend = convertBlend newBlend }
             in
                 ( model_
-                , ((newBlends |> List.map sendOneBlend)
-                  ++ [ sendNewCodeFrom model_.blends ])
+                , Cmd.batch
+                    ((newBlends |> List.map sendOneBlend) ++ [ sendNewCodeFrom model_.blends ])
                 )
         ApplyColors colors ->
             ( { model
@@ -347,10 +348,10 @@ view { layerCount, size, blends } =
         (List.range 0 (layerCount - 1) |> List.map (renderBlendFrom blends layerCount) )
 
 
-main : Program Never Model Msg
+main : Program {} Model Msg
 main =
-    Html.program
-        { init = init
+    Browser.element
+        { init = \_ -> init
         , view = view
         , subscriptions = subscriptions
         , update = update
