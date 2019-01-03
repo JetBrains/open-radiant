@@ -12,8 +12,10 @@ module ImportExport exposing
 
 import Array
 
+import Tuple
+
 import Json.Decode as D exposing (bool, int, string, float, Decoder, Value)
-import Json.Decode.Pipeline as D exposing (decode, required, optional, hardcoded)
+import Json.Decode.Pipeline as D exposing (required, optional, hardcoded)
 import Json.Encode as E exposing (encode, Value, string, int, float, bool, list, object)
 
 import WebGL.Blend as WGLBlend
@@ -33,6 +35,15 @@ encodeIntPair ( v1, v2 ) =
         ]
 
 
+encodeColor : { r: Float, g: Float, b: Float } -> E.Value
+encodeColor { r, g, b } =
+    E.object
+        [ ( "r", E.float r )
+        , ( "g", E.float g )
+        , ( "b", E.float b )
+        ]
+
+
 encodePairAsArray : (a -> E.Value) -> ( a, a ) -> E.Value
 encodePairAsArray f ( v1, v2 ) =
    [ v1, v2 ]
@@ -41,12 +52,12 @@ encodePairAsArray f ( v1, v2 ) =
         |> E.array
 
 
-encodeTripleAsArray : (a -> E.Value) -> ( a, a, a ) -> E.Value
-encodeTripleAsArray f ( v1, v2, v3 ) =
-   [ v1, v2, v3 ]
-        |> List.map f
-        |> Array.fromList
-        |> E.array
+-- encodeTripleAsArray : (a -> E.Value) -> Array a -> E.Value
+-- encodeTripleAsArray f [ v1, v2, v3 ] =
+--    [ v1, v2, v3 ]
+--         |> List.map f
+--         |> Array.fromList
+--         |> E.array
 
 
 encodeKind_ : M.LayerKind -> String
@@ -103,8 +114,8 @@ encodeLayerModel layerModel =
                 [ ( "renderMode", FSS.encodeRenderMode fssModel.renderMode |> E.string )
                 , ( "faces", encodePairAsArray E.int fssModel.faces )
                 , ( "lightSpeed", E.int fssModel.lightSpeed )
-                , ( "amplitude", encodeTripleAsArray E.float fssModel.amplitude )
-                , ( "colorShift", encodeTripleAsArray E.float fssModel.colorShift )
+                , ( "amplitude", E.array E.float fssModel.amplitude )
+                , ( "colorShift", E.array E.float fssModel.colorShift )
                 , ( "opacity", E.float fssModel.opacity )
                 , ( "mirror", E.bool fssModel.mirror )
                 , ( "clip",
@@ -117,7 +128,7 @@ encodeLayerModel layerModel =
                 ]
             M.VignetteModel vignetteModel ->
                 [ ( "opacity", E.float vignetteModel.opacity )
-                , ( "color", encodeTripleAsArray E.float vignetteModel.color )
+                , ( "color", encodeColor E.float vignetteModel.color )
                 ]
             _ -> []
 
@@ -260,9 +271,9 @@ decodeKind layerTypeStr =
 
 intPairDecoder : D.Decoder (Int, Int)
 intPairDecoder =
-    D.decode (\i1 i2 -> (i1, i2))
-        |> D.required "v1" D.int
-        |> D.required "v2" D.int
+    D.map2 Tuple.pair
+        (D.field "v1" D.int)
+        (D.field "v2" D.int)
 
 -- layerDefsDecoder =
 --     let
@@ -312,7 +323,7 @@ layerDefDecoder createLayer =
                 , name = name
                 }
     in
-        D.decode createLayerDef
+        D.decodeValue createLayerDef
             |> D.required "kind" D.string
             |> D.required "model" D.string
             |> D.required "name" D.string
@@ -356,13 +367,8 @@ layerModelDecoder kind =
                     shareMesh
                     vignette
                     iris =
-                    case ( faces, amplitude, colorShift, opacity, clip ) of
-                        ( [facesX, facesY]
-                        , [amplitudeX, amplitudeY, amplitudeZ]
-                        , [hue, saturation, brightness]
-                        , opacity
-                        , [clipX, clipY]
-                        ) ->
+                    case [ faces, amplitude, colorShift, clip ] of
+                        [ [facesX, facesY], [amplitudeX, amplitudeY, amplitudeZ], [hue, saturation, brightness], [clipX, clipY] ] ->
                             M.FssModel
                                 { renderMode = FSS.decodeRenderMode renderModeStr
                                 , faces = ( facesX, facesY )
@@ -379,7 +385,7 @@ layerModelDecoder kind =
                         _ -> M.NoModel
                         -- _ -> Debug.log "failed to parse model" M.NoModel
             in
-                D.decode createFssModel
+                D.decodeValue createFssModel
                     |> D.required "renderMode" D.string
                     |> D.required "faces" (D.list D.int)
                     |> D.required "amplitude" (D.list D.float)
@@ -395,7 +401,7 @@ layerModelDecoder kind =
             layerModelDecoder M.Fss
         -- TODO
         _ ->
-            M.NoModel |> D.decode
+            M.NoModel |> D.decodeValue
 
 
 modelDecoder : M.UiMode -> M.CreateLayer -> D.Decoder M.Model
@@ -419,7 +425,7 @@ modelDecoder mode createLayer =
                 --, palette = Product.getPalette product
                 }
     in
-        D.decode createModel
+        D.decodeValue createModel
             |> D.required "background" D.string
             |> D.required "theta" D.float
             |> D.required "omega" D.float

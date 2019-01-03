@@ -36,18 +36,22 @@ import Product exposing (ProductId)
 
 
 
-type alias Mouse = ( Int, Int )
-type alias Faces = ( Int, Int )
-type alias Clip = ( Float, Float )
+type alias Mouse = { x: Int, y: Int }
+type alias Faces = { x: Int, y: Int }
+type alias Clip = { x: Float, y: Float }
 type alias Mirror = Float
-type alias Amplitude = ( Float, Float, Float )
-type alias ColorShift = ( Float, Float, Float )
+type alias Amplitude = { amplitudeX: Float, amplitudeY: Float, amplitudeZ: Float }
+type alias ColorShift = { hue: Float, saturation: Float, brightness: Float }
 type alias Opacity = Float
-type alias FacesChange = ( Maybe Int, Maybe Int )
-type alias AmplitudeChange = ( Maybe Float, Maybe Float, Maybe Float )
-type alias ColorShiftPatch = ( Maybe Float, Maybe Float, Maybe Float )
+type alias FacesChange = { xChange: Maybe Int, yChange: Maybe Int }
+type alias AmplitudeChange = { xChange: Maybe Float, yChange: Maybe Float, zChange: Maybe Float }
+type alias ColorShiftPatch =
+    { hueShift: Maybe Float
+    , saturationShift: Maybe Float
+    , brightnessShift: Maybe Float
+    }
 type alias Time = Float -- FIXME
-type alias Speed = Float
+type alias LightSpeed = Int
 type alias Vignette = Float
 type alias Iris = Float
 
@@ -73,7 +77,7 @@ type alias PortModel =
     , faces : Faces
     , mirror : Bool
     , clip : Maybe Clip -- max and min values of X for clipping
-    , lightSpeed : Int
+    , lightSpeed : LightSpeed
     , shareMesh : Bool
     }
 
@@ -88,7 +92,7 @@ type alias Model =
     , faces : Faces
     , mirror : Bool
     , clip : Maybe Clip -- max and min values of X for clipping
-    , lightSpeed : Int
+    , lightSpeed : LightSpeed
     , shareMesh : Bool
     }
 
@@ -103,7 +107,7 @@ type alias SColor =
 type alias SLight =
     { ambient : SColor
     , diffuse : SColor
-    , speed : Speed
+    , speed : Float
     , position : List Float
     , ray : List Float
     }
@@ -168,12 +172,12 @@ type alias SerializedScene =
 
 -- Base logic
 
-defaultAmplitude : ( Float, Float, Float )
-defaultAmplitude = ( 0.3, 0.3, 0.3 )
+defaultAmplitude : Amplitude
+defaultAmplitude = { amplitudeX = 0.3, amplitudeY = 0.3, amplitudeZ = 0.3 }
 
 
-defaultColorShift : ( Float, Float, Float )
-defaultColorShift = ( 0.0, 0.0, 0.0 )
+defaultColorShift : ColorShift
+defaultColorShift = { hue = 0.0, saturation = 0.0, brightness = 0.0 }
 
 
 defaultVignette : Vignette
@@ -188,20 +192,20 @@ defaultOpacity : Opacity
 defaultOpacity = 1.0
 
 
-defaultMirror : Float
+defaultMirror : Mirror
 defaultMirror = 0.50001
 
 
-defaultFaces : ( Int, Int )
-defaultFaces = ( 17, 17 )
+defaultFaces : Faces
+defaultFaces = { x = 17, y = 17 }
 
 
-defaultLightSpeed : Int
+defaultLightSpeed : LightSpeed
 defaultLightSpeed = 1000
 
 
 noClip : Clip
-noClip = ( -1, -1 )
+noClip = { x = -1, y = -1 }
 
 
 init : Model
@@ -265,7 +269,7 @@ makeEntity now mouse productId layerIndex viewport model maybeScene settings mes
                 viewport
                 model
                 firstMeshSize
-                ( lights, speed )
+                ( lights, floor speed )
                 layerIndex
                 )
 
@@ -459,7 +463,7 @@ uniforms
     -> Viewport {}
     -> Model
     -> ( Int, Int )
-    -> ( List SLight, Speed )
+    -> ( List SLight, LightSpeed )
     -> Int
     -> Uniforms
 uniforms now mouse productId v model meshSize ( lights, speed ) layerIndex =
@@ -473,8 +477,8 @@ uniforms now mouse productId v model meshSize ( lights, speed ) layerIndex =
         depth = 100.0
         mirror = if model.mirror then 1.0 else 0.0
         clip =  model.clip |> Maybe.withDefault noClip
-        ( amplitudeX, amplitudeY, amplitudeZ ) = model.amplitude
-        ( hue, saturation, brightness ) = model.colorShift
+        { amplitudeX, amplitudeY, amplitudeZ } = model.amplitude
+        { hue, saturation, brightness } = model.colorShift
         opacity = model.opacity
 
     in
@@ -483,13 +487,13 @@ uniforms now mouse productId v model meshSize ( lights, speed ) layerIndex =
         , uLightAmbient = adaptedLights.ambient
         , uLightDiffuse = adaptedLights.diffuse
         , uLightPosition = adaptedLights.position
-        , uLightSpeed = adaptedLights.speed
+        , uLightSpeed = toFloat adaptedLights.speed
         , uNow = now
         , uLayerIndex = layerIndex
-        , uMousePosition = vec2 (toFloat (Tuple.first mouse)) (toFloat (Tuple.second mouse))
+        , uMousePosition = vec2 (toFloat mouse.x) (toFloat mouse.y)
         , uSegment  = vec3 100 100 50
         , uMirror = mirror
-        , uClip = vec2 (Tuple.first clip) (Tuple.second clip)
+        , uClip = vec2 clip.x clip.y
         , uScale = vec2 (toFloat meshWidth / width) (toFloat meshHeight / height)
         , uAmplitude = vec3 amplitudeX amplitudeY amplitudeZ
         , uColorShift = vec3 hue saturation brightness
@@ -511,9 +515,9 @@ uniforms now mouse productId v model meshSize ( lights, speed ) layerIndex =
 
 adaptLights
     : (Int, Int)
-    -> Speed
+    -> LightSpeed
     -> List SLight
-    -> { ambient : Mat4, diffuse : Mat4, position : Mat4, speed : Speed }
+    -> { ambient : Mat4, diffuse : Mat4, position : Mat4, speed : LightSpeed }
 adaptLights size speed srcLights =
     let
         emptyRecords =
