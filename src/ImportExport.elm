@@ -13,6 +13,7 @@ module ImportExport exposing
 import Array
 
 import Tuple
+import Time
 
 import Json.Decode as D exposing (bool, int, string, float, Decoder, Value)
 import Json.Decode.Pipeline as D exposing (required, optional, hardcoded)
@@ -35,21 +36,48 @@ encodeIntPair ( v1, v2 ) =
         ]
 
 
-encodeColor : { r: Float, g: Float, b: Float } -> E.Value
-encodeColor { r, g, b } =
-    E.object
-        [ ( "r", E.float r )
-        , ( "g", E.float g )
-        , ( "b", E.float b )
+-- encodePairAsArray : (a -> E.Value) -> ( a, a ) -> E.Value
+-- encodePairAsArray f ( v1, v2 ) =
+--     E.list f [ v1, v2 ]
+
+
+encodeXY : (a -> E.Value) -> { x: a, y: a } -> E.Value
+encodeXY f { x, y } =
+    E.list
+        f
+        [ x
+        , y
         ]
 
 
-encodePairAsArray : (a -> E.Value) -> ( a, a ) -> E.Value
-encodePairAsArray f ( v1, v2 ) =
-   [ v1, v2 ]
-        |> List.map f
-        |> Array.fromList
-        |> E.array
+encodeColor : { r: Float, g: Float, b: Float } -> E.Value
+encodeColor { r, g, b } =
+    E.list
+        E.float
+        [ r
+        , g
+        , b
+        ]
+
+
+encodeColorShift : FSS.ColorShift -> E.Value
+encodeColorShift { hue, saturation, brightness } =
+    E.list
+        E.float
+        [ hue
+        , saturation
+        , brightness
+        ]
+
+
+encodeAmplitude : FSS.Amplitude -> E.Value
+encodeAmplitude { amplitudeX, amplitudeY, amplitudeZ } =
+    E.list
+        E.float
+        [ amplitudeX
+        , amplitudeY
+        , amplitudeZ
+        ]
 
 
 -- encodeTripleAsArray : (a -> E.Value) -> Array a -> E.Value
@@ -112,15 +140,15 @@ encodeLayerModel layerModel =
         case layerModel of
             M.FssModel fssModel ->
                 [ ( "renderMode", FSS.encodeRenderMode fssModel.renderMode |> E.string )
-                , ( "faces", encodePairAsArray E.int fssModel.faces )
+                , ( "faces", encodeXY E.int fssModel.faces )
                 , ( "lightSpeed", E.int fssModel.lightSpeed )
-                , ( "amplitude", E.array E.float fssModel.amplitude )
-                , ( "colorShift", E.array E.float fssModel.colorShift )
+                , ( "amplitude", encodeAmplitude fssModel.amplitude )
+                , ( "colorShift", encodeColorShift fssModel.colorShift )
                 , ( "opacity", E.float fssModel.opacity )
                 , ( "mirror", E.bool fssModel.mirror )
                 , ( "clip",
                         Maybe.withDefault FSS.noClip fssModel.clip
-                        |> encodePairAsArray E.float
+                            |> encodeXY E.float
                   )
                 , ( "shareMesh", E.bool fssModel.shareMesh )
                 , ( "vignette", E.float fssModel.vignette )
@@ -128,7 +156,7 @@ encodeLayerModel layerModel =
                 ]
             M.VignetteModel vignetteModel ->
                 [ ( "opacity", E.float vignetteModel.opacity )
-                , ( "color", encodeColor E.float vignetteModel.color )
+                , ( "color", encodeColor vignetteModel.color )
                 ]
             _ -> []
 
@@ -140,19 +168,17 @@ encodeModel_ model =
         , ( "mode", E.string <| encodeMode model.mode )
         , ( "theta", E.float model.theta )
         , ( "omega", E.float model.omega )
-        , ( "layers", E.list (List.map encodeLayerDef model.layers) )
+        , ( "layers", E.list encodeLayerDef model.layers )
         -- , ( "layers", E.list (List.filterMap
         --         (\layer -> Maybe.map encodeLayer layer) model.layers) )
         , ( "size", encodeIntPair model.size )
         , ( "origin", encodeIntPair model.origin )
         , ( "mouse", encodeIntPair model.mouse )
-        , ( "now", E.float model.now )
+        , ( "now", E.float <| toFloat <| Time.posixToMillis model.now )
         , ( "palette",
             model.product
                 |> getPalette
-                |> List.map E.string
-                |> Array.fromList
-                |> E.array )
+                |> E.list E.string )
         , ( "product", model.product |> Product.encode |> E.string )
         ]
 
@@ -371,12 +397,20 @@ layerModelDecoder kind =
                         [ [facesX, facesY], [amplitudeX, amplitudeY, amplitudeZ], [hue, saturation, brightness], [clipX, clipY] ] ->
                             M.FssModel
                                 { renderMode = FSS.decodeRenderMode renderModeStr
-                                , faces = ( facesX, facesY )
-                                , amplitude = ( amplitudeX, amplitudeY, amplitudeZ )
-                                , colorShift = ( hue, saturation, brightness )
+                                , faces = { x = floor facesX, y = floor facesY }
+                                , amplitude =
+                                    { amplitudeX = amplitudeX
+                                    , amplitudeY = amplitudeY
+                                    , amplitudeZ = amplitudeZ
+                                    }
+                                , colorShift =
+                                    { hue = hue
+                                    , saturation = saturation
+                                    , brightness = brightness
+                                    }
                                 , opacity = opacity
                                 , mirror = mirror
-                                , clip = Just ( clipX, clipY )
+                                , clip = Just { x = clipX, y = clipY }
                                 , lightSpeed = lightSpeed
                                 , shareMesh = shareMesh
                                 , vignette = vignette

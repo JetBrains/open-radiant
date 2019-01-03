@@ -520,17 +520,23 @@ fssControls : UiMode -> FSS.Model -> WGLBlend.Blend -> LayerIndex -> Nest Msg
 fssControls mode fssModel currentBlend layerIndex =
     let
         { lightSpeed, faces, amplitude, vignette, iris, colorShift } = fssModel
-        ( facesX, facesY ) = faces
-        ( amplitudeX, amplitudeY, amplitudeZ ) = amplitude
-        ( hueShift, saturationShift, brightnessShift ) = colorShift
-        changeFacesX val = AlterFaces layerIndex ( Just <| round val, Nothing )
-        changeFacesY val = AlterFaces layerIndex ( Nothing, Just <| round val )
-        changeAmplutudeX val = AlterAmplitude layerIndex ( Just val, Nothing, Nothing )
-        changeAmplutudeY val = AlterAmplitude layerIndex ( Nothing, Just val, Nothing )
-        changeAmplutudeZ val = AlterAmplitude layerIndex ( Nothing, Nothing, Just val )
-        changeHue val = ShiftColor layerIndex ( Just val, Nothing, Nothing )
-        changeSaturation val = ShiftColor layerIndex ( Nothing, Just val, Nothing )
-        changeBrightness val = ShiftColor layerIndex ( Nothing, Nothing, Just val )
+        { amplitudeX, amplitudeY, amplitudeZ } = amplitude
+        changeFacesX val = AlterFaces layerIndex
+                                    { xChange = Just <| round val, yChange = Nothing }
+        changeFacesY val = AlterFaces layerIndex
+                                    { xChange = Nothing, yChange = Just <| round val }
+        changeAmplutudeX val = AlterAmplitude layerIndex
+                                    <| FSS.AmplitudeChange (Just val) Nothing Nothing
+        changeAmplutudeY val = AlterAmplitude layerIndex
+                                    <| FSS.AmplitudeChange Nothing (Just val) Nothing
+        changeAmplutudeZ val = AlterAmplitude layerIndex
+                                    <| FSS.AmplitudeChange Nothing Nothing (Just val)
+        changeHue val = ShiftColor layerIndex
+                                    <| FSS.ColorShiftPatch (Just val) Nothing Nothing
+        changeSaturation val = ShiftColor layerIndex
+                                    <| FSS.ColorShiftPatch Nothing (Just val) Nothing
+        changeBrightness val = ShiftColor layerIndex
+                                    <| FSS.ColorShiftPatch Nothing Nothing (Just val)
         toggleMirror state =
             layerIndex |> if (state == TurnedOn) then MirrorOn else MirrorOff
         toggleVisibility state =
@@ -554,12 +560,12 @@ fssControls mode fssModel currentBlend layerIndex =
             , Knob "lights" lightSpeedSetup (toFloat lightSpeed)
                 <| round >> ChangeLightSpeed layerIndex
             , Knob "col"
-                (facesKnobSetup <| toFloat facesX)
-                (toFloat facesX)
+                (facesKnobSetup <| toFloat faces.x)
+                (toFloat faces.y)
                 changeFacesX
             , Knob "row"
-                (facesKnobSetup <| toFloat facesY)
-                (toFloat facesY)
+                (facesKnobSetup <| toFloat faces.y)
+                (toFloat faces.y)
                 changeFacesY
             , Nested "fog" Collapsed <|
                 nestWithin ( 2, 1 )
@@ -590,14 +596,14 @@ fssControls mode fssModel currentBlend layerIndex =
             , Nested "hsb" Collapsed <|
                 nestWithin ( 3, 1 )
                     [ Knob "hue"
-                        (colorShiftKnobSetup hueShift)
-                        hueShift changeHue
+                        (colorShiftKnobSetup colorShift.hue)
+                        colorShift.hue changeHue
                     , Knob "saturation"
-                        (colorShiftKnobSetup saturationShift)
-                        saturationShift changeSaturation
+                        (colorShiftKnobSetup colorShift.saturation)
+                        colorShift.saturation changeSaturation
                     , Knob "brightness"
-                        (colorShiftKnobSetup brightnessShift)
-                        brightnessShift changeBrightness
+                        (colorShiftKnobSetup colorShift.brightness)
+                        colorShift.brightness changeBrightness
                     ]
             , Nested "blend" Collapsed
                 <| webglBlendGrid mode currentBlend layerIndex
