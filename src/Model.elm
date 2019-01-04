@@ -12,8 +12,10 @@ module Model exposing
     , WebGLLayer_(..)
     , HtmlLayer_(..)
     , CreateLayer
+    , ViewportSize(..)
     , Size
     , Pos
+    , TimeDelta
     , PortModel
     , PortLayerDef
     , PortBlend
@@ -50,7 +52,8 @@ type alias LayerIndex = Int
 type ViewportSize = ViewportSize Int Int
 type alias Size = (Int, Int)
 type alias Pos = (Int, Int)
-
+type alias TimeNow = Float
+type alias TimeDelta = Float
 
 type alias CreateLayer = LayerKind -> LayerModel -> Layer
 
@@ -58,7 +61,7 @@ type alias CreateLayer = LayerKind -> LayerModel -> Layer
 type Msg
     = Bang
     | ChangeMode UiMode
-    | Animate Time.Posix
+    | Animate TimeDelta
     | GuiMessage (Gui.Msg Msg)
     | Resize ViewportSize
     | ResizeFromPreset ViewportSize
@@ -86,7 +89,7 @@ type Msg
     | RebuildFss LayerIndex FSS.SerializedScene
     --| RebuildOnClient LayerIndex FSS.SerializedScene
     | ChangeFssRenderMode LayerIndex FSS.RenderMode
-    | ChangeFaces LayerIndex ( Int, Int )
+    | ChangeFaces LayerIndex FSS.Faces
     | AlterFaces LayerIndex FSS.FacesChange
     | ChangeLightSpeed LayerIndex Int
     | ChangeVignette LayerIndex FSS.Vignette
@@ -181,8 +184,8 @@ type alias Model =
     , size : Size
     , origin : Pos
     , mouse : Pos
-    , now : Time.Posix
-    , timeDelta : Float
+    , now : TimeNow
+    , timeShift : TimeDelta
     , product : Product
     , controlsVisible : Bool
     -- voronoi : Voronoi.Config
@@ -205,13 +208,13 @@ type alias PortModel =
     , layers : List PortLayerDef
     , mode : String
     , mouse : ( Int, Int )
-    , now : Time.Posix
-    , origin : Pos
-    , size : Size
+    , now : Float
+    , origin : (Int, Int)
+    , size : (Int, Int)
     , theta : Float
     , omega : Float
     , product : String
-    , palette : Product.Palette
+    , palette : List String
     }
 
 
@@ -268,8 +271,8 @@ initEmpty mode =
     , size = ( 1200, 1200 )
     , origin = ( 0, 0 )
     , mouse = ( 0, 0 )
-    , now = Time.millisToPosix 0
-    , timeDelta = 0.0
+    , now = 0.0
+    , timeShift = 0.0
     --, range = ( 0.8, 1.0 )
     , product = Product.JetBrains
     , controlsVisible = True

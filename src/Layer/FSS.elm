@@ -5,9 +5,9 @@ module Layer.FSS exposing
     , SerializedScene
     , Amplitude, AmplitudeChange
     , ColorShift, ColorShiftPatch
-    , FacesChange
-    , Opacity
+    , Faces, FacesChange
     , Vignette, Iris
+    , Opacity
     , Clip
     , makeEntity
     , build

@@ -175,7 +175,7 @@ encodeModel_ model =
         , ( "size", encodeIntPair model.size )
         , ( "origin", encodeIntPair model.origin )
         , ( "mouse", encodeIntPair model.mouse )
-        , ( "now", E.float <| toFloat <| Time.posixToMillis model.now )
+        , ( "now", E.float model.now )
         , ( "palette",
             model.product
                 |> getPalette
@@ -468,9 +468,7 @@ modelDecoder mode createLayer =
             |> D.andMap (D.field "size" intPairDecoder)
             |> D.andMap (D.field "origin" intPairDecoder)
             |> D.andMap (D.field "mouse" intPairDecoder)
-            |> D.andMap (D.field "now"
-                            <| D.map Time.millisToPosix
-                            <| D.map floor D.float)
+            |> D.andMap (D.field "now" D.float)
             |> D.andMap (D.field "product" D.string)
 
 
