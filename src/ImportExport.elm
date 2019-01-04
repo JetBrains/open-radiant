@@ -17,6 +17,7 @@ import Time
 
 import Json.Decode as D exposing (bool, int, string, float, Decoder, Value)
 import Json.Decode.Pipeline as D exposing (required, optional, hardcoded)
+import Json.Decode.Extra as D exposing (andMap)
 import Json.Encode as E exposing (encode, Value, string, int, float, bool, list, object)
 
 import WebGL.Blend as WGLBlend
@@ -349,12 +350,12 @@ layerDefDecoder createLayer =
                 , name = name
                 }
     in
-        D.decodeValue createLayerDef
-            |> D.required "kind" D.string
-            |> D.required "model" D.string
-            |> D.required "name" D.string
-            |> D.required "isOn" D.bool
-            |> D.required "blend" D.string
+        D.map5 createLayerDef
+            (D.field "kind" D.string)
+            (D.field "model" D.string)
+            (D.field "name" D.string)
+            (D.field "isOn" D.bool)
+            (D.field "blend" D.string)
 
 
 -- layerDecoder : M.LayerKind -> D.Decoder M.Layer
@@ -419,23 +420,23 @@ layerModelDecoder kind =
                         _ -> M.NoModel
                         -- _ -> Debug.log "failed to parse model" M.NoModel
             in
-                D.decodeValue createFssModel
-                    |> D.required "renderMode" D.string
-                    |> D.required "faces" (D.list D.int)
-                    |> D.required "amplitude" (D.list D.float)
-                    |> D.required "colorShift" (D.list D.float)
-                    |> D.required "opacity" D.float
-                    |> D.required "mirror" D.bool
-                    |> D.required "clip" (D.list D.float)
-                    |> D.required "lightSpeed" D.int
-                    |> D.required "shareMesh" D.bool
-                    |> D.required "vignette" D.float
-                    |> D.required "iris" D.float
+                D.succeed createFssModel
+                    |> D.andMap (D.field "renderMode" D.string)
+                    |> D.andMap (D.field "faces" <| D.list D.float)
+                    |> D.andMap (D.field "amplitude" <| D.list D.float)
+                    |> D.andMap (D.field "colorShift" <| D.list D.float)
+                    |> D.andMap (D.field "opacity" D.float)
+                    |> D.andMap (D.field "mirror" D.bool)
+                    |> D.andMap (D.field "clip" <| D.list D.float)
+                    |> D.andMap (D.field "lightSpeed" D.int)
+                    |> D.andMap (D.field "shareMesh" D.bool)
+                    |> D.andMap (D.field "vignette" D.float)
+                    |> D.andMap (D.field "iris" D.float)
         M.MirroredFss ->
             layerModelDecoder M.Fss
         -- TODO
         _ ->
-            M.NoModel |> D.decodeValue
+            D.succeed M.NoModel
 
 
 modelDecoder : M.UiMode -> M.CreateLayer -> D.Decoder M.Model
@@ -459,16 +460,18 @@ modelDecoder mode createLayer =
                 --, palette = Product.getPalette product
                 }
     in
-        D.decodeValue createModel
-            |> D.required "background" D.string
-            |> D.required "theta" D.float
-            |> D.required "omega" D.float
-            |> D.required "layers" (layerDefDecoder createLayer |> D.list)
-            |> D.required "size" intPairDecoder
-            |> D.required "origin" intPairDecoder
-            |> D.required "mouse" intPairDecoder
-            |> D.required "now" D.float
-            |> D.required "product" D.string
+        D.succeed createModel
+            |> D.andMap (D.field "background" D.string)
+            |> D.andMap (D.field "theta" D.float)
+            |> D.andMap (D.field "omega" D.float)
+            |> D.andMap (D.field "layers" (layerDefDecoder createLayer |> D.list))
+            |> D.andMap (D.field "size" intPairDecoder)
+            |> D.andMap (D.field "origin" intPairDecoder)
+            |> D.andMap (D.field "mouse" intPairDecoder)
+            |> D.andMap (D.field "now"
+                            <| D.map Time.millisToPosix
+                            <| D.map floor D.float)
+            |> D.andMap (D.field "product" D.string)
 
 
 decodeModel : M.UiMode -> M.CreateLayer -> String -> Maybe M.Model
@@ -496,9 +499,19 @@ encodeFss m product =
 
 
 fromFssPortModel : FSS.PortModel -> FSS.Model
-fromFssPortModel portModel =
-    { portModel
-    | renderMode = FSS.decodeRenderMode portModel.renderMode
+fromFssPortModel pm =
+    { amplitude = pm.amplitude
+    , colorShift = pm.colorShift
+    , opacity = pm.opacity
+    , faces = pm.faces
+    , lightSpeed = pm.lightSpeed
+    , renderMode = FSS.decodeRenderMode pm.renderMode
+    , clip = pm.clip
+    , shareMesh = pm.shareMesh
+    , vignette = pm.vignette
+    , iris = pm.iris
+    , mirror = pm.mirror
+    --, palette = product |> getPalette
     }
 
 

@@ -847,7 +847,7 @@ mergeWebGLLayers model =
         model.layers
             |> List.filter (.layer >> isWebGLLayer)
             |> List.filter .on
-            |> List.indexedMap (,)
+            |> List.indexedMap Tuple.pair
             -- |> List.concatMap (uncurry >> layerToEntities model viewport)
             |> List.concatMap
                     (\(index, layer) ->
