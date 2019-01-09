@@ -4,6 +4,8 @@ import Browser
 
 import Array exposing (Array)
 import Task exposing (Task)
+
+import Browser.Dom as Browser
 import Browser.Events as Browser
 
 import Html exposing (Html, text, div, span, input)
@@ -20,6 +22,7 @@ import WebGL.Settings.DepthTest as DepthTest
 
 import Model exposing (..)
 import Gui.Gui as Gui
+import Gui.Mouse exposing (Position)
 import Viewport exposing (Viewport)
 import WebGL.Blend as WGLBlend
 import Html.Blend as HtmlBlend
@@ -34,6 +37,7 @@ import Layer.Voronoi as Voronoi
 import Layer.FSS as FSS
 import Layer.Template as Template
 import Layer.Cover as Cover
+import Layer.Canvas as Canvas
 import Layer.Vignette as Vignette
 
 
@@ -48,9 +52,7 @@ initialMode = Production
 init : ( Model, Cmd Msg )
 init =
     ( Model.init initialMode (initialLayers initialMode) createLayer
-    , Cmd.batch
-        [ Task.perform Resize ViewportSize
-        ]
+    , resizeToViewport
     )
 
 
@@ -88,9 +90,7 @@ update msg model =
 
         ChangeMode mode ->
             ( Model.init mode (initialLayers mode) createLayer
-            , Cmd.batch
-                [ Task.perform Resize ViewportSize
-                ]
+            , resizeToViewport
             )
 
         GuiMessage guiMsg ->
@@ -714,6 +714,14 @@ tellGui f model =
         |> Maybe.withDefault (always NoOp)
 
 
+
+decodeMousePosition : D.Decoder Position
+decodeMousePosition =
+    D.map2 Position
+        (D.at [ "offsetX" ] D.int)
+        (D.at [ "offsetY" ] D.int)
+
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
@@ -725,19 +733,20 @@ subscriptions model =
         --         |> Maybe.map (\pos -> Pause)
         --         |> Maybe.withDefault NoOp
         --   )
-        , Browser.onMouseMove (\{ x, y } ->
-            toLocal model.size (x, y)
-                |> Maybe.map (\localPos -> Locate localPos)
-                |> Maybe.withDefault NoOp
-          )
+        , Sub.map (\{ x, y } ->
+                toLocal model.size (x, y)
+                    |> Maybe.map (\localPos -> Locate localPos)
+                    |> Maybe.withDefault NoOp
+            )
+            <| Browser.onMouseMove
+            <| decodeMousePosition
         --, downs <| Gui.downs >> GuiMessage
-        , Events.onMouseDown
-            <| D.succeed
-            <| tellGui Gui.downs model
-        -- , ups <| Gui.ups >> GuiMessage
-        , Events.onMouseUp
-            <| D.succeed
-            <| tellGui Gui.ups model
+        , Sub.map (tellGui Gui.downs model)
+            <| Browser.onMouseDown
+            <| decodeMousePosition
+        , Sub.map (tellGui Gui.ups model)
+            <| Browser.onMouseUp
+            <| decodeMousePosition
         , rotate Rotate
         , changeProduct (\productStr -> Product.decode productStr |> ChangeProduct)
         , changeFssRenderMode (\{value, layer} ->
@@ -745,15 +754,13 @@ subscriptions model =
         , changeFacesX (\{value, layer} ->
             case model |> getLayerModel layer of
                 Just (FssModel { faces }) ->
-                    case faces of
-                        ( _, facesY ) -> ChangeFaces layer ( value, facesY )
+                    ChangeFaces layer { x = value, y = faces.y }
                 _ -> NoOp
           )
         , changeFacesY (\{value, layer} ->
             case model |> getLayerModel layer of
                 Just (FssModel { faces }) ->
-                    case faces of
-                        ( facesX, _ ) -> ChangeFaces layer ( facesX, value )
+                    ChangeFaces layer { x = faces.x, y = value }
                 _ -> NoOp
           )
         , changeLightSpeed (\{value, layer} -> ChangeLightSpeed layer value)
@@ -871,6 +878,8 @@ layerToHtml model index { layer } =
             case htmlLayer of
                 CoverLayer ->
                     Cover.view model.mode model.product model.size model.origin htmlBlend
+                CanvasLayer ->
+                    Canvas.view
                 NoContent -> div [] []
         _ -> div [] []
 
@@ -926,7 +935,7 @@ layerToEntities model viewport index layerDef =
                     in
                         [ FSS.makeEntity
                             model.now
-                            model.mouse
+                            (case model.mouse of ( x, y ) -> { x = x, y = y })
                             (model.product |> Product.getId)
                             index
                             viewport
@@ -966,6 +975,13 @@ layerToEntities model viewport index layerDef =
                     ]
                 _ -> []
         _ -> []
+
+
+resizeToViewport =
+    Task.perform
+        (\{ viewport } -> Resize
+            <| ViewportSize (floor viewport.width) (floor viewport.height))
+        Browser.getViewport
 
 
 getViewportState : Model -> Viewport.State
