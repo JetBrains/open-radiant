@@ -14,7 +14,11 @@ const update = (gui) => () => {
 }
 
 const getSizesSet = (mode) => {
-  const predefinedSizes = (mode != 'prod') ? C.RELEASE_SIZES : C.WALLPAPER_SIZES;
+  const predefinedSizes =  {
+    'release': C.RELEASE_SIZES,
+    'prod' : C.WALLPAPER_SIZES,
+    'dev' : C.WALLPAPER_SIZES,
+    'ads' : C.ADS_SIZES } [mode];
   predefinedSizes['monitor'] = [
     window.screen.width * window.devicePixelRatio,
     window.screen.height * window.devicePixelRatio
