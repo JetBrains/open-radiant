@@ -8,7 +8,7 @@ Install Elm and Webpack:
 
 Then install required packages:
 
-`npm install` (it will automatically call `elm-install` as well)
+`npm install`
 
 Run with:
 
