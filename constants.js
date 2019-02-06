@@ -131,6 +131,7 @@ const RELEASE_SIZES = // TODO: Multiply for creating @2x @3x
     , '800x155 bfoot' : [ 800, 155 ] // Blog footer
     , '1600x310 bfoot' : [ 1600, 310 ] // @2x Blog footer
     , '2850x1200 landg' : [ 2850, 1200 ] // Landing page
+    , '888x475 jb' : [ 888, 475 ] // jbsite
     , 'browser': [ 0, 0 ]
 };
 
