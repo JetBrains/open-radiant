@@ -7,12 +7,14 @@ module Layer.Metaballs exposing
 
 import Html exposing (Html)
 import Svg exposing (..)
+import Svg as S exposing (path)
 import Svg.Attributes exposing (..)
 
 
 v = 0.5
 handleLenRate = 2.4
-fill = "black"
+ballsFill = "black"
+maxDistance = 300
 
 
 type alias Model =
@@ -52,11 +54,39 @@ smallCircles =
 
 
 
-metaball : Ball -> Ball -> Float -> Metaball
-metaball ball1 ball2 maxDistance = Metaball ""
+metaball : Ball -> Ball -> Metaball
+metaball ball1 ball2 = Metaball ""
+
+
+scene :  ( Int, Int ) -> ( List Ball, List Path )
+scene mousePos =
+    let
+        balls =
+            Ball mousePos 100 :: List.map (\center -> Ball center 50) smallCircles
+        indexedBalls =
+            balls |> List.indexedMap Tuple.pair
+    in
+        ( balls, [] )
+
 
 
 view : ( Int, Int ) -> Html a
-view mouse =
-    svg [ width "1000", height "1000" ]
-        [ rect [ x "10", y "10", width "100", height "100", rx "15", ry "15" ] [] ]
+view mousePos =
+    let
+        ( balls, paths ) = scene mousePos
+        drawBall { center, radius }
+            = case center of
+                ( ballX, ballY ) ->
+                    circle
+                        [ cx <| String.fromInt ballX
+                        , cy <| String.fromInt ballY
+                        , r <| String.fromInt radius
+                        ]
+                        []
+        drawPath pathStr =
+            S.path [ d pathStr, fill ballsFill ] []
+    in
+        svg [ width "1000", height "1000" ]
+            ([ rect [ x "0", y "0", width "1000", height "1000", fill "white" ] [ ] ] ++
+            List.map drawBall balls ++
+            List.map drawPath paths)

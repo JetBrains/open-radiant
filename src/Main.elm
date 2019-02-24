@@ -78,7 +78,9 @@ initialLayers mode =
     --         ( Cover, Ads ) -> False
     --         _ -> True
     -- )
-    [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init ) ]
+    [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
+    ]
+
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
