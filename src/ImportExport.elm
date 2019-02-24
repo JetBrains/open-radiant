@@ -101,6 +101,7 @@ encodeKind_ kind =
         M.Voronoi -> "voronoi"
         M.Cover -> "cover"
         M.Vignette -> "vignette"
+        M.Metaballs -> "metaballs"
         M.Empty -> "empty"
 
 

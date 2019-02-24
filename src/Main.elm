@@ -39,6 +39,7 @@ import Layer.Template as Template
 import Layer.Cover as Cover
 import Layer.Canvas as Canvas
 import Layer.Vignette as Vignette
+import Layer.Metaballs as Metaballs
 
 
 sizeCoef : Float
@@ -58,25 +59,26 @@ init =
 
 initialLayers : UiMode -> List ( LayerKind, String, LayerModel )
 initialLayers mode =
-    [ ( Fss, "Lower Layer", FssModel FSS.init )
-    , ( Fss, "Mid Layer", FssModel FSS.init )
-    , ( Fss, "Top layer"
-      , let
-            fssModel = FSS.init
-        in
-            { fssModel
-            | renderMode = FSS.PartialLines
-            , shareMesh = True
-            } |> FssModel
-      )
-    , ( Cover, "Cover", NoModel )
-    -- , ( Vignette, Vignette.init )
-    ]
-    |> List.filter (\(kind, _, _) ->
-        case ( kind, mode ) of
-            ( Cover, Ads ) -> False
-            _ -> True
-    )
+    -- [ ( Fss, "Lower Layer", FssModel FSS.init )
+    -- , ( Fss, "Mid Layer", FssModel FSS.init )
+    -- , ( Fss, "Top layer"
+    --   , let
+    --         fssModel = FSS.init
+    --     in
+    --         { fssModel
+    --         | renderMode = FSS.PartialLines
+    --         , shareMesh = True
+    --         } |> FssModel
+    --   )
+    -- , ( Cover, "Cover", NoModel )
+    -- -- , ( Vignette, Vignette.init )
+    -- ]
+    -- |> List.filter (\(kind, _, _) ->
+    --     case ( kind, mode ) of
+    --         ( Cover, Ads ) -> False
+    --         _ -> True
+    -- )
+    [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init ) ]
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -612,6 +614,10 @@ createLayer kind layerModel =
             HtmlLayer
             CoverLayer
             HtmlBlend.default
+        ( Metaballs, _ ) ->
+            HtmlLayer
+            MetaballsLayer
+            HtmlBlend.default
         _ ->
             Model.emptyLayer
 
@@ -878,6 +884,8 @@ layerToHtml model index { layer } =
             case htmlLayer of
                 CoverLayer ->
                     Cover.view model.mode model.product model.size model.origin htmlBlend
+                MetaballsLayer ->
+                    Metaballs.view model.mouse
                 CanvasLayer ->
                     Canvas.view
                 NoContent -> div [] []

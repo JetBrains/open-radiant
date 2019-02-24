@@ -44,6 +44,7 @@ import Layer.Fractal as Fractal
 import Layer.Voronoi as Voronoi
 import Layer.Template as Template
 import Layer.Vignette as Vignette
+import Layer.Metaballs as Metaballs
 
 
 type alias LayerIndex = Int
@@ -121,6 +122,7 @@ type LayerKind
     | MirroredFss
     | Cover
     | Vignette
+    | Metaballs
     | Empty
 
 
@@ -136,6 +138,7 @@ type LayerModel
     | FssModel FSS.Model
     | TemplateModel Template.Model
     | VignetteModel Vignette.Model
+    | MetaballsModel Metaballs.Model
     | NoModel
 
 
@@ -151,6 +154,7 @@ type WebGLLayer_
 
 type HtmlLayer_
     = CoverLayer
+    | MetaballsLayer
     | CanvasLayer
     | NoContent
 
@@ -301,7 +305,7 @@ sizePresets mode =
             , ( 4, 2 )
             )
         Ads ->
-            -- ADS SIZES 
+            -- ADS SIZES
             ( Dict.fromList
                 [( "120x600", ( 120, 600 ) )
                 ,( "125x125", ( 125, 125 ) )
@@ -336,10 +340,10 @@ sizePresets mode =
                 ,( "1200x628 fb", ( 1200, 628 ) )
                 ,( "800x418 tw", ( 800, 418 ) )
                 ,( "1080x1080 in", ( 1080, 1080 ) )
-                ,( "1200x627 ln", ( 1200, 627 ) )                
+                ,( "1200x627 ln", ( 1200, 627 ) )
                 ]
             , ( 4, 2 )
-            )   
+            )
         _ ->
             -- RELEASE_SIZES // TODO: Multiply for creating @2x @3x
             ( Dict.fromList
@@ -359,7 +363,7 @@ sizePresets mode =
                 , ( "2850x1200 landg", ( 2850, 1200 ) ) -- Landing page
                 -- , ( "browser", ( 0, 0 ) )
                 ]
-            , ( 4, 4 ) 
+            , ( 4, 4 )
             )
 
 
