@@ -13,6 +13,7 @@ module Model exposing
     , HtmlLayer_(..)
     , CreateLayer
     , ViewportSize(..)
+    , getViewportState
     , Size
     , Pos
     , TimeDelta
@@ -35,6 +36,7 @@ import Gui.Gui as Gui
 import Gui.Def exposing (..)
 import Gui.Nest exposing (..)
 
+import Viewport
 import Product exposing (Product)
 import Product
 import Gui.Gui as Gui
@@ -286,6 +288,11 @@ initEmpty mode =
 emptyLayer : Layer
 emptyLayer =
     HtmlLayer NoContent HtmlBlend.default
+
+
+getViewportState : Model -> Viewport.State
+getViewportState { paused, size, origin, theta } =
+    { paused = paused, size = size, origin = origin, theta = theta }
 
 
 sizePresets : UiMode -> ( Dict.Dict String ( Int, Int ), Shape )
