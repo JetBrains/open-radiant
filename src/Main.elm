@@ -24,6 +24,7 @@ import Model exposing (..)
 import Gui.Gui as Gui
 import Gui.Mouse exposing (Position)
 import Viewport exposing (Viewport)
+import RenderQueue as RQ
 import WebGL.Blend as WGLBlend
 import Html.Blend as HtmlBlend
 import Controls
@@ -39,6 +40,7 @@ import Layer.Template as Template
 import Layer.Cover as Cover
 import Layer.Canvas as Canvas
 import Layer.Vignette as Vignette
+import Layer.Metaballs as Metaballs
 
 
 sizeCoef : Float
@@ -71,6 +73,7 @@ initialLayers mode =
       )
     , ( Cover, "Cover", NoModel )
     -- , ( Vignette, Vignette.init )
+    , ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
     ]
     |> List.filter (\(kind, _, _) ->
         case ( kind, mode ) of
@@ -612,6 +615,10 @@ createLayer kind layerModel =
             HtmlLayer
             CoverLayer
             HtmlBlend.default
+        ( Metaballs, _ ) ->
+            HtmlLayer
+            MetaballsLayer
+            HtmlBlend.default
         _ ->
             Model.emptyLayer
 
@@ -835,49 +842,15 @@ mapControls model controlsMsg =
         Controls.Rotate th -> Rotate th
 
 
-isWebGLLayer : Layer -> Bool
-isWebGLLayer layer =
-    case layer of
-        WebGLLayer _ _ -> True
-        HtmlLayer _ _ -> False
-
-isHtmlLayer : Layer -> Bool
-isHtmlLayer layer =
-    case layer of
-        WebGLLayer _ _ -> False
-        HtmlLayer _ _ -> True
-
-
-mergeWebGLLayers : Model -> List WebGL.Entity
-mergeWebGLLayers model =
-    let viewport = getViewportState model |> Viewport.find
-    in
-        model.layers
-            |> List.filter (.layer >> isWebGLLayer)
-            |> List.filter .on
-            |> List.indexedMap Tuple.pair
-            -- |> List.concatMap (uncurry >> layerToEntities model viewport)
-            |> List.concatMap
-                    (\(index, layer) ->
-                        layerToEntities model viewport index layer
-                    )
-
-
-mergeHtmlLayers : Model -> List (Html Msg)
-mergeHtmlLayers model =
-    model.layers
-        |> List.filter (.layer >> isHtmlLayer)
-        |> List.filter .on
-        |> List.indexedMap (layerToHtml model)
-
-
-layerToHtml : Model -> Int -> LayerDef -> Html Msg
-layerToHtml model index { layer } =
+layerToHtml : Model -> Viewport {} -> Int -> LayerDef -> Html Msg
+layerToHtml model viewport index { layer } =
     case layer of
         HtmlLayer htmlLayer htmlBlend ->
             case htmlLayer of
                 CoverLayer ->
                     Cover.view model.mode model.product model.size model.origin htmlBlend
+                MetaballsLayer ->
+                    Metaballs.view viewport model.mouse
                 CanvasLayer ->
                     Canvas.view
                 NoContent -> div [] []
@@ -984,25 +957,42 @@ resizeToViewport =
         Browser.getViewport
 
 
-getViewportState : Model -> Viewport.State
-getViewportState { paused, size, origin, theta } =
-    { paused = paused, size = size, origin = origin, theta = theta }
-
-
 view : Model -> Html Msg
 view model =
-    div [ ]
+    let wrapHtml = div [ H.class "html-layers layers" ]
+        wrapEntities =
+            WebGL.toHtmlWith
+                [ WebGL.antialias
+                , WebGL.alpha True
+                , WebGL.clearColor 0.0 0.0 0.0 1.0
+                -- , WebGL.depth 0.5
+                ]
+                [ H.class "webgl-layers layers"
+                , width <| Tuple.first model.size
+                , height <| Tuple.second model.size
+                , style "display" "block"
+                    --, ( "background-color", "#161616" )
+--                    ,   ( "transform", "translate("
+--                        ++ (Tuple.first model.origin |> toString)
+--                        ++ "px, "
+--                        ++ (Tuple.second model.origin |> toString)
+--                        ++ "px)"
+--                        )
+                , Events.onClick TriggerPause
+                ]
+        renderQueue = model |> RQ.groupLayers layerToEntities layerToHtml
+    in div [ ]
         --span [ class "fps" ] [ toString model.fps ++ "FPS" |> text ]
         --    :: Html.map mapControls
         --     (config |>
         --           Controls.controls numVertices theta)
            --:: WebGL.toHtmlWith
-        [ mergeHtmlLayers model |> div [ H.class "html-layers" ]
+        [ renderQueue |> RQ.apply wrapHtml wrapEntities
         , if model.controlsVisible
             then ( div
                 [ H.class "overlay-panel import-export-panel hide-on-space" ]
                 [
-                  div [  H.class "timeline_holder" ] [
+                  div [ H.class "timeline_holder" ] [
                   span [ H.class "label past"] [text "past"]
                 , input
                     [ type_ "range"
@@ -1029,27 +1019,6 @@ view model =
                 , div [ H.class "spacebar_info" ] [ text "spacebar to hide controls, click to pause" ]
                 ]
             ) else div [] []
-        , mergeWebGLLayers model |>
-            WebGL.toHtmlWith
-                [ WebGL.antialias
-                , WebGL.alpha True
-                , WebGL.clearColor 0.0 0.0 0.0 1.0
-                -- , WebGL.depth 0.5
-                ]
-                [ H.class "webgl-layers"
-                , width (Tuple.first model.size)
-                , height (Tuple.second model.size)
-                , style "display" "block"
-                    --, ( "background-color", "#161616" )
---                    ,   ( "transform", "translate("
---                        ++ (Tuple.first model.origin |> toString)
---                        ++ "px, "
---                        ++ (Tuple.second model.origin |> toString)
---                        ++ "px)"
---                        )
-                , Events.onClick TriggerPause
-                ]
-        -- , mergeHtmlLayers model |> div [ H.class "html-layers"]
         , model.gui
             |> Maybe.map Gui.view
             |> Maybe.map (Html.map GuiMessage)

@@ -13,6 +13,7 @@ module Model exposing
     , HtmlLayer_(..)
     , CreateLayer
     , ViewportSize(..)
+    , getViewportState
     , Size
     , Pos
     , TimeDelta
@@ -35,6 +36,7 @@ import Gui.Gui as Gui
 import Gui.Def exposing (..)
 import Gui.Nest exposing (..)
 
+import Viewport
 import Product exposing (Product)
 import Product
 import Gui.Gui as Gui
@@ -44,6 +46,7 @@ import Layer.Fractal as Fractal
 import Layer.Voronoi as Voronoi
 import Layer.Template as Template
 import Layer.Vignette as Vignette
+import Layer.Metaballs as Metaballs
 
 
 type alias LayerIndex = Int
@@ -121,6 +124,7 @@ type LayerKind
     | MirroredFss
     | Cover
     | Vignette
+    | Metaballs
     | Empty
 
 
@@ -136,6 +140,7 @@ type LayerModel
     | FssModel FSS.Model
     | TemplateModel Template.Model
     | VignetteModel Vignette.Model
+    | MetaballsModel Metaballs.Model
     | NoModel
 
 
@@ -151,6 +156,7 @@ type WebGLLayer_
 
 type HtmlLayer_
     = CoverLayer
+    | MetaballsLayer
     | CanvasLayer
     | NoContent
 
@@ -284,6 +290,11 @@ emptyLayer =
     HtmlLayer NoContent HtmlBlend.default
 
 
+getViewportState : Model -> Viewport.State
+getViewportState { paused, size, origin, theta } =
+    { paused = paused, size = size, origin = origin, theta = theta }
+
+
 sizePresets : UiMode -> ( Dict.Dict String ( Int, Int ), Shape )
 sizePresets mode =
     case mode of
@@ -301,7 +312,7 @@ sizePresets mode =
             , ( 4, 2 )
             )
         Ads ->
-            -- ADS SIZES 
+            -- ADS SIZES
             ( Dict.fromList
                 [( "120x600", ( 120, 600 ) )
                 ,( "125x125", ( 125, 125 ) )
@@ -336,10 +347,10 @@ sizePresets mode =
                 ,( "1200x628 fb", ( 1200, 628 ) )
                 ,( "800x418 tw", ( 800, 418 ) )
                 ,( "1080x1080 in", ( 1080, 1080 ) )
-                ,( "1200x627 ln", ( 1200, 627 ) )                
+                ,( "1200x627 ln", ( 1200, 627 ) )
                 ]
             , ( 4, 2 )
-            )   
+            )
         _ ->
             -- RELEASE_SIZES // TODO: Multiply for creating @2x @3x
             ( Dict.fromList
@@ -360,7 +371,7 @@ sizePresets mode =
                 ,  ("888x475 jb",  (888, 475 ))  -- jbsite
                 -- , ( "browser", ( 0, 0 ) )
                 ]
-            , ( 4, 4 ) 
+            , ( 4, 4 )
             )
 
 
