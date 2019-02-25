@@ -75,6 +75,7 @@ groupLayers layerToEntities layerToHtml model =
     in
         model.layers
             |> List.indexedMap Tuple.pair
+            |> List.filter (Tuple.second >> .on)
             |> List.foldl addToQueue Array.empty
 
 

@@ -82,7 +82,6 @@ initialLayers mode =
     )
 
 
-
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
@@ -841,42 +840,6 @@ mapControls model controlsMsg =
     case controlsMsg of
         Controls.Configure cfg -> Configure 0 (LorenzModel cfg)
         Controls.Rotate th -> Rotate th
-
-
--- isWebGLLayer : Layer -> Bool
--- isWebGLLayer layer =
---     case layer of
---         WebGLLayer _ _ -> True
---         HtmlLayer _ _ -> False
-
--- isHtmlLayer : Layer -> Bool
--- isHtmlLayer layer =
---     case layer of
---         WebGLLayer _ _ -> False
---         HtmlLayer _ _ -> True
-
-
--- mergeWebGLLayers : Model -> List WebGL.Entity
--- mergeWebGLLayers model =
---     let viewport = getViewportState model |> Viewport.find
---     in
---         model.layers
---             |> List.filter (.layer >> isWebGLLayer)
---             |> List.filter .on
---             |> List.indexedMap Tuple.pair
---             -- |> List.concatMap (uncurry >> layerToEntities model viewport)
---             |> List.concatMap
---                     (\(index, layer) ->
---                         layerToEntities model viewport index layer
---                     )
-
-
--- mergeHtmlLayers : Model -> List (Html Msg)
--- mergeHtmlLayers model =
---     model.layers
---         |> List.filter (.layer >> isHtmlLayer)
---         |> List.filter .on
---         |> List.indexedMap (layerToHtml model)
 
 
 layerToHtml : Model -> Int -> LayerDef -> Html Msg
