@@ -69,7 +69,7 @@ smallCircles =
 buildPath : Metaball -> Path
 buildPath { p1, p2, p3, p4, h1, h2, h3, h4, escaped, radius } =
     let
-        vecstr vec = String.fromFloat (getX vec) ++ " " ++ String.fromFloat (getY vec)
+        vecstr vec = String.fromFloat (getX vec) ++ "," ++ String.fromFloat (getY vec)
     in
         String.join " "
             [ "M", vecstr p1
@@ -83,9 +83,12 @@ buildPath { p1, p2, p3, p4, h1, h2, h3, h4, escaped, radius } =
 metaball : Ball -> Ball -> Maybe Path
 metaball ball1 ball2 =
     let
-        vecAt rads len =
-            case fromPolar ( len, degrees rads ) of
-                ( x, y ) -> vec2 x y
+        vecAt center a r =
+            let ( cx, cy ) = ( getX center, getY center )
+            in
+                vec2
+                    (cx + r * cos a)
+                    (cy + r * sin a)
         center1 = ball1.center
         center2 = ball2.center
         radius1 = ball1.radius
@@ -104,6 +107,7 @@ metaball ball1 ball2 =
         else
             let
                 ballsOverlap = d < radius1 + radius2
+
                 -- Calculate u1 and u2 if the balls are overlapping
                 u1 =
                     if ballsOverlap then
@@ -125,10 +129,15 @@ metaball ball1 ball2 =
                 angle2b = angleBetweenCenters - pi + u2 + (pi - u2 - maxSpread) * v
 
                 -- Point locations
-                p1a = add center1 <| vecAt angle1a radius1
-                p1b = add center1 <| vecAt angle1b radius1
-                p2a = add center2 <| vecAt angle2a radius2
-                p2b = add center2 <| vecAt angle2b radius2
+                -- p1a = add center1 <| vecAt angle1a radius1
+                -- p1b = add center1 <| vecAt angle1b radius1
+                -- p2a = add center2 <| vecAt angle2a radius2
+                -- p2b = add center2 <| vecAt angle2b radius2
+                p1a = vecAt center1 angle1a radius1
+                p1b = vecAt center1 angle1b radius1
+                p2a = vecAt center2 angle2a radius2
+                p2b = vecAt center2 angle2b radius2
+
 
                 -- Define handle length by the distance between
                 -- both ends of the curve
@@ -137,13 +146,16 @@ metaball ball1 ball2 =
                 -- Take into account when circles are overlapping
                 d2 = d2Base * (Basics.min 1 (d * 2 / (radius1 + radius2)))
 
-                scaledRadius1 = radius1 * d2
-                scaledRadius2 = radius2 * d2
+                -- Length of the handles
+                sRadius1 = radius1 * d2
+                sRadius2 = radius2 * d2
 
                 theMetaball =
                     { p1 = p1a, p2 = p1b, p3 = p2a, p4 = p2b
-                    , h1 = vecAt (angle1a - halfPi) radius1, h2 = vecAt (angle1b + halfPi) radius1
-                    , h3 = vecAt (angle2a + halfPi) radius2, h4 = vecAt (angle2b - halfPi) radius2
+                    , h1 = vecAt p1a (angle1a - halfPi) sRadius1
+                    , h2 = vecAt p1b (angle1b + halfPi) sRadius1
+                    , h3 = vecAt p2a (angle2a + halfPi) sRadius2
+                    , h4 = vecAt p2b (angle2b - halfPi) sRadius2
                     , escaped = d > radius1, radius = radius2
                     }
             in
