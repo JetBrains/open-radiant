@@ -76,7 +76,8 @@ buildPath { p1, p2, p3, p4, h1, h2, h3, h4, escaped, radius } =
             , "C", vecstr h1, vecstr h3, vecstr p3
             , "A", String.fromFloat radius, String.fromFloat radius
                  , "0", if escaped then "1" else "0", "0", vecstr p4
-            , "C", vecstr h4, vecstr h3, vecstr p4
+            --, "C", vecstr h4, vecstr h3, vecstr p4
+            , "C", vecstr h4, vecstr h2, vecstr p2
             ]
 
 
@@ -89,6 +90,8 @@ metaball ball1 ball2 =
                 vec2
                     (cx + r * cos a)
                     (cy + r * sin a)
+        angleBetween vec1 vec2 =
+            atan2 (getY vec1 - getY vec2) (getX vec1 - getX vec2)
         center1 = ball1.center
         center2 = ball2.center
         radius1 = ball1.radius
@@ -119,30 +122,25 @@ metaball ball1 ball2 =
                     else 0
 
                 -- Calculate the max spread
-                angleBetweenCenters = let vc = sub center2 center1 in atan2 (getX vc) (getY vc)
+                angleBetweenCenters = angleBetween center2 center1
                 maxSpread = acos <| (radius1 - radius2) / d
 
                 -- Angles for the points
-                angle1a = angleBetweenCenters + u1 + (maxSpread - u1) * v
-                angle1b = angleBetweenCenters - u1 - (maxSpread - u1) * v
-                angle2a = angleBetweenCenters + pi - u2 - (pi - u2 - maxSpread) * v
-                angle2b = angleBetweenCenters - pi + u2 + (pi - u2 - maxSpread) * v
+                angle1 = angleBetweenCenters + u1 + (maxSpread - u1) * v
+                angle2 = angleBetweenCenters - u1 - (maxSpread - u1) * v
+                angle3 = angleBetweenCenters + pi - u2 - (pi - u2 - maxSpread) * v
+                angle4 = angleBetweenCenters - pi + u2 + (pi - u2 - maxSpread) * v
 
                 -- Point locations
-                -- p1a = add center1 <| vecAt angle1a radius1
-                -- p1b = add center1 <| vecAt angle1b radius1
-                -- p2a = add center2 <| vecAt angle2a radius2
-                -- p2b = add center2 <| vecAt angle2b radius2
-                p1a = vecAt center1 angle1a radius1
-                p1b = vecAt center1 angle1b radius1
-                p2a = vecAt center2 angle2a radius2
-                p2b = vecAt center2 angle2b radius2
-
+                p1 = vecAt center1 angle1 radius1
+                p2 = vecAt center1 angle2 radius1
+                p3 = vecAt center2 angle3 radius2
+                p4 = vecAt center2 angle4 radius2
 
                 -- Define handle length by the distance between
                 -- both ends of the curve
                 totalRadius = radius1 + radius2
-                d2Base = Basics.min (v * handleLenRate) (distance p1a p2a / totalRadius)
+                d2Base = Basics.min (v * handleLenRate) (distance p1 p2 / totalRadius)
                 -- Take into account when circles are overlapping
                 d2 = d2Base * (Basics.min 1 (d * 2 / (radius1 + radius2)))
 
@@ -150,12 +148,13 @@ metaball ball1 ball2 =
                 sRadius1 = radius1 * d2
                 sRadius2 = radius2 * d2
 
+                -- Create the metaball
                 theMetaball =
-                    { p1 = p1a, p2 = p1b, p3 = p2a, p4 = p2b
-                    , h1 = vecAt p1a (angle1a - halfPi) sRadius1
-                    , h2 = vecAt p1b (angle1b + halfPi) sRadius1
-                    , h3 = vecAt p2a (angle2a + halfPi) sRadius2
-                    , h4 = vecAt p2b (angle2b - halfPi) sRadius2
+                    { p1 = p1, p2 = p2, p3 = p3, p4 = p4
+                    , h1 = vecAt p1 (angle1 - halfPi) sRadius1
+                    , h2 = vecAt p2 (angle2 + halfPi) sRadius1
+                    , h3 = vecAt p3 (angle3 + halfPi) sRadius2
+                    , h4 = vecAt p4 (angle4 - halfPi) sRadius2
                     , escaped = d > radius1, radius = radius2
                     }
             in
