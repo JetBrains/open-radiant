@@ -16,7 +16,7 @@ import Svg.Attributes exposing (..)
 v = 0.5
 handleLenRate = 2.4
 ballsFill = "black"
-maxDistance = 300
+-- maxDistance = 300
 
 
 type alias Model =
@@ -90,9 +90,13 @@ metaball ball1 ball2 =
         center2 = ball2.center
         radius1 = ball1.radius
         radius2 = ball2.radius
-        pi2 = pi / 2
+        maxDistance = radius1 + radius2 * 2.5
+        halfPi = pi / 2
         d = distance center1 center2
     in
+        -- No blob if a radius is 0
+        -- or if distance between the balls is larger than max-dist
+        -- or if ball2 is completely inside ball1
         if (radius1 <= 0 || radius2 <= 0) then
             Nothing
         else if (d > maxDistance || d <= abs (radius1 - radius2)) then
@@ -100,6 +104,7 @@ metaball ball1 ball2 =
         else
             let
                 ballsOverlap = d < radius1 + radius2
+                -- Calculate u1 and u2 if the balls are overlapping
                 u1 =
                     if ballsOverlap then
                         acos <| (radius1 * radius1 + d * d - radius2 * radius2) / (2 * radius1 * d)
@@ -108,29 +113,37 @@ metaball ball1 ball2 =
                     if ballsOverlap then
                         acos <| (radius2 * radius2 + d * d - radius1 * radius1) / (2 * radius2 * d)
                     else 0
-                angle1 = let vc = sub center2 center1 in atan2 (getX vc) (getY vc)
-                angle2 = acos <| (radius1 - radius2) / d
-                angle1a = angle1 + u1 + (angle2 - u1) * v
-                angle1b = angle1 - u1 - (angle2 - u1) * v
-                angle2a = angle1 + pi - u2 - (pi - u2 - angle2) * v
-                angle2b = angle1 - pi + u2 + (pi - u2 - angle2) * v
+
+                -- Calculate the max spread
+                angleBetweenCenters = let vc = sub center2 center1 in atan2 (getX vc) (getY vc)
+                maxSpread = acos <| (radius1 - radius2) / d
+
+                -- Angles for the points
+                angle1a = angleBetweenCenters + u1 + (maxSpread - u1) * v
+                angle1b = angleBetweenCenters - u1 - (maxSpread - u1) * v
+                angle2a = angleBetweenCenters + pi - u2 - (pi - u2 - maxSpread) * v
+                angle2b = angleBetweenCenters - pi + u2 + (pi - u2 - maxSpread) * v
+
+                -- Point locations
                 p1a = add center1 <| vecAt angle1a radius1
                 p1b = add center1 <| vecAt angle1b radius1
                 p2a = add center2 <| vecAt angle2a radius2
                 p2b = add center2 <| vecAt angle2b radius2
 
-                -- define handle length by the distance between
-                -- both ends of the curve to draw
+                -- Define handle length by the distance between
+                -- both ends of the curve
                 totalRadius = radius1 + radius2
-                d2 = Basics.min (v * handleLenRate) <| length (sub p1a p2a) / totalRadius
+                d2Base = Basics.min (v * handleLenRate) (distance p1a p2a / totalRadius)
+                -- Take into account when circles are overlapping
+                d2 = d2Base * (Basics.min 1 (d * 2 / (radius1 + radius2)))
 
                 scaledRadius1 = radius1 * d2
                 scaledRadius2 = radius2 * d2
 
                 theMetaball =
                     { p1 = p1a, p2 = p1b, p3 = p2a, p4 = p2b
-                    , h1 = vecAt (angle1a - pi2) radius1, h2 = vecAt (angle2a + pi2) radius2
-                    , h3 = vecAt (angle2b - pi2) radius2, h4 = vecAt (angle1b + pi2) radius1
+                    , h1 = vecAt (angle1a - halfPi) radius1, h2 = vecAt (angle1b + halfPi) radius1
+                    , h3 = vecAt (angle2a + halfPi) radius2, h4 = vecAt (angle2b - halfPi) radius2
                     , escaped = d > radius1, radius = radius2
                     }
             in
