@@ -15,7 +15,7 @@ import WebGL as WebGL
 
 
 type alias LayerToEntities = Model -> Viewport {} -> Int -> LayerDef -> List WebGL.Entity
-type alias LayerToHtml = Model -> Int -> LayerDef -> Html Msg
+type alias LayerToHtml     = Model -> Viewport {} -> Int -> LayerDef -> Html Msg
 
 type RenderQueueItem = ToCanvas (Array WebGL.Entity) | ToHtml (Array (Html Msg))
 type alias RenderQueue = Array RenderQueueItem
@@ -57,20 +57,20 @@ groupLayers layerToEntities layerToHtml model =
                             renderQueue
                                 |> Array.push
                                     (Array.empty
-                                        |> Array.push (layerToHtml model index layer)
+                                        |> Array.push (layerToHtml model viewport index layer)
                                         |> ToHtml)
                         Just (ToHtml curHtml) ->
                             renderQueue
                                 |> Array.set indexOfThelastInQueue
                                     (Array.empty
-                                        |> Array.push (layerToHtml model index layer)
+                                        |> Array.push (layerToHtml model viewport index layer)
                                         |> Array.append curHtml
                                         |> ToHtml)
                         Just _ ->
                             renderQueue
                                 |> Array.push
                                     (Array.empty
-                                        |> Array.push (layerToHtml model index layer)
+                                        |> Array.push (layerToHtml model viewport index layer)
                                         |> ToHtml)
     in
         model.layers

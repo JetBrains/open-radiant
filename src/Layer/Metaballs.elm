@@ -4,6 +4,7 @@ module Layer.Metaballs exposing
     , view
     )
 
+import Viewport exposing (Viewport)
 
 import Math.Vector2 exposing (..)
 import Array
@@ -184,10 +185,11 @@ scene ( mouseX, mouseY ) =
 
 
 
-view : ( Int, Int ) -> Html a
-view mousePos =
+view : Viewport {} -> ( Int, Int ) -> Html a
+view vp mousePos =
     let
-        ( balls, connections ) = scene mousePos
+        ( w, h ) = ( getX vp.size, getY vp.size )
+        ( balls, metaballs ) = scene mousePos
         drawBall { center, radius }
             = circle
                 [ cx <| String.fromFloat <| getX center
@@ -195,11 +197,11 @@ view mousePos =
                 , r  <| String.fromFloat radius
                 ]
                 [ ]
-        drawConnection pathStr =
+        drawMetaball pathStr =
             S.path [ d pathStr, fill ballsFill ] []
     in
-        svg [ width "1000", height "1000" ]
+        svg [ width <| String.fromFloat w, height <| String.fromFloat h ]
             (
             List.map drawBall balls ++
-            List.map drawConnection connections
+            List.map drawMetaball metaballs
             )

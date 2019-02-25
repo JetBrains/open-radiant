@@ -842,15 +842,15 @@ mapControls model controlsMsg =
         Controls.Rotate th -> Rotate th
 
 
-layerToHtml : Model -> Int -> LayerDef -> Html Msg
-layerToHtml model index { layer } =
+layerToHtml : Model -> Viewport {} -> Int -> LayerDef -> Html Msg
+layerToHtml model viewport index { layer } =
     case layer of
         HtmlLayer htmlLayer htmlBlend ->
             case htmlLayer of
                 CoverLayer ->
                     Cover.view model.mode model.product model.size model.origin htmlBlend
                 MetaballsLayer ->
-                    Metaballs.view model.mouse
+                    Metaballs.view viewport model.mouse
                 CanvasLayer ->
                     Canvas.view
                 NoContent -> div [] []
