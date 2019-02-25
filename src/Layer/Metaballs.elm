@@ -5,6 +5,7 @@ module Layer.Metaballs exposing
     )
 
 
+import Array
 import Html exposing (Html)
 import Svg exposing (..)
 import Svg as S exposing (path)
@@ -34,7 +35,7 @@ type alias Ball =
 
 type alias Path = String
 
-type Metaball = Metaball Path
+type Connection = Connection Path
 
 
 smallCircles =
@@ -54,26 +55,35 @@ smallCircles =
 
 
 
-metaball : Ball -> Ball -> Metaball
-metaball ball1 ball2 = Metaball ""
+metaball : Ball -> Ball -> Connection
+metaball ball1 ball2 = Connection ""
 
 
-scene :  ( Int, Int ) -> ( List Ball, List Path )
+scene :  ( Int, Int ) -> ( List Ball, List Connection )
 scene mousePos =
     let
         balls =
             Ball mousePos 100 :: List.map (\center -> Ball center 50) smallCircles
         indexedBalls =
             balls |> List.indexedMap Tuple.pair
+        connections =
+            List.foldr (\(i, ball1) allConnections ->
+                allConnections ++
+                    List.foldr (\(j, ball2) ballConnections ->
+                        if (j < i) then
+                            metaball ball1 ball2 :: ballConnections
+                        else ballConnections
+                    ) [] indexedBalls
+            ) [] indexedBalls
     in
-        ( balls, [] )
+        ( balls, connections )
 
 
 
 view : ( Int, Int ) -> Html a
 view mousePos =
     let
-        ( balls, paths ) = scene mousePos
+        ( balls, connections ) = scene mousePos
         drawBall { center, radius }
             = case center of
                 ( ballX, ballY ) ->
@@ -83,10 +93,10 @@ view mousePos =
                         , r <| String.fromInt radius
                         ]
                         []
-        drawPath pathStr =
+        drawConnection (Connection pathStr) =
             S.path [ d pathStr, fill ballsFill ] []
     in
         svg [ width "1000", height "1000" ]
             ([ rect [ x "0", y "0", width "1000", height "1000", fill "white" ] [ ] ] ++
             List.map drawBall balls ++
-            List.map drawPath paths)
+            List.map drawConnection connections )
