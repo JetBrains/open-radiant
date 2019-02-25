@@ -34,15 +34,20 @@ type alias Ball =
     }
 
 
-type alias Path = String
-type alias Segment =
-    { point : Vec2
-    , handleIn : Vec2
-    , handleOut : Vec2
+type alias Metaball =
+    { p1: Vec2, p2: Vec2, p3: Vec2, p4: Vec2
+    , h1: Vec2, h2: Vec2, h3: Vec2, h4: Vec2
+    , escaped: Bool
+    , radius: Float
     }
 
 
-type Connection = Connection Path
+type alias Path = String
+type alias Segment =
+    { point : Vec2
+    , handleIn : Maybe Vec2
+    , handleOut : Maybe Vec2
+    }
 
 
 smallCircles =
@@ -61,31 +66,21 @@ smallCircles =
     ]
 
 
-toString : Segment -> String
-toString { point, handleIn, handleOut } =
-    "P"
-        ++ (String.fromFloat <| getX point)
-        ++ " "
-        ++ (String.fromFloat <| getY point)
-        ++ " HI "
-        ++ (String.fromFloat <| getX handleIn)
-        ++ " "
-        ++ (String.fromFloat <| getY handleIn)
-        ++ " HO "
-        ++ (String.fromFloat <| getX handleOut)
-        ++ " "
-        ++ (String.fromFloat <| getY handleOut)
+buildPath : Metaball -> Path
+buildPath { p1, p2, p3, p4, h1, h2, h3, h4, escaped, radius } =
+    let
+        vecstr vec = String.fromFloat (getX vec) ++ " " ++ String.fromFloat (getY vec)
+    in
+        String.join " "
+            [ "M", vecstr p1
+            , "C", vecstr h1, vecstr h3, vecstr p3
+            , "A", String.fromFloat radius, String.fromFloat radius
+                 , "0", if escaped then "1" else "0", "0", vecstr p4
+            , "C", vecstr h4, vecstr h3, vecstr p4
+            ]
 
 
-buildPath : List Segment -> Path
-buildPath = List.foldr (toString >> (++)) ""
-
-
-zeroVec : Vec2
-zeroVec = vec2 0 0
-
-
-metaball : Ball -> Ball -> Maybe Connection
+metaball : Ball -> Ball -> Maybe Path
 metaball ball1 ball2 =
     let
         vecAt rads len =
@@ -132,16 +127,17 @@ metaball ball1 ball2 =
                 scaledRadius1 = radius1 * d2
                 scaledRadius2 = radius2 * d2
 
-                seg1 = Segment p1a zeroVec <| vecAt (angle1a - pi2) radius1
-                seg2 = Segment p2a (vecAt (angle2a + pi2) radius2) zeroVec
-                seg3 = Segment p2b zeroVec <| vecAt (angle2b - pi2) radius2
-                seg4 = Segment p1b (vecAt (angle1b + pi2) radius1) zeroVec
+                theMetaball =
+                    { p1 = p1a, p2 = p1b, p3 = p2a, p4 = p2b
+                    , h1 = vecAt (angle1a - pi2) radius1, h2 = vecAt (angle2a + pi2) radius2
+                    , h3 = vecAt (angle2b - pi2) radius2, h4 = vecAt (angle1b + pi2) radius1
+                    , escaped = d > radius1, radius = radius2
+                    }
             in
-                buildPath [ seg1, seg2, seg3, seg4 ]
-                    |> Connection |> Just
+                Just <| buildPath theMetaball
 
 
-scene :  ( Int, Int ) -> ( List Ball, List Connection )
+scene :  ( Int, Int ) -> ( List Ball, List Path )
 scene ( mouseX, mouseY ) =
     let
         ballAtCursor = Ball (vec2 (toFloat mouseX) (toFloat mouseY)) 100
@@ -175,7 +171,7 @@ view mousePos =
                 , r  <| String.fromFloat radius
                 ]
                 [ ]
-        drawConnection (Connection pathStr) =
+        drawConnection pathStr =
             S.path [ d pathStr, fill ballsFill ] []
     in
         svg [ width "1000", height "1000" ]
