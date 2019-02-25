@@ -60,27 +60,26 @@ init =
 
 initialLayers : UiMode -> List ( LayerKind, String, LayerModel )
 initialLayers mode =
-    -- [ ( Fss, "Lower Layer", FssModel FSS.init )
-    -- , ( Fss, "Mid Layer", FssModel FSS.init )
-    -- , ( Fss, "Top layer"
-    --   , let
-    --         fssModel = FSS.init
-    --     in
-    --         { fssModel
-    --         | renderMode = FSS.PartialLines
-    --         , shareMesh = True
-    --         } |> FssModel
-    --   )
-    -- , ( Cover, "Cover", NoModel )
-    -- -- , ( Vignette, Vignette.init )
-    -- ]
-    -- |> List.filter (\(kind, _, _) ->
-    --     case ( kind, mode ) of
-    --         ( Cover, Ads ) -> False
-    --         _ -> True
-    -- )
-    [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
+    [ ( Fss, "Lower Layer", FssModel FSS.init )
+    , ( Fss, "Mid Layer", FssModel FSS.init )
+    , ( Fss, "Top layer"
+      , let
+            fssModel = FSS.init
+        in
+            { fssModel
+            | renderMode = FSS.PartialLines
+            , shareMesh = True
+            } |> FssModel
+      )
+    , ( Cover, "Cover", NoModel )
+    -- , ( Vignette, Vignette.init )
+    , ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
     ]
+    |> List.filter (\(kind, _, _) ->
+        case ( kind, mode ) of
+            ( Cover, Ads ) -> False
+            _ -> True
+    )
 
 
 
@@ -997,7 +996,7 @@ resizeToViewport =
 
 view : Model -> Html Msg
 view model =
-    let wrapHtml = div [ H.class "html-layers" ]
+    let wrapHtml = div [ H.class "html-layers layers" ]
         wrapEntities =
             WebGL.toHtmlWith
                 [ WebGL.antialias
@@ -1005,9 +1004,9 @@ view model =
                 , WebGL.clearColor 0.0 0.0 0.0 1.0
                 -- , WebGL.depth 0.5
                 ]
-                [ H.class "webgl-layers"
-                , width (Tuple.first model.size)
-                , height (Tuple.second model.size)
+                [ H.class "webgl-layers layers"
+                , width <| Tuple.first model.size
+                , height <| Tuple.second model.size
                 , style "display" "block"
                     --, ( "background-color", "#161616" )
 --                    ,   ( "transform", "translate("
@@ -1030,7 +1029,7 @@ view model =
             then ( div
                 [ H.class "overlay-panel import-export-panel hide-on-space" ]
                 [
-                  div [  H.class "timeline_holder" ] [
+                  div [ H.class "timeline_holder" ] [
                   span [ H.class "label past"] [text "past"]
                 , input
                     [ type_ "range"

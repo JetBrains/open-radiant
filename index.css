@@ -82,6 +82,12 @@ svg.text-layer {
     pointer-events: none;
 }
 
+.layers {
+    position: absolute;
+    left: 0;
+	right: 0;
+}
+
 .overlay-panel {
     position: absolute;
     bottom: 5px !important;

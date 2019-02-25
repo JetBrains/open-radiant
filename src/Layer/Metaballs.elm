@@ -199,9 +199,7 @@ view mousePos =
             S.path [ d pathStr, fill ballsFill ] []
     in
         svg [ width "1000", height "1000" ]
-            ([ rect
-                [ x "0", y "0", width "1000", height "1000", fill "white" ] [ ]
-             ] ++
+            (
             List.map drawBall balls ++
             List.map drawConnection connections
             )
