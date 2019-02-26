@@ -225,31 +225,13 @@ prepareImportExport();
 // document.addEventListener('DOMContentLoaded', () => {
 setTimeout(() => {
 
-    const url_string = window.location.href;
-    const url = new URL(url_string);
-    let mode = '';
-    if (window.location.hash) {
-        mode = window.location.hash.substring(1);
-    }
-
-    if (mode) {
-        app.ports.changeMode.send(mode);
-    }
-
-    // if ("onhashchange" in window) {
-    //     window.onhashchange = function () {
-    //         const mode = window.location.hash.substring(1);
-    //         if (mode) {
-    //             app.ports.changeMode.send(mode);
-    //         }
-    //    }
-    // }
-
     const hiddenLink = document.createElement('a');
     hiddenLink.download = 'jetbrains-art-v2.png';
 
     app.ports.requestFitToWindow.subscribe((_) => {
-        app.ports.setCustomSize.send([ window.innerWidth, window.innerHeight ]);
+        app.ports.setCustomSize.send(
+            { presetCode: null, viewport: [ window.innerWidth, window.innerHeight ]}
+        );
     });
 
     app.ports.presetSizeChanged.subscribe((update) => {
@@ -281,7 +263,7 @@ setTimeout(() => {
         }, toSend, null)({})();
     });
 
-    app.ports.startGui.subscribe((model) => {
+    app.ports.startGui.subscribe(([ model, constants ]) => {
         const altGui = document.getElementById('grid-gui');
         if (altGui) altGui.focus();
         document.body.style.backgroundColor = model.background;
@@ -293,9 +275,10 @@ setTimeout(() => {
 
         if (!model.mode || (model.mode.substring(0, 4) != 'tron')) {
 
-            startGui(
+            const { config, update } = startGui(
                 document,
                 model,
+                constants,
                 { changeLightSpeed : index => value =>
                     { app.ports.changeLightSpeed.send({ layer: index, value: Math.round(value) }) }
                 , changeVignette : index => value =>
@@ -364,6 +347,13 @@ setTimeout(() => {
                 , applyRandomizer : value =>
                     { app.ports.applyRandomizer.send(prepareModelForImport(value)); }
                 });
+
+            app.ports.pushUpdate.subscribe((data) => {
+                // console.log('push update received', data);
+                config.product = data.product;
+                // TODO: apply the mode change in GUI and so change the size selection
+                update();
+            });
 
         }
 

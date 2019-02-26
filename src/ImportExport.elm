@@ -6,8 +6,11 @@ module ImportExport exposing
     , decodePortModel
     , encodeFss
     , fromFssPortModel
+<<<<<<< HEAD
     , encodeMode
     , decodeMode
+=======
+>>>>>>> origin/resize-fixes
     )
 
 import Array
@@ -27,6 +30,7 @@ import Layer.FSS as FSS
 import Product exposing (..)
 
 import Model as M
+import TronGui as GUI
 
 
 encodeIntPair : ( Int, Int ) -> E.Value
@@ -44,10 +48,9 @@ encodeIntPair ( v1, v2 ) =
 
 encodeXY : (a -> E.Value) -> { x: a, y: a } -> E.Value
 encodeXY f { x, y } =
-    E.list
-        f
-        [ x
-        , y
+    E.object
+        [ ( "x", f x )
+        , ( "y", f y )
         ]
 
 
@@ -167,13 +170,16 @@ encodeModel_ : M.Model -> E.Value
 encodeModel_ model =
     E.object
         [ ( "background", E.string model.background )
-        , ( "mode", E.string <| encodeMode model.mode )
+        , ( "mode", E.string <| M.encodeMode model.mode )
         , ( "theta", E.float model.theta )
         , ( "omega", E.float model.omega )
         , ( "layers", E.list encodeLayerDef model.layers )
         -- , ( "layers", E.list (List.filterMap
         --         (\layer -> Maybe.map encodeLayer layer) model.layers) )
-        , ( "size", encodeIntPair model.size )
+        -- for b/w compatibility, we also encode size as numbers, but sizeRule is what should matter
+        -- when it is defined/known on import
+        , ( "size", encodeIntPair <| M.getRuleSizeOrZeroes model.size )
+        , ( "sizeRule", E.string <| M.encodeSizeRule model.size )
         , ( "origin", encodeIntPair model.origin )
         , ( "mouse", encodeIntPair model.mouse )
         , ( "now", E.float model.now )
@@ -192,12 +198,13 @@ encodeModel model = model |> encodeModel_ |> E.encode 2
 encodePortModel : M.Model -> M.PortModel
 encodePortModel model =
     { background = model.background
-    , mode = encodeMode model.mode
+    , mode = M.encodeMode model.mode
     , now = model.now
     , theta = model.theta
     , omega = model.omega
     , layers = List.map encodePortLayer model.layers
-    , size = model.size
+    , size = M.getRuleSize model.size |> Maybe.withDefault ( -1, -1 )
+    , sizeRule = M.encodeSizeRule model.size |> Just
     , origin = model.origin
     , mouse = model.mouse
     , palette = model.product |> getPalette
@@ -208,7 +215,7 @@ encodePortModel model =
 decodePortModel : M.CreateLayer -> M.PortModel -> M.Model
 decodePortModel createLayer portModel =
     let
-        mode = decodeMode portModel.mode
+        mode = M.decodeMode portModel.mode
         initialModel = M.initEmpty mode
         decodedModel =
             { initialModel
@@ -218,7 +225,11 @@ decodePortModel createLayer portModel =
             , theta = portModel.theta
             , omega = portModel.omega
             , layers = List.map (decodePortLayer createLayer) portModel.layers
-            , size = portModel.size
+            , size =
+                case portModel.sizeRule of
+                    Just sizeRuleStr -> M.decodeSizeRule sizeRuleStr
+                    Nothing -> case portModel.size of
+                        ( w, h ) -> M.Custom w h
             , origin = portModel.origin
             , mouse = portModel.mouse
             , product = portModel.product |> Product.decode
@@ -226,7 +237,7 @@ decodePortModel createLayer portModel =
     in
         { decodedModel
         | gui = case mode of
-            M.TronUi _ -> M.gui decodedModel |> Just
+            M.TronUi _ -> GUI.gui decodedModel |> Just
             _ -> Nothing
         }
 
@@ -440,12 +451,22 @@ layerModelDecoder kind =
             D.succeed M.NoModel
 
 
-modelDecoder : M.UiMode -> M.CreateLayer -> D.Decoder M.Model
-modelDecoder mode createLayer =
+modelDecoder : M.UiMode -> M.CreateLayer -> M.CreateGui -> D.Decoder M.Model
+modelDecoder mode createLayer createGui =
     let
-        createModel background theta omega layers size origin mouse now productStr =
+        createModel
+            background
+            theta
+            omega
+            layers
+            maybeSize
+            maybeSizeRule
+            origin
+            mouse
+            now
+            productStr =
             let
-                initialModel = M.init mode [] createLayer
+                initialModel = M.init mode [] createLayer createGui
                 product = Product.decode productStr
             in
                 { initialModel
@@ -453,7 +474,11 @@ modelDecoder mode createLayer =
                 , theta = theta
                 , omega = omega
                 , layers = layers
-                , size = size
+                , size = case maybeSizeRule of
+                    Just sizeRuleStr -> M.decodeSizeRule sizeRuleStr
+                    Nothing -> case maybeSize of
+                        Just (w, h) -> M.Custom w h
+                        Nothing -> M.Dimensionless
                 , origin = origin
                 , mouse = mouse
                 , now = now
@@ -466,16 +491,17 @@ modelDecoder mode createLayer =
             |> D.andMap (D.field "theta" D.float)
             |> D.andMap (D.field "omega" D.float)
             |> D.andMap (D.field "layers" (layerDefDecoder createLayer |> D.list))
-            |> D.andMap (D.field "size" intPairDecoder)
+            |> D.andMap (D.maybe (D.field "size" intPairDecoder))
+            |> D.andMap (D.maybe (D.field "sizeRule" D.string))
             |> D.andMap (D.field "origin" intPairDecoder)
             |> D.andMap (D.field "mouse" intPairDecoder)
             |> D.andMap (D.field "now" D.float)
             |> D.andMap (D.field "product" D.string)
 
 
-decodeModel : M.UiMode -> M.CreateLayer -> String -> Maybe M.Model
-decodeModel mode createLayer modelStr =
-    D.decodeString (modelDecoder mode createLayer) modelStr
+decodeModel : M.UiMode -> M.CreateLayer -> M.CreateGui -> String -> Maybe M.Model
+decodeModel mode createLayer createGui modelStr =
+    D.decodeString (modelDecoder mode createLayer createGui) modelStr
         -- |> Debug.log "Decode Result: "
         |> Result.toMaybe
 
@@ -513,26 +539,3 @@ fromFssPortModel pm =
     --, palette = product |> getPalette
     }
 
-
-encodeMode : M.UiMode -> String
-encodeMode mode =
-    case mode of
-        M.Development -> "dev"
-        M.Production -> "prod"
-        M.Release -> "release"
-        M.Ads -> "ads"
-        M.TronUi innerMode -> "tron-" ++ encodeMode innerMode
-
-
-decodeMode : String -> M.UiMode
-decodeMode mode =
-    if String.startsWith "tron-" mode
-    then M.TronUi <| decodeMode <| String.dropLeft 5 mode
-    else
-        case mode of
-            "dev" -> M.Development
-            "prod" -> M.Production
-            "release" -> M.Release
-            "ads" -> M.Ads
-            "tron" -> M.TronUi M.Production
-            _ -> M.Production

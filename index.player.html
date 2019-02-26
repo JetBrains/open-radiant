@@ -3,19 +3,12 @@
 <head>
     <meta charset="utf-8" />
     <script src="./scene.js"></script>
-    <script src="./player.bundle.js"></script>
     <style>
         body {margin: 0; padding: 0;}
     </style>
 </head>
 <body>
     <div id="app"></div>
-    <script>
-        if (window.runGenScene) {
-            window.runGenScene();
-        } else {
-            console.error('Scene not found')
-        }
-    </script>
+    <script async src="./player.bundle.js"></script>
 </body>
 </html>

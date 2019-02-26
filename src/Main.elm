@@ -1,6 +1,8 @@
 port module Main exposing (main)
 
 import Browser
+import Url exposing (..)
+import Browser.Navigation as Nav
 
 import Array exposing (Array)
 import Task exposing (Task)
@@ -8,7 +10,7 @@ import Task exposing (Task)
 import Browser.Dom as Browser
 import Browser.Events as Browser
 
-import Html exposing (Html, text, div, span, input)
+import Html exposing (Html, text, div, span, input, canvas)
 import Html.Attributes as H
     exposing (class, width, height, style, class, type_, min, max, value, id)
 -- import Html.Events exposing (on, onInput, onMouseUp, onClick)
@@ -31,6 +33,7 @@ import Controls
 import ImportExport as IE
 import Product exposing (Product)
 import Product as Product
+import Navigation as Nav
 
 import Layer.Lorenz as Lorenz
 import Layer.Fractal as Fractal
@@ -48,14 +51,26 @@ sizeCoef = 1.0
 
 
 initialMode : UiMode
-initialMode = Development
+initialMode = Production
 
 
-init : ( Model, Cmd Msg )
-init =
-    ( Model.init initialMode (initialLayers initialMode) createLayer
-    , resizeToViewport
-    )
+init : {} -> Url -> Nav.Key -> ( Model, Cmd Msg )
+init flags url _ =
+    let
+        model = Model.init
+                    initialMode
+                    (initialLayers initialMode)
+                    createLayer
+                    Gui.gui
+                |> Nav.applyUrl url
+    in
+        ( model
+        , case model.size of
+            Dimensionless ->
+                resizeToViewport
+            _ ->
+                rebuildAllFssLayersWith model
+        )
 
 
 initialLayers : UiMode -> List ( LayerKind, String, LayerModel )
@@ -88,13 +103,42 @@ update msg model =
 
         Bang ->
             ( model
-            , model |> IE.encodePortModel |> startGui
+            , startGui
+                ( model |> IE.encodePortModel
+                , makeConstants
+                )
             )
 
         ChangeMode mode ->
-            ( Model.init mode (initialLayers mode) createLayer
-            , resizeToViewport
-            )
+            let
+                newModel = Model.init mode (initialLayers mode) createLayer Gui.gui
+            in
+                ( newModel
+                , Cmd.batch
+                    [ newModel |> getPushUpdate |> pushUpdate
+                    , resizeToViewport
+                    ]
+                )
+
+        ChangeModeAndResize mode rule ->
+            let
+                ( width, height ) = getRuleSizeOrZeroes rule
+                newModel =
+                    Model.init mode (initialLayers mode) createLayer Gui.gui
+                newModelWithSize =
+                    { model
+                    | size = rule
+                    , origin = getOrigin ( width, height )
+                    }
+            in
+                ( newModelWithSize
+                , Cmd.batch
+                    [ newModelWithSize |> getPushUpdate |> pushUpdate
+                    , if rule /= Dimensionless
+                        then rebuildAllFssLayersWith newModelWithSize
+                        else resizeToViewport
+                    ]
+                )
 
         GuiMessage guiMsg ->
             case model.gui of
@@ -146,10 +190,15 @@ update msg model =
             )
 
         Import encodedModel ->
-            encodedModel
-                |> IE.decodeModel model.mode createLayer
-                |> Maybe.withDefault model
-                |> rebuildAllFssLayersWith
+            let
+                decodedModel =
+                    encodedModel
+                        |> IE.decodeModel model.mode createLayer Gui.gui
+                        |> Maybe.withDefault model
+            in
+                ( decodedModel
+                , rebuildAllFssLayersWith decodedModel
+                )
 
         Export ->
             ( model
@@ -166,7 +215,8 @@ update msg model =
                 { model
                 | timeShift = timeShift
                 }
-            , Cmd.none )
+            , Cmd.none
+            )
 
         BackToNow ->
             ( { model | timeShift = 0.0 }
@@ -178,24 +228,28 @@ update msg model =
             , Cmd.none
             )
 
-        Resize (ViewportSize width height) ->
-            ( { model
-              | size = adaptSize ( width, height )
-              , origin = getOrigin ( width, height )
-              }
-            , Cmd.none -- updateAndRebuildFssWith
-            )
+        -- Resize (ViewportSize width height) ->
+        --     ( { model
+        --       | size = adaptSize ( width, height )
+        --       , origin = getOrigin ( width, height )
+        --       }
+        --     , Cmd.none -- updateAndRebuildFssWith
+        --     )
 
-        ResizeFromPreset (ViewportSize width height) ->
+        Resize rule ->
             let
-                newModel =
+                ( width, height ) = getRuleSizeOrZeroes rule
+                newModelWithSize =
                     { model
-                    | size = adaptSize ( width, height )
+                    | size = rule
                     , origin = getOrigin ( width, height )
                     }
             in
-                ( newModel
-                , newModel |> getSizeUpdate |> presetSizeChanged
+                ( newModelWithSize
+                , Cmd.batch
+                    [ newModelWithSize |> getPushUpdate |> pushUpdate
+                    , rebuildAllFssLayersWith newModelWithSize
+                    ]
                 )
 
         RequestFitToWindow ->
@@ -269,8 +323,8 @@ update msg model =
             )
 
         ChangeProduct product ->
-            { model | product = product }
-            |> rebuildAllFssLayersWith
+            let modelWithProduct = { model | product = product }
+            in ( modelWithProduct, rebuildAllFssLayersWith model )
 
         Configure index layerModel ->
             ( model |> updateLayer index
@@ -456,7 +510,7 @@ update msg model =
 
         SavePng ->
             ( model
-            , model |> getSizeUpdate |> triggerSavePng
+            , model |> getPushUpdate |> triggerSavePng
             )
 
         Randomize ->
@@ -465,18 +519,21 @@ update msg model =
             )
 
         ApplyRandomizer portModel ->
-            (IE.decodePortModel createLayer portModel)
-                |> rebuildAllFssLayersWith
+            let decodedPortModel = IE.decodePortModel createLayer portModel
+            in ( decodedPortModel, rebuildAllFssLayersWith decodedPortModel )
 
         NoOp -> ( model, Cmd.none )
 
 
-getSizeUpdate : Model -> SizeUpdate
-getSizeUpdate model =
-    { size = model.size
+getPushUpdate : Model -> PushUpdate
+getPushUpdate model =
+    { size = getRuleSize model.size |> Maybe.withDefault ( -1, -1 )
+    , sizeRule = encodeSizeRule model.size
     , product = Product.encode model.product
     , coverSize = Product.getCoverTextSize model.product
     , background = model.background
+    , sizeConstant = -1
+    , mode = encodeMode model.mode
     }
 
 
@@ -501,7 +558,6 @@ updateFss index f model =
             )
         )
 
-
 updateAndRebuildFssWith
     : LayerIndex
     -> (FSS.Model -> FSS.Model)
@@ -523,27 +579,23 @@ updateAndRebuildFssWith index f curModel =
         )
 
 
-rebuildAllFssLayersWith : Model -> ( Model, Cmd Msg )
+rebuildAllFssLayersWith : Model -> Cmd Msg
 rebuildAllFssLayersWith model =
     let
         isLayerFss layerDef =
             case layerDef.model of
                 FssModel fssModel -> Just fssModel
                 _ -> Nothing
-        encodedModel = IE.encodePortModel model
         rebuildPotentialFss index fssModel =
             requestFssRebuild
                 { layer = index
-                , model = encodedModel
+                , model = IE.encodePortModel model
                 , value = IE.encodeFss fssModel model.product
                 }
-
     in
-        ( model
-        , List.filterMap isLayerFss model.layers
+        List.filterMap isLayerFss model.layers
           |> List.indexedMap rebuildPotentialFss
           |> Cmd.batch
-        )
 
 
 getBlendForPort : Layer -> PortBlend
@@ -556,20 +608,6 @@ getBlendForPort layer =
             HtmlBlend.encode htmlBlend |> Just
         _ -> Nothing
     )
-
-
--- decodeLayerKind : String -> Maybe LayerKind
--- decodeLayerKind code =
---     case code of
---         "fss" -> Just (Fss Nothing) -- FIXME: not Nothing
---         "lorenz" -> Just Lorenz
---         "template" -> Just Template
---         "voronoi" -> Just Voronoi
---         "fractal" -> Just Fractal
---         "text" -> Just Text
---         "html" -> Just SvgImage
---         "vignette" -> Just Vignette
---         _ -> Nothing
 
 
 createLayer : LayerKind -> LayerModel -> Layer
@@ -615,17 +653,12 @@ createLayer kind layerModel =
             HtmlLayer
             CoverLayer
             HtmlBlend.default
-        ( Metaballs, _ ) ->
-            HtmlLayer
-            MetaballsLayer
-            HtmlBlend.default
         _ ->
             Model.emptyLayer
 
 
 -- extractFssBuildOptions : Model -> FssBuildOptions
 -- extractFssBuildOptions = prepareGuiConfig
-
 
 
 timeShiftRange : Float
@@ -734,14 +767,16 @@ subscriptions model =
     Sub.batch
         [ bang (\_ -> Bang)
         , Browser.onAnimationFrameDelta Animate
-        , Browser.onResize <| \w h -> Resize (ViewportSize w h)
+        , Browser.onResize <| \w h -> Resize <| UseViewport <| ViewportSize w h
         -- , clicks (\pos ->
-        --     toLocal model.size pos
+        --     fits model.size pos
         --         |> Maybe.map (\pos -> Pause)
         --         |> Maybe.withDefault NoOp
         --   )
         , Sub.map (\{ x, y } ->
-                toLocal model.size (x, y)
+                (x, y)
+                    -- |> fits (getRuleSizeOrZeroes model.size)
+                    |> ensurePositive
                     |> Maybe.map (\localPos -> Locate localPos)
                     |> Maybe.withDefault NoOp
             )
@@ -776,15 +811,16 @@ subscriptions model =
         , changeOpacity (\{value, layer} -> ChangeOpacity layer value)
         , changeVignette (\{value, layer} -> ChangeVignette layer value)
         , changeIris (\{value, layer} -> ChangeIris layer value)
-        , changeMode (\modeStr -> ChangeMode <| IE.decodeMode modeStr)
-        , setCustomSize
-            (\(w, h) ->
-                let
-                    (newW, newH) =
-                        if (w > 0 && h > 0) then (w, h)
-                        else model.size
-                in
-                    ViewportSize newW newH |> ResizeFromPreset)
+        , changeMode (\modeStr -> ChangeMode <| decodeMode modeStr)
+        , resize
+            (\{ presetCode, viewport } ->
+                case viewport of
+                    ( vw, vh ) ->
+                        presetCode
+                            |> Maybe.andThen decodePreset
+                            |> Maybe.map (Resize << FromPreset)
+                            |> Maybe.withDefault (Resize <| UseViewport <| ViewportSize vw vh )
+            )
         , changeWGLBlend (\{ layer, value } ->
             ChangeWGLBlend layer value
           )
@@ -828,11 +864,16 @@ getOrigin (width, height) =
     )
 
 
-toLocal : (Int, Int) -> Pos -> Maybe Pos
-toLocal (width, height) (x, y) =
-        if (x <= width) && (y <= height)
-        then Just (x, y) else Nothing
+ensureFits : (Int, Int) -> Pos -> Maybe Pos
+ensureFits (width, height) (x, y) =
+    if (x <= width) && (y <= height)
+    then Just (x, y) else Nothing
 
+
+ensurePositive : Pos -> Maybe Pos
+ensurePositive (x, y) =
+    if (x > 0) && (y > 0)
+    then Just (x, y) else Nothing
 
 
 mapControls : Model -> Controls.Msg -> Msg
@@ -848,7 +889,12 @@ layerToHtml model viewport index { layer } =
         HtmlLayer htmlLayer htmlBlend ->
             case htmlLayer of
                 CoverLayer ->
-                    Cover.view model.mode model.product model.size model.origin htmlBlend
+                    Cover.view
+                        model.mode
+                        model.product
+                        (getRuleSizeOrZeroes model.size)
+                        model.origin
+                        htmlBlend
                 MetaballsLayer ->
                     Metaballs.view viewport model.mouse
                 CanvasLayer ->
@@ -952,9 +998,20 @@ layerToEntities model viewport index layerDef =
 
 resizeToViewport =
     Task.perform
-        (\{ viewport } -> Resize
-            <| ViewportSize (floor viewport.width) (floor viewport.height))
+        (\{ viewport } ->
+            Resize
+                <| UseViewport
+                <| ViewportSize (floor viewport.width) (floor viewport.height))
         Browser.getViewport
+
+
+-- getViewportState : Model -> Viewport.State
+-- getViewportState { paused, size, origin, theta } =
+--     { paused = paused
+--     , size = getRuleSizeOrZeroes size
+--     , origin = origin
+--     , theta = theta
+--     }
 
 
 view : Model -> Html Msg
@@ -971,29 +1028,18 @@ view model =
                 , width <| Tuple.first model.size
                 , height <| Tuple.second model.size
                 , style "display" "block"
-                    --, ( "background-color", "#161616" )
---                    ,   ( "transform", "translate("
---                        ++ (Tuple.first model.origin |> toString)
---                        ++ "px, "
---                        ++ (Tuple.second model.origin |> toString)
---                        ++ "px)"
---                        )
                 , Events.onClick TriggerPause
                 ]
         renderQueue = model |> RQ.groupLayers layerToEntities layerToHtml
     in div [ ]
-        --span [ class "fps" ] [ toString model.fps ++ "FPS" |> text ]
-        --    :: Html.map mapControls
-        --     (config |>
-        --           Controls.controls numVertices theta)
-           --:: WebGL.toHtmlWith
-        [ renderQueue |> RQ.apply wrapHtml wrapEntities
+        [ canvas [ H.id "js-save-buffer" ] [ ]
+        , renderQueue |> RQ.apply wrapHtml wrapEntities
         , if model.controlsVisible
             then ( div
                 [ H.class "overlay-panel import-export-panel hide-on-space" ]
                 [
-                  div [ H.class "timeline_holder" ] [
-                  span [ H.class "label past"] [text "past"]
+                  div [  H.class "timeline_holder" ] [
+                  span [ H.class "label past"] [ text "past" ]
                 , input
                     [ type_ "range"
                     , class "timeline"
@@ -1027,13 +1073,22 @@ view model =
         ]
 
 
+document : Model -> Browser.Document Msg
+document model =
+    { title = "Elmsfeuer"
+    , body = [ view model ]
+    }
+
+
 main : Program {} Model Msg
 main =
-    Browser.element
-        { init = always init
-        , view = view
+    Browser.application
+        { init = init
+        , view = document
         , subscriptions = subscriptions
         , update = update
+        , onUrlChange = Nav.onUrlChange
+        , onUrlRequest = Nav.onUrlRequest
         }
 
 
@@ -1093,7 +1148,11 @@ port shiftColor : ({ value: FSS.ColorShiftPatch, layer: LayerIndex } -> msg) -> 
 
 port changeOpacity : ({ value: FSS.Opacity, layer: LayerIndex } -> msg) -> Sub msg
 
-port setCustomSize : ((Int, Int) -> msg) -> Sub msg
+port resize :
+    ({ presetCode: Maybe SizePresetCode
+     , viewport: (Int, Int)
+     } -> msg)
+    -> Sub msg
 
 port applyRandomizer : (PortModel -> msg) -> Sub msg
 
@@ -1114,14 +1173,17 @@ port changeHtmlBlend :
 
 -- OUTGOING PORTS
 
-type alias SizeUpdate =
-    { size: Size
+type alias PushUpdate =
+    { size: ( Int, Int )
+    , sizeRule : String
     , product: String
     , coverSize: Size
     , background: String
+    , sizeConstant: Int
+    , mode: String
     }
 
-port startGui : PortModel -> Cmd msg
+port startGui : ( PortModel, Constants ) -> Cmd msg
 
 port requestFssRebuild :
     { layer: LayerIndex
@@ -1129,13 +1191,13 @@ port requestFssRebuild :
     , value: FSS.PortModel
     } -> Cmd msg
 
-port presetSizeChanged : SizeUpdate -> Cmd msg
+port presetSizeChanged : PushUpdate -> Cmd msg
 
 port export_ : String -> Cmd msg
 
 port exportZip_ : String -> Cmd msg
 
-port triggerSavePng : SizeUpdate -> Cmd msg
+port triggerSavePng : PushUpdate -> Cmd msg -- FIXME: Remove, use Browser.DOM task instead
 
 port requestRandomize : PortModel -> Cmd msg
 

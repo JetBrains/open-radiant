@@ -13,20 +13,19 @@ const update = (gui) => () => {
   }
 }
 
-const getSizesSet = (mode) => {
-  const predefinedSizes =  {
-    'release': C.RELEASE_SIZES,
-    'prod' : C.WALLPAPER_SIZES,
-    'dev' : C.WALLPAPER_SIZES,
-    'ads' : C.ADS_SIZES } [mode];
-  predefinedSizes['monitor'] = [
-    window.screen.width * window.devicePixelRatio,
-    window.screen.height * window.devicePixelRatio
-  ];
-  return predefinedSizes;
+const getSizeSet = (mode, constants) => {
+  console.log(constants);
+  const modeValues = constants['sizes'].filter(s => s.mode == mode);
+  if (modeValues.length < 1) return [];
+  let sizeSet = {};
+  modeValues[0]['values'].forEach(value => {
+    sizeSet[value.label] = value.code;
+  });
+  sizeSet['browser'] = 'browser';
+  return sizeSet;
 }
 
-const Config = function(layers, defaults, funcs, randomize) {
+const Config = function(layers, defaults, constants, funcs, randomize) {
     const customAdd = C.BLEND_FUNCS['+'];
     const one = C.BLEND_FACTORS['1'];
     const zero = C.BLEND_FACTORS['0'];
@@ -35,7 +34,7 @@ const Config = function(layers, defaults, funcs, randomize) {
     this.product = defaults.product;
     this.omega = defaults.omega;
 
-    const PREDEFINED_SIZES = getSizesSet(mode);
+    const sizePresetSet = getSizeSet(mode, constants);
 
     layers.forEach((layer, index) => {
       if (layer.webglOrHtml == 'webgl') {
@@ -75,8 +74,8 @@ const Config = function(layers, defaults, funcs, randomize) {
         this['mirror' + index] =  layer.model.mirror;
         this['renderMode' + index] = 'triangles';
         this['lightSpeed' + index] = layer.model.lightSpeed;
-        this['facesX' + index] = layer.model.faces[0];
-        this['facesY' + index] = layer.model.faces[1];
+        this['facesX' + index] = layer.model.faces.x;
+        this['facesY' + index] = layer.model.faces.y;
         this['vignette' + index] = layer.model.vignette;
         this['iris' + index] = layer.model.iris;
         this['amplitudeX' + index] = layer.model.amplitude[0];
@@ -89,10 +88,11 @@ const Config = function(layers, defaults, funcs, randomize) {
       }
     });
 
-    this.customSize = PREDEFINED_SIZES['browser'];
+    //this.customSize = sizePresetSet['browser'];
+    this.sizePreset = sizePresetSet['browser'];
 
     //this.savePng = funcs.savePng;
-    this.saveBatch = () => funcs.saveBatch(Object.values(PREDEFINED_SIZES));
+    this.saveBatch = () => funcs.saveBatch(Object.values(sizePresetSet));
     this.randomize = randomize(this);
     // -------
     //this.timeShift = 0;
@@ -101,11 +101,11 @@ const Config = function(layers, defaults, funcs, randomize) {
     //this.exportZip = funcs.exportZip;
 };
 
-function start(document, model, funcs) {
+function start(document, model, constants, funcs) {
     const defaults = model;
     const { mode, layers } = model;
 
-    const PREDEFINED_SIZES = getSizesSet(mode);
+    const sizePresetSet = getSizeSet(mode, constants);
 
     function updateProduct(id) {
       const product = C.PRODUCTS_BY_ID[id];
@@ -292,17 +292,17 @@ function start(document, model, funcs) {
     }
 
     const gui = new dat.GUI(/*{ load: JSON }*/);
-    const config = new Config(layers, defaults, funcs,
+    const config = new Config(layers, defaults, constants, funcs,
         randomize(funcs.applyRandomizer, model, update(gui)));
     const product = gui.add(config, 'product', C.PRODUCT_TO_ID);
     const omega = gui.add(config, 'omega').name('vertigo ').min(-1.0).max(1.0).step(0.1);
-    const customSize = gui.add(config, 'customSize', PREDEFINED_SIZES).name('size');
+    const sizePreset = gui.add(config, 'sizePreset', sizePresetSet).name('size');
     // gui.add(config, 'savePng').name('save png');
     if (mode !== 'prod') gui.add(config, 'saveBatch').name('save batch');
     gui.add(config, 'randomize').name('i feel lucky');
     product.onFinishChange(funcs.changeProduct);
     omega.onFinishChange(funcs.rotate);
-    customSize.onFinishChange(funcs.setCustomSize);
+    sizePreset.onFinishChange(funcs.resize);
 
     layers.concat([]).reverse().forEach((layer, revIndex) => {
       if ((mode == 'prod') && (layer.name == 'Cover')) return;
@@ -356,6 +356,8 @@ function start(document, model, funcs) {
     // layers.map((layer, index) => {
     //     gui.addFolder()
     // });
+
+    return { config, update };
 }
 
 module.exports = start;
