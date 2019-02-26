@@ -25,6 +25,7 @@ import WebGL.Settings.DepthTest as DepthTest
 import Model exposing (..)
 import Gui.Gui as Gui
 import Gui.Mouse exposing (Position)
+import TronGui as Gui
 import Viewport exposing (Viewport)
 import RenderQueue as RQ
 import WebGL.Blend as WGLBlend
@@ -115,7 +116,7 @@ update msg model =
             in
                 ( newModel
                 , Cmd.batch
-                    [ newModel |> getPushUpdate |> pushUpdate
+                    [ encodeMode newModel.mode |> modeChanged
                     , resizeToViewport
                     ]
                 )
@@ -133,7 +134,7 @@ update msg model =
             in
                 ( newModelWithSize
                 , Cmd.batch
-                    [ newModelWithSize |> getPushUpdate |> pushUpdate
+                    [ newModelWithSize |> getSizeUpdate |> sizeChanged
                     , if rule /= Dimensionless
                         then rebuildAllFssLayersWith newModelWithSize
                         else resizeToViewport
@@ -247,7 +248,7 @@ update msg model =
             in
                 ( newModelWithSize
                 , Cmd.batch
-                    [ newModelWithSize |> getPushUpdate |> pushUpdate
+                    [ newModelWithSize |> getSizeUpdate |> sizeChanged
                     , rebuildAllFssLayersWith newModelWithSize
                     ]
                 )
@@ -510,7 +511,7 @@ update msg model =
 
         SavePng ->
             ( model
-            , model |> getPushUpdate |> triggerSavePng
+            , model |> getSizeUpdate |> triggerSavePng
             )
 
         Randomize ->
@@ -525,15 +526,15 @@ update msg model =
         NoOp -> ( model, Cmd.none )
 
 
-getPushUpdate : Model -> PushUpdate
-getPushUpdate model =
+getSizeUpdate : Model -> SizeUpdate
+getSizeUpdate model =
     { size = getRuleSize model.size |> Maybe.withDefault ( -1, -1 )
     , sizeRule = encodeSizeRule model.size
-    , product = Product.encode model.product
-    , coverSize = Product.getCoverTextSize model.product
-    , background = model.background
+    -- , product = Product.encode model.product
+    -- , coverSize = Product.getCoverTextSize model.product
+    -- , background = model.background
     , sizeConstant = -1
-    , mode = encodeMode model.mode
+    -- , mode = encodeMode model.mode
     }
 
 
@@ -1005,18 +1006,13 @@ resizeToViewport =
         Browser.getViewport
 
 
--- getViewportState : Model -> Viewport.State
--- getViewportState { paused, size, origin, theta } =
---     { paused = paused
---     , size = getRuleSizeOrZeroes size
---     , origin = origin
---     , theta = theta
---     }
-
-
 view : Model -> Html Msg
 view model =
-    let wrapHtml = div [ H.class "html-layers layers" ]
+    let
+        ( w, h ) =
+                getRuleSize model.size |> Maybe.withDefault ( -1, -1 )
+        visible = w > 0 && h > 0
+        wrapHtml = div [ H.class "html-layers layers" ]
         wrapEntities =
             WebGL.toHtmlWith
                 [ WebGL.antialias
@@ -1025,9 +1021,8 @@ view model =
                 -- , WebGL.depth 0.5
                 ]
                 [ H.class "webgl-layers layers"
-                , width <| Tuple.first model.size
-                , height <| Tuple.second model.size
-                , style "display" "block"
+                , width w, height h
+                , style "display" (if visible then "block" else "none")
                 , Events.onClick TriggerPause
                 ]
         renderQueue = model |> RQ.groupLayers layerToEntities layerToHtml
@@ -1173,14 +1168,14 @@ port changeHtmlBlend :
 
 -- OUTGOING PORTS
 
-type alias PushUpdate =
+type alias SizeUpdate =
     { size: ( Int, Int )
     , sizeRule : String
-    , product: String
-    , coverSize: Size
-    , background: String
+    -- , product: String
+    -- , coverSize: Size
+    -- , background: String
     , sizeConstant: Int
-    , mode: String
+    -- , mode: String
     }
 
 port startGui : ( PortModel, Constants ) -> Cmd msg
@@ -1191,13 +1186,15 @@ port requestFssRebuild :
     , value: FSS.PortModel
     } -> Cmd msg
 
-port presetSizeChanged : PushUpdate -> Cmd msg
+port sizeChanged : SizeUpdate -> Cmd msg
+
+port modeChanged : String -> Cmd msg
 
 port export_ : String -> Cmd msg
 
 port exportZip_ : String -> Cmd msg
 
-port triggerSavePng : PushUpdate -> Cmd msg -- FIXME: Remove, use Browser.DOM task instead
+port triggerSavePng : SizeUpdate -> Cmd msg -- FIXME: Remove, use Browser.DOM task instead
 
 port requestRandomize : PortModel -> Cmd msg
 

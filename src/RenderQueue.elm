@@ -90,3 +90,11 @@ apply wrapHtml wrapEntities queue =
             )
         |> div []
 
+
+getViewportState : Model -> Viewport.State
+getViewportState { paused, size, origin, theta } =
+    { paused = paused
+    , size = getRuleSizeOrZeroes size
+    , origin = origin
+    , theta = theta
+    }

@@ -6,11 +6,6 @@ module ImportExport exposing
     , decodePortModel
     , encodeFss
     , fromFssPortModel
-<<<<<<< HEAD
-    , encodeMode
-    , decodeMode
-=======
->>>>>>> origin/resize-fixes
     )
 
 import Array
