@@ -234,12 +234,12 @@ setTimeout(() => {
         );
     });
 
-    app.ports.presetSizeChanged.subscribe((update) => {
-        if (savingBatch) {
-            // console.log('saving ', size);
-            savePng(hiddenLink, update);
-        };
-    });
+    // app.ports.nextBatchStep.subscribe((update) => {
+    //     if (savingBatch) {
+    //         // console.log('saving ', size);
+    //         savePng(hiddenLink, update);
+    //     };
+    // });
 
     app.ports.triggerSavePng.subscribe((update) => {
         savePng(hiddenLink, update);
@@ -348,12 +348,12 @@ setTimeout(() => {
                     { app.ports.applyRandomizer.send(prepareModelForImport(value)); }
                 });
 
-            app.ports.pushUpdate.subscribe((data) => {
-                // console.log('push update received', data);
-                config.product = data.product;
-                // TODO: apply the mode change in GUI and so change the size selection
-                update();
-            });
+            // app.ports.pushUpdate.subscribe((data) => {
+            //     // console.log('push update received', data);
+            //     config.product = data.product;
+            //     // TODO: apply the mode change in GUI and so change the size selection
+            //     update();
+            // });
 
         }
 

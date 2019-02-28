@@ -51,19 +51,14 @@ type alias Segment =
     }
 
 
-smallCircles =
-    [ (255, 129)
-    , (610, 73)
-    , (486, 363)
-    , (117, 459)
-    , (484, 726)
-    , (843, 306)
-    , (789, 615)
-    , (1049, 82)
-    , (1292, 428)
-    , (1117, 733)
-    , (1352, 86)
-    , (92, 798)
+ball : ( Float, Float ) -> Float -> Ball
+ball ( x, y ) r = Ball (vec2 x y) r
+
+
+initialBalls ( w, h ) =
+    [ ball ( w / 4, h / 2 ) 70
+    , ball ( w / 3, h / 2 ) 30
+    , ball ( w / 2, h / 2 ) 35
     ]
 
 
@@ -162,13 +157,12 @@ metaball ball1 ball2 =
                 Just <| buildPath theMetaball
 
 
-scene :  ( Int, Int ) -> ( List Ball, List Path )
-scene ( mouseX, mouseY ) =
+scene :  ( Float, Float )  -> ( Int, Int ) -> ( List Ball, List Path )
+scene ( w, h ) ( mouseX, mouseY ) =
     let
         ballAtCursor = Ball (vec2 (toFloat mouseX) (toFloat mouseY)) 100
-        smallCircleToBall (cx, cy) = Ball (vec2 cx cy) 50
         balls =
-            ballAtCursor :: List.map smallCircleToBall smallCircles
+            ballAtCursor :: initialBalls ( w, h )
         indexedBalls =
             balls |> List.indexedMap Tuple.pair
         connections =
@@ -181,15 +175,17 @@ scene ( mouseX, mouseY ) =
                     ) [] indexedBalls
             ) [] indexedBalls
     in
-        ( balls, List.filterMap identity connections )
+        ( balls
+        , List.filterMap identity connections
+        )
 
 
 
-view : Viewport {} -> ( Int, Int ) -> Html a
-view vp mousePos =
+view : Viewport {} -> Float -> Float -> ( Int, Int ) -> Html a
+view vp t dt mousePos =
     let
         ( w, h ) = ( getX vp.size, getY vp.size )
-        ( balls, metaballs ) = scene mousePos
+        ( balls, metaballs ) = scene ( w, h ) mousePos
         drawBall { center, radius }
             = circle
                 [ cx <| String.fromFloat <| getX center

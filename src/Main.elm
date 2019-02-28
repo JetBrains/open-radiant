@@ -76,20 +76,20 @@ init flags url _ =
 
 initialLayers : UiMode -> List ( LayerKind, String, LayerModel )
 initialLayers mode =
-    [ ( Fss, "Lower Layer", FssModel FSS.init )
-    , ( Fss, "Mid Layer", FssModel FSS.init )
-    , ( Fss, "Top layer"
-      , let
-            fssModel = FSS.init
-        in
-            { fssModel
-            | renderMode = FSS.PartialLines
-            , shareMesh = True
-            } |> FssModel
-      )
-    , ( Cover, "Cover", NoModel )
+    -- [ ( Fss, "Lower Layer", FssModel FSS.init )
+    -- , ( Fss, "Mid Layer", FssModel FSS.init )
+    -- , ( Fss, "Top layer"
+    --   , let
+    --         fssModel = FSS.init
+    --     in
+    --         { fssModel
+    --         | renderMode = FSS.PartialLines
+    --         , shareMesh = True
+    --         } |> FssModel
+    --   )
+    -- , ( Cover, "Cover", NoModel )
     -- , ( Vignette, Vignette.init )
-    , ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
+    [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
     ]
     |> List.filter (\(kind, _, _) ->
         case ( kind, mode ) of
@@ -654,6 +654,10 @@ createLayer kind layerModel =
             HtmlLayer
             CoverLayer
             HtmlBlend.default
+        ( Metaballs, _ ) ->
+            HtmlLayer
+            MetaballsLayer
+            HtmlBlend.default
         _ ->
             Model.emptyLayer
 
@@ -897,7 +901,7 @@ layerToHtml model viewport index { layer } =
                         model.origin
                         htmlBlend
                 MetaballsLayer ->
-                    Metaballs.view viewport model.mouse
+                    Metaballs.view viewport model.now model.timeShift model.mouse
                 CanvasLayer ->
                     Canvas.view
                 NoContent -> div [] []
@@ -1189,6 +1193,8 @@ port requestFssRebuild :
 port sizeChanged : SizeUpdate -> Cmd msg
 
 port modeChanged : String -> Cmd msg
+
+-- port nextBatchStep : { size, coverSize, product, background }
 
 port export_ : String -> Cmd msg
 
