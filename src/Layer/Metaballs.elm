@@ -14,24 +14,35 @@ import Svg as S exposing (path)
 import Svg.Attributes exposing (..)
 
 
-v = 0.5
+v = 0.7
 handleLenRate = 2.4
+distanceFactor = 2.5
 ballsFill = "black"
--- maxDistance = 300
+loop = 400.0
+
+
+type Tween =
+    Translate
+        { from: Vec2
+        , to: Vec2
+        , start: Float
+        , end: Float }
 
 
 type alias Model =
+    -- { t: Float
     {
     }
 
 
 init : Model
-init = {}
+init = { }
 
 
 type alias Ball =
     { center : Vec2
     , radius: Float
+    , tweens: List Tween
     }
 
 
@@ -51,14 +62,20 @@ type alias Segment =
     }
 
 
-ball : ( Float, Float ) -> Float -> Ball
-ball ( x, y ) r = Ball (vec2 x y) r
+ball : ( Float, Float ) -> Float -> List Tween -> Ball
+ball ( x, y ) r tweens = Ball (vec2 x y) r tweens
+
+
+translate : ( Float, Float ) -> ( Float, Float ) -> Float -> Float -> Tween
+translate ( x0, y0 ) ( x1, y1 ) start end =
+    Translate { from = (vec2 x0 y0), to = (vec2 x1 y1), start = start, end = end }
 
 
 initialBalls ( w, h ) =
     [ ball ( w / 4, h / 2 ) 70
-    , ball ( w / 3, h / 2 ) 30
-    , ball ( w / 2, h / 2 ) 35
+        [ translate (0, w / 4) (0, w / 2) 0 0.1 ]
+    , ball ( w / 3, h / 2 ) 30 []
+    , ball ( w / 2, h / 2 ) 35 []
     ]
 
 
@@ -92,7 +109,7 @@ metaball ball1 ball2 =
         center2 = ball2.center
         radius1 = ball1.radius
         radius2 = ball2.radius
-        maxDistance = radius1 + radius2 * 2.5
+        maxDistance = radius1 + radius2 * distanceFactor
         halfPi = pi / 2
         d = distance center1 center2
     in
@@ -160,7 +177,7 @@ metaball ball1 ball2 =
 scene :  ( Float, Float )  -> ( Int, Int ) -> ( List Ball, List Path )
 scene ( w, h ) ( mouseX, mouseY ) =
     let
-        ballAtCursor = Ball (vec2 (toFloat mouseX) (toFloat mouseY)) 100
+        ballAtCursor = Ball (vec2 (toFloat mouseX) (toFloat mouseY)) 100 []
         balls =
             ballAtCursor :: initialBalls ( w, h )
         indexedBalls =
@@ -180,24 +197,51 @@ scene ( w, h ) ( mouseX, mouseY ) =
         )
 
 
+getLocT : Float -> Float -> Float -> Float
+getLocT start end globt =
+    clamp start end (globt - (floor (globt / loop) |> toFloat) * loop)
+
+
+applyTweens : Vec2 -> Float -> List Tween -> String
+applyTweens _ t tweens =
+    let
+        applyPos t_ tween curPos =
+            case tween of
+                Translate { from, to, start, end } ->
+                    let tloc = getLocT start end t_
+                    in
+                        case ( ( getX from, getY from ), ( getX to, getY to ) ) of
+                            ( ( fromX, fromY ), ( toX, toY ) ) ->
+                                ( fromX + ((toX - fromX) * tloc)
+                                , fromY + ((toY - fromY) * tloc)
+                                )
+
+        translateTo =
+            List.foldl (applyPos t) (0, 0) tweens
+    in case translateTo of
+        ( x, y ) ->
+            "translate(" ++ String.fromFloat x ++ "," ++ String.fromFloat y ++ ")"
+
 
 view : Viewport {} -> Float -> Float -> ( Int, Int ) -> Html a
 view vp t dt mousePos =
     let
+        -- _ = Debug.log "t" t
         ( w, h ) = ( getX vp.size, getY vp.size )
         ( balls, metaballs ) = scene ( w, h ) mousePos
-        drawBall { center, radius }
+        drawBall tloc { center, radius, tweens }
             = circle
                 [ cx <| String.fromFloat <| getX center
                 , cy <| String.fromFloat <| getY center
                 , r  <| String.fromFloat radius
+                , transform <| applyTweens center tloc <| tweens
                 ]
                 [ ]
-        drawMetaball pathStr =
+        drawMetaball tloc pathStr =
             S.path [ d pathStr, fill ballsFill ] []
     in
         svg [ width <| String.fromFloat w, height <| String.fromFloat h ]
             (
-            List.map drawBall balls ++
-            List.map drawMetaball metaballs
+            List.map (drawBall t) balls ++
+            List.map (drawMetaball t) metaballs
             )
