@@ -18,7 +18,7 @@ v = 0.7
 handleLenRate = 2.4
 distanceFactor = 2.5
 ballsFill = "black"
-loop = 400.0
+loop = 4000.0
 
 
 type Tween =
@@ -73,7 +73,7 @@ translate ( x0, y0 ) ( x1, y1 ) start end =
 
 initialBalls ( w, h ) =
     [ ball ( w / 4, h / 2 ) 70
-        [ translate (0, w / 4) (0, w / 2) 0 0.1 ]
+        [ translate (0, 0) (0, h / 2) 0 0.2 ]
     , ball ( w / 3, h / 2 ) 30 []
     , ball ( w / 2, h / 2 ) 35 []
     ]
@@ -199,7 +199,12 @@ scene ( w, h ) ( mouseX, mouseY ) =
 
 getLocT : Float -> Float -> Float -> Float
 getLocT start end globt =
-    clamp start end (globt - (floor (globt / loop) |> toFloat) * loop)
+    let
+        -- _ = Debug.log "globt" globt
+        loct = (globt - (floor (globt / loop) |> toFloat) * loop) / loop
+        clamped = clamp start end loct
+    in
+        clamped / (end - start)
 
 
 applyTweens : Vec2 -> Float -> List Tween -> String
