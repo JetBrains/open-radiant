@@ -15,7 +15,8 @@ import Svg.Attributes as SA exposing (..)
 
 v = 0.7
 handleLenRate = 2.4
-distanceFactor = 3.5
+distanceFactor = 5.5
+globalMaxDistance = 250
 ballsFill = "black"
 loop = 4000.0
 
@@ -142,7 +143,7 @@ metaball ball1 ball2 =
         center2 = add ball2.origin ball2.transform
         radius1 = ball1.radius
         radius2 = ball2.radius
-        maxDistance = radius1 + radius2 * distanceFactor
+        maxDistance = Basics.min (radius1 + radius2 * distanceFactor) globalMaxDistance
         halfPi = pi / 2
         d = distance center1 center2
     in
