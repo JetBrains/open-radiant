@@ -13,10 +13,10 @@ import Svg as S exposing (..)
 import Svg.Attributes as SA exposing (..)
 
 
-v = 0.7
+-- v = 1.0
 handleLenRate = 2.4
-distanceFactor = 5.5
-globalMaxDistance = 250
+--distanceFactor = 1
+globalMaxDistance = 2000
 ballsFill = "black"
 loop = 4000.0
 
@@ -77,39 +77,23 @@ translate ( x0, y0 ) ( x1, y1 ) start end =
 
 initialBalls : ( Float, Float ) -> List Ball
 initialBalls ( w, h ) =
-    [ ball ( w / 4, h / 2 ) 70
-        [ translate (0, 0) (300, 0) 0 0.2
-        , translate (0, 0) (-300, 0) 0.2 1.0
+    [ ball ( w / 2, h / 2 ) 70
+        [ translate (0, 0) (w / 2, 0) 0 0.5
+        , translate (0, 0) (-w / 4, 0) 0.5 1
         ]
-    , ball ( w / 4, 1.7 * h / 3 ) 30
-        [ translate (0, 0) (100, 0) 0 0.4
-        , translate (0, 0) (-100, 0) 0.4 1.0
+    -- , ball ( w / 4, 1.7 * h / 3 ) 60
+    --     [ translate (0, 0) (100, 0) 0 0.4
+    --     , translate (0, 0) (-100, 0) 0.4 1.0
+    --     ]
+    , ball ( 1.3 * w / 2, h / 2 ) 100
+        [ translate (0, 0) (-w / 4, 0) 0 0.5
+        , translate (0, 0) (w / 4, 0) 0.5 1
         ]
-    , ball ( w / 4, h / 2 ) 70
-        [ translate (0, 0) (50, 50) 0 0.3
-        , translate (0, 0) (-40, -25) 0.3 0.7
-        , translate (0, 0) (-10, -25) 0.7 1.0
-        ]
-    , ball ( 3 * w / 4, h / 2 ) 30
-        [ translate (0, 0) (200, -50) 0 0.3
-        , translate (0, 0) (-100, 25) 0.3 0.7
-        , translate (0, 0) (-100, 25) 0.7 1.0
-        ]
-    , ball ( 3 * w / 4, h / 3 ) 120
-        [ translate (0, 0) (100, -50) 0 0.25
-        , translate (0, 0) (-50, 25) 0.25 0.7
-        , translate (0, 0) (-50, 25) 0.6 1.0
-        ]
-    , ball ( 3.5 * w / 4, h / 3 ) 60
-        [ translate (0, 0) (100, -50) 0 0.25
-        , translate (0, 0) (-50, 25) 0.25 0.7
-        , translate (0, 0) (-50, 25) 0.6 1.0
-        ]
-    , ball ( 5 * w / 7, 50 ) 45
-        [ translate (0, 0) (70, -200) 0 0.5
-        , translate (0, 0) (-30, 25) 0.5 0.7
-        , translate (0, 0) (-40, 75) 0.7 1.0
-        ]
+    -- , ball ( 3 * w / 4, h / 2 ) 16
+    --     [ translate (0, 0) (200, -50) 0 0.3
+    --     , translate (0, 0) (-100, 25) 0.3 0.7
+    --     , translate (0, 0) (-100, 25) 0.7 1.0
+    --     ]
     ]
 
 
@@ -143,9 +127,11 @@ metaball ball1 ball2 =
         center2 = add ball2.origin ball2.transform
         radius1 = ball1.radius
         radius2 = ball2.radius
-        maxDistance = Basics.min (radius1 + radius2 * distanceFactor) globalMaxDistance
+        --maxDistance = Basics.min (radius1 + radius2 * distanceFactor) globalMaxDistance
+        maxDistance = radius1 + radius2
         halfPi = pi / 2
         d = distance center1 center2
+        v = d / 400
     in
         -- No blob if a radius is 0
         -- or if distance between the balls is larger than max-dist
