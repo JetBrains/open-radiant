@@ -15,7 +15,7 @@ import Svg.Attributes as SA exposing (..)
 
 v = 0.7
 handleLenRate = 2.4
-distanceFactor = 2.5
+distanceFactor = 3.5
 ballsFill = "black"
 loop = 4000.0
 
@@ -80,9 +80,35 @@ initialBalls ( w, h ) =
         [ translate (0, 0) (300, 0) 0 0.2
         , translate (0, 0) (-300, 0) 0.2 1.0
         ]
-    , ball ( w / 3, h / 2 ) 30
-        []
-    , ball ( w / 2, h / 2 ) 35 []
+    , ball ( w / 4, 1.7 * h / 3 ) 30
+        [ translate (0, 0) (100, 0) 0 0.4
+        , translate (0, 0) (-100, 0) 0.4 1.0
+        ]
+    , ball ( w / 4, h / 2 ) 70
+        [ translate (0, 0) (50, 50) 0 0.3
+        , translate (0, 0) (-40, -25) 0.3 0.7
+        , translate (0, 0) (-10, -25) 0.7 1.0
+        ]
+    , ball ( 3 * w / 4, h / 2 ) 30
+        [ translate (0, 0) (200, -50) 0 0.3
+        , translate (0, 0) (-100, 25) 0.3 0.7
+        , translate (0, 0) (-100, 25) 0.7 1.0
+        ]
+    , ball ( 3 * w / 4, h / 3 ) 120
+        [ translate (0, 0) (100, -50) 0 0.25
+        , translate (0, 0) (-50, 25) 0.25 0.7
+        , translate (0, 0) (-50, 25) 0.6 1.0
+        ]
+    , ball ( 3.5 * w / 4, h / 3 ) 60
+        [ translate (0, 0) (100, -50) 0 0.25
+        , translate (0, 0) (-50, 25) 0.25 0.7
+        , translate (0, 0) (-50, 25) 0.6 1.0
+        ]
+    , ball ( 5 * w / 7, 50 ) 45
+        [ translate (0, 0) (70, -200) 0 0.5
+        , translate (0, 0) (-30, 25) 0.5 0.7
+        , translate (0, 0) (-40, 75) 0.7 1.0
+        ]
     ]
 
 
@@ -187,7 +213,8 @@ scene t ( w, h ) ( mouseX, mouseY ) =
         ballAtCursor = Ball (vec2 (toFloat mouseX) (toFloat mouseY)) 100 [] (vec2 0 0)
         animatedInitialBalls = List.map (applyTweens t) <| initialBalls ( w, h )
         balls =
-            ballAtCursor :: animatedInitialBalls
+            -- ballAtCursor :: animatedInitialBalls
+            animatedInitialBalls
         indexedBalls =
             balls |> List.indexedMap Tuple.pair
         connections =
