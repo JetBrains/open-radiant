@@ -9,9 +9,8 @@ import Viewport exposing (Viewport)
 import Math.Vector2 exposing (..)
 import Array
 import Html exposing (Html)
-import Svg exposing (..)
-import Svg as S exposing (path)
-import Svg.Attributes exposing (..)
+import Svg as S exposing (..)
+import Svg.Attributes as SA exposing (..)
 
 
 v = 0.7
@@ -39,10 +38,14 @@ init : Model
 init = { }
 
 
+type alias Transform = Vec2
+
+
 type alias Ball =
-    { center : Vec2
+    { origin : Vec2
     , radius: Float
     , tweens: List Tween
+    , transform: Transform
     }
 
 
@@ -63,7 +66,7 @@ type alias Segment =
 
 
 ball : ( Float, Float ) -> Float -> List Tween -> Ball
-ball ( x, y ) r tweens = Ball (vec2 x y) r tweens
+ball ( x, y ) r tweens = Ball (vec2 x y) r tweens (vec2 0 0)
 
 
 translate : ( Float, Float ) -> ( Float, Float ) -> Float -> Float -> Tween
@@ -71,10 +74,14 @@ translate ( x0, y0 ) ( x1, y1 ) start end =
     Translate { from = (vec2 x0 y0), to = (vec2 x1 y1), start = start, end = end }
 
 
+initialBalls : ( Float, Float ) -> List Ball
 initialBalls ( w, h ) =
     [ ball ( w / 4, h / 2 ) 70
-        [ translate (0, 0) (0, h / 2) 0 0.2 ]
-    , ball ( w / 3, h / 2 ) 30 []
+        [ translate (0, 0) (300, 0) 0 0.2
+        , translate (0, 0) (-300, 0) 0.2 1.0
+        ]
+    , ball ( w / 3, h / 2 ) 30
+        []
     , ball ( w / 2, h / 2 ) 35 []
     ]
 
@@ -105,8 +112,8 @@ metaball ball1 ball2 =
                     (cy + r * sin a)
         angleBetween vec1 vec2 =
             atan2 (getY vec1 - getY vec2) (getX vec1 - getX vec2)
-        center1 = ball1.center
-        center2 = ball2.center
+        center1 = add ball1.origin ball1.transform
+        center2 = add ball2.origin ball2.transform
         radius1 = ball1.radius
         radius2 = ball2.radius
         maxDistance = radius1 + radius2 * distanceFactor
@@ -174,12 +181,13 @@ metaball ball1 ball2 =
                 Just <| buildPath theMetaball
 
 
-scene :  ( Float, Float )  -> ( Int, Int ) -> ( List Ball, List Path )
-scene ( w, h ) ( mouseX, mouseY ) =
+scene : Float -> ( Float, Float )  -> ( Int, Int ) -> ( List Ball, List Path )
+scene t ( w, h ) ( mouseX, mouseY ) =
     let
-        ballAtCursor = Ball (vec2 (toFloat mouseX) (toFloat mouseY)) 100 []
+        ballAtCursor = Ball (vec2 (toFloat mouseX) (toFloat mouseY)) 100 [] (vec2 0 0)
+        animatedInitialBalls = List.map (applyTweens t) <| initialBalls ( w, h )
         balls =
-            ballAtCursor :: initialBalls ( w, h )
+            ballAtCursor :: animatedInitialBalls
         indexedBalls =
             balls |> List.indexedMap Tuple.pair
         connections =
@@ -207,25 +215,34 @@ getLocT start end globt =
         clamped / (end - start)
 
 
-applyTweens : Vec2 -> Float -> List Tween -> String
-applyTweens _ t tweens =
+applyTweens : Float -> Ball -> Ball
+applyTweens t toBall =
     let
-        applyPos t_ tween curPos =
+        applyPos t_ tween ( curX, curY ) =
             case tween of
                 Translate { from, to, start, end } ->
                     let tloc = getLocT start end t_
                     in
                         case ( ( getX from, getY from ), ( getX to, getY to ) ) of
                             ( ( fromX, fromY ), ( toX, toY ) ) ->
-                                ( fromX + ((toX - fromX) * tloc)
-                                , fromY + ((toY - fromY) * tloc)
+                                ( curX + fromX + ((toX - fromX) * tloc)
+                                , curY + fromY + ((toY - fromY) * tloc)
                                 )
 
         translateTo =
-            List.foldl (applyPos t) (0, 0) tweens
+            List.foldl (applyPos t) (0, 0) toBall.tweens
     in case translateTo of
         ( x, y ) ->
-            "translate(" ++ String.fromFloat x ++ "," ++ String.fromFloat y ++ ")"
+            { toBall
+            | transform = vec2 x y
+            }
+
+
+extractTransform : Transform -> String
+extractTransform transform =
+    case ( getX transform, getY transform ) of
+        ( tx, ty ) ->
+            "translate(" ++ String.fromFloat tx ++ "," ++ String.fromFloat ty ++ ")"
 
 
 view : Viewport {} -> Float -> Float -> ( Int, Int ) -> Html a
@@ -233,20 +250,20 @@ view vp t dt mousePos =
     let
         -- _ = Debug.log "t" t
         ( w, h ) = ( getX vp.size, getY vp.size )
-        ( balls, metaballs ) = scene ( w, h ) mousePos
-        drawBall tloc { center, radius, tweens }
-            = circle
-                [ cx <| String.fromFloat <| getX center
-                , cy <| String.fromFloat <| getY center
-                , r  <| String.fromFloat radius
-                , transform <| applyTweens center tloc <| tweens
+        ( balls, metaballs ) = scene t ( w, h ) mousePos
+        drawBall ({ origin, radius, transform })
+            = S.circle
+                [ SA.cx <| String.fromFloat <| getX origin
+                , SA.cy <| String.fromFloat <| getY origin
+                , SA.r  <| String.fromFloat radius
+                , SA.transform <| extractTransform transform
                 ]
                 [ ]
-        drawMetaball tloc pathStr =
+        drawMetaball pathStr =
             S.path [ d pathStr, fill ballsFill ] []
     in
-        svg [ width <| String.fromFloat w, height <| String.fromFloat h ]
+        S.svg [ SA.width <| String.fromFloat w, height <| String.fromFloat h ]
             (
-            List.map (drawBall t) balls ++
-            List.map (drawMetaball t) metaballs
+            List.map drawBall balls ++
+            List.map drawMetaball metaballs
             )
