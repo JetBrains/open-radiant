@@ -13,11 +13,11 @@ import Svg as S exposing (..)
 import Svg.Attributes as SA exposing (..)
 
 
--- v = 1.0
-handleLenRate = 2.4
+v = 0.5
+handleLenRate = 2.5
 --distanceFactor = 1
 globalMaxDistance = 2000
-ballsFill = "black"
+circlesFill = "black"
 loop = 4000.0
 
 
@@ -30,7 +30,6 @@ type Tween =
 
 
 type alias Model =
-    -- { t: Float
     {
     }
 
@@ -42,7 +41,7 @@ init = { }
 type alias Transform = Vec2
 
 
-type alias Ball =
+type alias Circle =
     { origin : Vec2
     , radius: Float
     , tweens: List Tween
@@ -55,6 +54,7 @@ type alias Metaball =
     , h1: Vec2, h2: Vec2, h3: Vec2, h4: Vec2
     , escaped: Bool
     , radius: Float
+    , builtFrom: ( Circle, Circle )
     }
 
 
@@ -66,8 +66,8 @@ type alias Segment =
     }
 
 
-ball : ( Float, Float ) -> Float -> List Tween -> Ball
-ball ( x, y ) r tweens = Ball (vec2 x y) r tweens (vec2 0 0)
+circle : ( Float, Float ) -> Float -> List Tween -> Circle
+circle ( x, y ) r tweens = Circle (vec2 x y) r tweens (vec2 0 0)
 
 
 translate : ( Float, Float ) -> ( Float, Float ) -> Float -> Float -> Tween
@@ -75,21 +75,21 @@ translate ( x0, y0 ) ( x1, y1 ) start end =
     Translate { from = (vec2 x0 y0), to = (vec2 x1 y1), start = start, end = end }
 
 
-initialBalls : ( Float, Float ) -> List Ball
-initialBalls ( w, h ) =
-    [ ball ( w / 2, h / 2 ) 70
+initialCircles : ( Float, Float ) -> List Circle
+initialCircles ( w, h ) =
+    [ circle ( w / 2, h / 2 ) 70
         [ translate (0, 0) (w / 2, 0) 0 0.5
         , translate (0, 0) (-w / 4, 0) 0.5 1
         ]
-    -- , ball ( w / 4, 1.7 * h / 3 ) 60
+    -- , circle ( w / 4, 1.7 * h / 3 ) 60
     --     [ translate (0, 0) (100, 0) 0 0.4
     --     , translate (0, 0) (-100, 0) 0.4 1.0
     --     ]
-    , ball ( 1.3 * w / 2, h / 2 ) 100
+    , circle ( 1.3 * w / 2, h / 2 ) 100
         [ translate (0, 0) (-w / 4, 0) 0 0.5
         , translate (0, 0) (w / 4, 0) 0.5 1
         ]
-    -- , ball ( 3 * w / 4, h / 2 ) 16
+    -- , circle ( 3 * w / 4, h / 2 ) 16
     --     [ translate (0, 0) (200, -50) 0 0.3
     --     , translate (0, 0) (-100, 25) 0.3 0.7
     --     , translate (0, 0) (-100, 25) 0.7 1.0
@@ -112,8 +112,8 @@ buildPath { p1, p2, p3, p4, h1, h2, h3, h4, escaped, radius } =
             ]
 
 
-metaball : Ball -> Ball -> Maybe Path
-metaball ball1 ball2 =
+metaball : Circle -> Circle -> Maybe Path
+metaball circle1 circle2 =
     let
         vecAt center a r =
             let ( cx, cy ) = ( getX center, getY center )
@@ -123,34 +123,34 @@ metaball ball1 ball2 =
                     (cy + r * sin a)
         angleBetween vec1 vec2 =
             atan2 (getY vec1 - getY vec2) (getX vec1 - getX vec2)
-        center1 = add ball1.origin ball1.transform
-        center2 = add ball2.origin ball2.transform
-        radius1 = ball1.radius
-        radius2 = ball2.radius
+        center1 = add circle1.origin circle1.transform
+        center2 = add circle2.origin circle2.transform
+        radius1 = circle1.radius
+        radius2 = circle2.radius
         --maxDistance = Basics.min (radius1 + radius2 * distanceFactor) globalMaxDistance
         maxDistance = radius1 + radius2
         halfPi = pi / 2
         d = distance center1 center2
-        v = d / 400
+        --v = d / 400
     in
         -- No blob if a radius is 0
-        -- or if distance between the balls is larger than max-dist
-        -- or if ball2 is completely inside ball1
+        -- or if distance between the circles is larger than max-dist
+        -- or if circle2 is completely inside circle1
         if (radius1 <= 0 || radius2 <= 0) then
             Nothing
         else if (d > maxDistance || d <= abs (radius1 - radius2)) then
             Nothing
         else
             let
-                ballsOverlap = d < radius1 + radius2
+                circlesOverlap = d < radius1 + radius2
 
-                -- Calculate u1 and u2 if the balls are overlapping
+                -- Calculate u1 and u2 if the circles are overlapping
                 u1 =
-                    if ballsOverlap then
+                    if circlesOverlap then
                         acos <| (radius1 * radius1 + d * d - radius2 * radius2) / (2 * radius1 * d)
                     else 0
                 u2 =
-                    if ballsOverlap then
+                    if circlesOverlap then
                         acos <| (radius2 * radius2 + d * d - radius1 * radius1) / (2 * radius2 * d)
                     else 0
 
@@ -189,32 +189,33 @@ metaball ball1 ball2 =
                     , h3 = vecAt p3 (angle3 + halfPi) sRadius2
                     , h4 = vecAt p4 (angle4 - halfPi) sRadius2
                     , escaped = d > radius1, radius = radius2
+                    , builtFrom = ( circle1, circle2 )
                     }
             in
                 Just <| buildPath theMetaball
 
 
-scene : Float -> ( Float, Float )  -> ( Int, Int ) -> ( List Ball, List Path )
+scene : Float -> ( Float, Float )  -> ( Int, Int ) -> ( List Circle, List Path )
 scene t ( w, h ) ( mouseX, mouseY ) =
     let
-        ballAtCursor = Ball (vec2 (toFloat mouseX) (toFloat mouseY)) 100 [] (vec2 0 0)
-        animatedInitialBalls = List.map (applyTweens t) <| initialBalls ( w, h )
-        balls =
-            -- ballAtCursor :: animatedInitialBalls
-            animatedInitialBalls
-        indexedBalls =
-            balls |> List.indexedMap Tuple.pair
+        circleAtCursor = Circle (vec2 (toFloat mouseX) (toFloat mouseY)) 100 [] (vec2 0 0)
+        animatedInitialCircles = List.map (applyTweens t) <| initialCircles ( w, h )
+        circles =
+            circleAtCursor :: animatedInitialCircles
+            --animatedInitialCircles
+        indexedCircles =
+            circles |> List.indexedMap Tuple.pair
         connections =
-            List.foldr (\(i, ball1) allConnections ->
+            List.foldr (\(i, circle1) allConnections ->
                 allConnections ++
-                    List.foldr (\(j, ball2) ballConnections ->
+                    List.foldr (\(j, circle2) circleConnections ->
                         if (j < i) then
-                            metaball ball1 ball2 :: ballConnections
-                        else ballConnections
-                    ) [] indexedBalls
-            ) [] indexedBalls
+                            metaball circle1 circle2 :: circleConnections
+                        else circleConnections
+                    ) [] indexedCircles
+            ) [] indexedCircles
     in
-        ( balls
+        ( circles
         , List.filterMap identity connections
         )
 
@@ -229,8 +230,8 @@ getLocT start end globt =
         clamped / (end - start)
 
 
-applyTweens : Float -> Ball -> Ball
-applyTweens t toBall =
+applyTweens : Float -> Circle -> Circle
+applyTweens t toCircle =
     let
         applyPos t_ tween ( curX, curY ) =
             case tween of
@@ -244,10 +245,10 @@ applyTweens t toBall =
                                 )
 
         translateTo =
-            List.foldl (applyPos t) (0, 0) toBall.tweens
+            List.foldl (applyPos t) (0, 0) toCircle.tweens
     in case translateTo of
         ( x, y ) ->
-            { toBall
+            { toCircle
             | transform = vec2 x y
             }
 
@@ -264,8 +265,8 @@ view vp t dt mousePos =
     let
         -- _ = Debug.log "t" t
         ( w, h ) = ( getX vp.size, getY vp.size )
-        ( balls, metaballs ) = scene t ( w, h ) mousePos
-        drawBall ({ origin, radius, transform })
+        ( circles, metaballs ) = scene t ( w, h ) mousePos
+        drawCircle ({ origin, radius, transform })
             = S.circle
                 [ SA.cx <| String.fromFloat <| getX origin
                 , SA.cy <| String.fromFloat <| getY origin
@@ -274,10 +275,10 @@ view vp t dt mousePos =
                 ]
                 [ ]
         drawMetaball pathStr =
-            S.path [ d pathStr, fill ballsFill ] []
+            S.path [ d pathStr, fill circlesFill ] []
     in
         S.svg [ SA.width <| String.fromFloat w, height <| String.fromFloat h ]
             (
-            List.map drawBall balls ++
+            List.map drawCircle circles ++
             List.map drawMetaball metaballs
             )
