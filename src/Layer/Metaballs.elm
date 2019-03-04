@@ -13,12 +13,12 @@ import Svg as S exposing (..)
 import Svg.Attributes as SA exposing (..)
 
 
-v = 0.5
+-- v = 0.5
 handleLenRate = 2.5
---distanceFactor = 1
+distanceFactor = 1.5
 globalMaxDistance = 2000
 circlesFill = "black"
-loop = 4000.0
+loop = 40000.0
 
 
 type Tween =
@@ -77,7 +77,7 @@ translate ( x0, y0 ) ( x1, y1 ) start end =
 
 initialCircles : ( Float, Float ) -> List Circle
 initialCircles ( w, h ) =
-    [ circle ( w / 2, h / 2 ) 70
+    [ circle ( w / 2, h / 2 ) 30
         [ translate (0, 0) (w / 2, 0) 0 0.5
         , translate (0, 0) (-w / 4, 0) 0.5 1
         ]
@@ -107,12 +107,11 @@ buildPath { p1, p2, p3, p4, h1, h2, h3, h4, escaped, radius } =
             , "C", vecstr h1, vecstr h3, vecstr p3
             , "A", String.fromFloat radius, String.fromFloat radius
                  , "0", if escaped then "1" else "0", "0", vecstr p4
-            --, "C", vecstr h4, vecstr h3, vecstr p4
             , "C", vecstr h4, vecstr h2, vecstr p2
             ]
 
 
-metaball : Circle -> Circle -> Maybe Path
+metaball : Circle -> Circle -> List ( Path, String )
 metaball circle1 circle2 =
     let
         vecAt center a r =
@@ -127,22 +126,22 @@ metaball circle1 circle2 =
         center2 = add circle2.origin circle2.transform
         radius1 = circle1.radius
         radius2 = circle2.radius
-        --maxDistance = Basics.min (radius1 + radius2 * distanceFactor) globalMaxDistance
-        maxDistance = radius1 + radius2
+        maxDistance = Basics.min (radius1 + radius2 * distanceFactor) globalMaxDistance
+        -- maxDistance = radius1 + radius2
         halfPi = pi / 2
         d = distance center1 center2
-        --v = d / 400
+        v = 0.5
     in
         -- No blob if a radius is 0
         -- or if distance between the circles is larger than max-dist
         -- or if circle2 is completely inside circle1
         if (radius1 <= 0 || radius2 <= 0) then
-            Nothing
+            []
         else if (d > maxDistance || d <= abs (radius1 - radius2)) then
-            Nothing
+            []
         else
             let
-                circlesOverlap = d < radius1 + radius2
+                circlesOverlap = d < (radius1 + radius2)
 
                 -- Calculate u1 and u2 if the circles are overlapping
                 u1 =
@@ -173,29 +172,49 @@ metaball circle1 circle2 =
                 -- Define handle length by the distance between
                 -- both ends of the curve
                 totalRadius = radius1 + radius2
-                d2Base = Basics.min (v * handleLenRate) (distance p1 p2 / totalRadius)
+                d2Base = Basics.min (v * handleLenRate) (distance p1 p3 / totalRadius)
                 -- Take into account when circles are overlapping
                 d2 = d2Base * (Basics.min 1 (d * 2 / (radius1 + radius2)))
 
                 -- Length of the handles
-                sRadius1 = radius1 * d2
-                sRadius2 = radius2 * d2
+                handle1Length = radius1 * d2
+                handle2Length = radius2 * d2
 
                 -- Create the metaball
                 theMetaball =
                     { p1 = p1, p2 = p2, p3 = p3, p4 = p4
-                    , h1 = vecAt p1 (angle1 - halfPi) sRadius1
-                    , h2 = vecAt p2 (angle2 + halfPi) sRadius1
-                    , h3 = vecAt p3 (angle3 + halfPi) sRadius2
-                    , h4 = vecAt p4 (angle4 - halfPi) sRadius2
+                    , h1 = vecAt p1 (angle1 - halfPi) handle1Length
+                    , h2 = vecAt p2 (angle2 + halfPi) handle1Length
+                    , h3 = vecAt p3 (angle3 + halfPi) handle2Length
+                    , h4 = vecAt p4 (angle4 - halfPi) handle2Length
                     , escaped = d > radius1, radius = radius2
                     , builtFrom = ( circle1, circle2 )
                     }
+
+                vecToSquarePath vec =
+                    let locVec = sub vec center1
+                    in case ( getX vec, getY vec ) of
+                        ( x, y ) ->
+                            [ "M", String.fromFloat x, String.fromFloat y
+                            , "L", String.fromFloat <| x + 5, String.fromFloat y
+                            , "L", String.fromFloat <| x + 5, String.fromFloat <| y + 5
+                            , "L", String.fromFloat x, String.fromFloat <| y + 5
+                            , "L", String.fromFloat x, String.fromFloat y
+                            ] |> String.join " "
             in
-                Just <| buildPath theMetaball
+                [ ( buildPath theMetaball, "red" )
+                , ( vecToSquarePath theMetaball.h1, "blue" )
+                , ( vecToSquarePath theMetaball.h2, "blue" )
+                , ( vecToSquarePath theMetaball.h3, "blue" )
+                , ( vecToSquarePath theMetaball.h4, "blue" )
+                , ( vecToSquarePath theMetaball.p1, "green" )
+                , ( vecToSquarePath theMetaball.p2, "green" )
+                , ( vecToSquarePath theMetaball.p3, "green" )
+                , ( vecToSquarePath theMetaball.p4, "green" )
+                ]
 
 
-scene : Float -> ( Float, Float )  -> ( Int, Int ) -> ( List Circle, List Path )
+scene : Float -> ( Float, Float )  -> ( Int, Int ) -> ( List Circle, List ( Path, String ) )
 scene t ( w, h ) ( mouseX, mouseY ) =
     let
         circleAtCursor = Circle (vec2 (toFloat mouseX) (toFloat mouseY)) 100 [] (vec2 0 0)
@@ -216,7 +235,7 @@ scene t ( w, h ) ( mouseX, mouseY ) =
             ) [] indexedCircles
     in
         ( circles
-        , List.filterMap identity connections
+        , List.concat <| List.filter (not << List.isEmpty) connections
         )
 
 
@@ -274,8 +293,8 @@ view vp t dt mousePos =
                 , SA.transform <| extractTransform transform
                 ]
                 [ ]
-        drawMetaball pathStr =
-            S.path [ d pathStr, fill circlesFill ] []
+        drawMetaball ( pathStr, fillColor ) =
+            S.path [ d pathStr, fill fillColor ] []
     in
         S.svg [ SA.width <| String.fromFloat w, height <| String.fromFloat h ]
             (
