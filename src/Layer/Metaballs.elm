@@ -52,7 +52,7 @@ type alias Circle =
     }
 
 
-type alias Metaball =
+type alias Connection =
     { p1: Vec2, p2: Vec2, p3: Vec2, p4: Vec2
     , h1: Vec2, h2: Vec2, h3: Vec2, h4: Vec2
     , escaped: Bool
@@ -62,6 +62,15 @@ type alias Metaball =
 
 
 type alias Path = String
+
+type ConnectionView
+    = NoConnection
+    | ConnectionView ( List ( Path, Color ) )
+
+
+type Scene = Scene ( List Circle, List ( Path, Color ) )
+
+
 type alias Segment =
     { point : Vec2
     , handleIn : Maybe Vec2
@@ -103,7 +112,7 @@ initialCircles ( w, h ) =
     ]
 
 
-buildPath : Metaball -> Path
+buildPath : Connection -> Path
 buildPath { p1, p2, p3, p4, h1, h2, h3, h4, escaped, radius } =
     let
         vecstr vec = String.fromFloat (getX vec) ++ "," ++ String.fromFloat (getY vec)
@@ -117,8 +126,8 @@ buildPath { p1, p2, p3, p4, h1, h2, h3, h4, escaped, radius } =
             ]
 
 
-metaball : Circle -> Circle -> List ( Path, Color )
-metaball circle1 circle2 =
+connect : Circle -> Circle -> ConnectionView
+connect circle1 circle2 =
     let
         vecAt center a r =
             let ( cx, cy ) = ( getX center, getY center )
@@ -142,9 +151,9 @@ metaball circle1 circle2 =
         -- or if distance between the circles is larger than max-dist
         -- or if circle2 is completely inside circle1
         if (radius1 <= 0 || radius2 <= 0) then
-            []
+            NoConnection
         else if (d > maxDistance || d <= abs (radius1 - radius2)) then
-            []
+            NoConnection
         else
             let
                 circlesOverlap = d < (radius1 + radius2)
@@ -187,7 +196,7 @@ metaball circle1 circle2 =
                 handle2Length = radius2 * d2
 
                 -- Create the metaball
-                theMetaball =
+                theConnection =
                     { p1 = p1, p2 = p2, p3 = p3, p4 = p4
                     , h1 = vecAt p1 (angle1 - halfPi) handle1Length
                     , h2 = vecAt p2 (angle2 + halfPi) handle1Length
@@ -208,19 +217,20 @@ metaball circle1 circle2 =
                             , "L", String.fromFloat x, String.fromFloat y
                             ] |> String.join " "
             in
-                [ ( buildPath theMetaball, Color "url(#gradient)" )
-                , ( vecToSquarePath theMetaball.h1, Color "blue" )
-                , ( vecToSquarePath theMetaball.h2, Color "blue" )
-                , ( vecToSquarePath theMetaball.h3, Color "blue" )
-                , ( vecToSquarePath theMetaball.h4, Color "blue" )
-                , ( vecToSquarePath theMetaball.p1, Color "green" )
-                , ( vecToSquarePath theMetaball.p2, Color "green" )
-                , ( vecToSquarePath theMetaball.p3, Color "green" )
-                , ( vecToSquarePath theMetaball.p4, Color "green" )
-                ]
+                ConnectionView
+                    [ ( buildPath theConnection, Color "url(#gradient)" )
+                    , ( vecToSquarePath theConnection.h1, Color "blue" )
+                    , ( vecToSquarePath theConnection.h2, Color "blue" )
+                    , ( vecToSquarePath theConnection.h3, Color "blue" )
+                    , ( vecToSquarePath theConnection.h4, Color "blue" )
+                    , ( vecToSquarePath theConnection.p1, Color "green" )
+                    , ( vecToSquarePath theConnection.p2, Color "green" )
+                    , ( vecToSquarePath theConnection.p3, Color "green" )
+                    , ( vecToSquarePath theConnection.p4, Color "green" )
+                    ]
 
 
-scene : Float -> ( Float, Float )  -> ( Int, Int ) -> ( List Circle, List ( Path, Color ) )
+scene : Float -> ( Float, Float )  -> ( Int, Int ) -> Scene
 scene t ( w, h ) ( mouseX, mouseY ) =
     let
         circleAtCursor = Circle (vec2 (toFloat mouseX) (toFloat mouseY)) 100 [] (vec2 0 0)
@@ -235,14 +245,18 @@ scene t ( w, h ) ( mouseX, mouseY ) =
                 allConnections ++
                     List.foldr (\(j, circle2) circleConnections ->
                         if (j < i) then
-                            metaball circle1 circle2 :: circleConnections
+                            case connect circle1 circle2 of
+                                NoConnection -> circleConnections
+                                ConnectionView connection ->
+                                    connection :: circleConnections
                         else circleConnections
                     ) [] indexedCircles
             ) [] indexedCircles
     in
-        ( circles
-        , List.concat <| List.filter (not << List.isEmpty) connections
-        )
+        Scene
+            ( circles
+            , List.concat <| List.filter (not << List.isEmpty) connections
+            )
 
 
 getLocT : Float -> Float -> Float -> Float
@@ -290,7 +304,7 @@ view vp t dt mousePos =
     let
         -- _ = Debug.log "t" t
         ( w, h ) = ( getX vp.size, getY vp.size )
-        ( circles, metaballs ) = scene t ( w, h ) mousePos
+        (Scene ( circles, connections )) = scene t ( w, h ) mousePos
         drawCircle ({ origin, radius, transform })
             = S.circle
                 [ SA.cx <| String.fromFloat <| getX origin
@@ -300,7 +314,7 @@ view vp t dt mousePos =
                 , SA.fill "url(#gradient)"
                 ]
                 [ ]
-        drawMetaball ( pathStr, Color fillColor ) =
+        drawPath ( pathStr, Color fillColor ) =
             S.path [ d pathStr, fill fillColor ] []
         -- gradient =
         --     S.linearGradient
@@ -326,6 +340,6 @@ view vp t dt mousePos =
             , S.g [ ]
                 (
                 List.map drawCircle circles ++
-                List.map drawMetaball metaballs
+                List.map drawPath connections
                 )
             ]
