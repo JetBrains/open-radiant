@@ -18,7 +18,7 @@ handleLenRate = 2.5
 distanceFactor = 1.5
 globalMaxDistance = 2000
 circlesFill = "black"
-loop = 40000.0
+loop = 4000.0
 
 
 type Tween =
@@ -80,59 +80,26 @@ translate ( x0, y0 ) ( x1, y1 ) start end =
 
 initialCircles : ( Float, Float ) -> List Circle
 initialCircles ( w, h ) =
-    [ circle ( w / 2, h / 2 ) 30
-        [ translate (0, 0) (w / 2, 0) 0 0.5
-        , translate (0, 0) (-w / 4, 0) 0.5 1
+    [ circle ( 646.44, 251.24 ) 48
+        [ translate (0, 0) (40, 0) 0 0.5
+        , translate (0, 0) (-40, 0) 0.5 1
         ]
-    -- , circle ( w / 4, 1.7 * h / 3 ) 60
-    --     [ translate (0, 0) (100, 0) 0 0.4
-    --     , translate (0, 0) (-100, 0) 0.4 1.0
-    --     ]
-    , circle ( 1.3 * w / 2, h / 2 ) 100
-        [ translate (0, 0) (-w / 4, 0) 0 0.5
-        , translate (0, 0) (w / 4, 0) 0.5 1
+    , circle ( 545.65, 100.6 ) 72.5
+        [ translate (0, 0) (-60, 0) 0 0.5
+        , translate (0, 0) (60, 0) 0.5 1
         ]
-    , circle ( 1.5 * w / 2, h / 2 ) 100
-        [ translate (0, 0) (-w / 4, 0) 0 0.5
-        , translate (0, 0) (w / 4, 0) 0.5 1
+    , circle ( 440.42, 250.07 ) 100
+        [ translate (0, 0) (-10, 0) 0 0.5
+        , translate (0, 0) (10, 0) 0.5 1
         ]
-    , circle ( 1.2 * w / 2, h / 2 ) 100
-        [ translate (0, 0) (-w / 4, 0) 0 0.5
-        , translate (0, 0) (w / 4, 0) 0.5 1
+    , circle ( 107.42, 249.06 ) 56.42
+        [ translate (0, 0) (-80, 0) 0 0.5
+        , translate (0, 0) (80, 0) 0.5 1
         ]
-    , circle ( 1.0 * w / 2, h / 2 ) 100
-        [ translate (0, 0) (-w / 4, 0) 0 0.5
-        , translate (0, 0) (w / 4, 0) 0.5 1
+    , circle ( 349.33, 225.06 ) 167.33
+        [ translate (0, 0) (-5, 0) 0 0.5
+        , translate (0, 0) (5, 0) 0.5 1
         ]
-    , circle ( 0.7 * w / 2, h / 2 ) 100
-        [ translate (0, 0) (-w / 4, 0) 0 0.5
-        , translate (0, 0) (w / 4, 0) 0.5 1
-        ]
-    , circle ( 0.4 * w / 2, h / 2 ) 100
-        [ translate (0, 0) (-w / 4, 0) 0 0.5
-        , translate (0, 0) (w / 4, 0) 0.5 1
-        ]
-    , circle ( 1.5 * w / 2, h / 2 ) 100
-        [ translate (0, 0) (-w / 4, 0) 0 0.5
-        , translate (0, 0) (w / 4, 0) 0.5 1
-        ]
-    , circle ( 1.8 * w / 2, h / 2 ) 100
-        [ translate (0, 0) (-w / 4, 0) 0 0.5
-        , translate (0, 0) (w / 4, 0) 0.5 1
-        ]
-    , circle ( 0.3 * w / 2, h / 2 ) 100
-        [ translate (0, 0) (-w / 4, 0) 0 0.5
-        , translate (0, 0) (w / 4, 0) 0.5 1
-        ]
-    , circle ( 1.3 * w / 2, h / 2 ) 100
-        [ translate (0, 0) (-w / 4, 0) 0 0.5
-        , translate (0, 0) (w / 4, 0) 0.5 1
-        ]
-    -- , circle ( 3 * w / 4, h / 2 ) 16
-    --     [ translate (0, 0) (200, -50) 0 0.3
-    --     , translate (0, 0) (-100, 25) 0.3 0.7
-    --     , translate (0, 0) (-100, 25) 0.7 1.0
-    --     ]
     ]
 
 
@@ -241,7 +208,7 @@ metaball circle1 circle2 =
                             , "L", String.fromFloat x, String.fromFloat y
                             ] |> String.join " "
             in
-                [ ( buildPath theMetaball, Color "url(#red_black)" )
+                [ ( buildPath theMetaball, Color "url(#gradient)" )
                 , ( vecToSquarePath theMetaball.h1, Color "blue" )
                 , ( vecToSquarePath theMetaball.h2, Color "blue" )
                 , ( vecToSquarePath theMetaball.h3, Color "blue" )
@@ -330,18 +297,28 @@ view vp t dt mousePos =
                 , SA.cy <| String.fromFloat <| getY origin
                 , SA.r  <| String.fromFloat radius
                 , SA.transform <| extractTransform transform
-                , SA.fill "url(#red_black)"
+                , SA.fill "url(#gradient)"
                 ]
                 [ ]
         drawMetaball ( pathStr, Color fillColor ) =
             S.path [ d pathStr, fill fillColor ] []
+        -- gradient =
+        --     S.linearGradient
+        --         [ SA.id "gradient", SA.x1 "0", SA.x2 "0", SA.y1 "100%", SA.y2 "0"
+        --         , SA.gradientUnits "userSpaceOnUse" ]
+        --         [ S.stop [ SA.offset "0%", SA.stopColor "red" ] []
+        --         , S.stop [ SA.offset "50%", SA.stopColor "black" ] []
+        --         , S.stop [ SA.offset "100%", SA.stopColor "blue" ] []
+        --         ]
         gradient =
-            S.linearGradient
-                [ SA.id "red_black", SA.x1 "0", SA.x2 "0", SA.y1 "100%", SA.y2 "0"
+            S.radialGradient
+                [ SA.id "gradient", SA.cx "593", SA.cy "402", SA.r "527.5685"
                 , SA.gradientUnits "userSpaceOnUse" ]
-                [ S.stop [ SA.offset "0%", SA.stopColor "red" ] []
-                , S.stop [ SA.offset "50%", SA.stopColor "black" ] []
-                , S.stop [ SA.offset "100%", SA.stopColor "blue" ] []
+                [ S.stop [ SA.offset "0.125", SA.stopColor "#E14729" ] []
+                , S.stop [ SA.offset "0.2913", SA.stopColor "#D33450" ] []
+                , S.stop [ SA.offset "0.4824", SA.stopColor "#9F1E59" ] []
+                , S.stop [ SA.offset "0.6266", SA.stopColor "#89225D" ] []
+                , S.stop [ SA.offset "0.9311", SA.stopColor "#4F2050" ] []
                 ]
     in
         S.svg [ SA.width <| String.fromFloat w, height <| String.fromFloat h ]
