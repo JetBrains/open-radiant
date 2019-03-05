@@ -38,6 +38,9 @@ init : Model
 init = { }
 
 
+type Color = Color String
+
+
 type alias Transform = Vec2
 
 
@@ -89,6 +92,42 @@ initialCircles ( w, h ) =
         [ translate (0, 0) (-w / 4, 0) 0 0.5
         , translate (0, 0) (w / 4, 0) 0.5 1
         ]
+    , circle ( 1.5 * w / 2, h / 2 ) 100
+        [ translate (0, 0) (-w / 4, 0) 0 0.5
+        , translate (0, 0) (w / 4, 0) 0.5 1
+        ]
+    , circle ( 1.2 * w / 2, h / 2 ) 100
+        [ translate (0, 0) (-w / 4, 0) 0 0.5
+        , translate (0, 0) (w / 4, 0) 0.5 1
+        ]
+    , circle ( 1.0 * w / 2, h / 2 ) 100
+        [ translate (0, 0) (-w / 4, 0) 0 0.5
+        , translate (0, 0) (w / 4, 0) 0.5 1
+        ]
+    , circle ( 0.7 * w / 2, h / 2 ) 100
+        [ translate (0, 0) (-w / 4, 0) 0 0.5
+        , translate (0, 0) (w / 4, 0) 0.5 1
+        ]
+    , circle ( 0.4 * w / 2, h / 2 ) 100
+        [ translate (0, 0) (-w / 4, 0) 0 0.5
+        , translate (0, 0) (w / 4, 0) 0.5 1
+        ]
+    , circle ( 1.5 * w / 2, h / 2 ) 100
+        [ translate (0, 0) (-w / 4, 0) 0 0.5
+        , translate (0, 0) (w / 4, 0) 0.5 1
+        ]
+    , circle ( 1.8 * w / 2, h / 2 ) 100
+        [ translate (0, 0) (-w / 4, 0) 0 0.5
+        , translate (0, 0) (w / 4, 0) 0.5 1
+        ]
+    , circle ( 0.3 * w / 2, h / 2 ) 100
+        [ translate (0, 0) (-w / 4, 0) 0 0.5
+        , translate (0, 0) (w / 4, 0) 0.5 1
+        ]
+    , circle ( 1.3 * w / 2, h / 2 ) 100
+        [ translate (0, 0) (-w / 4, 0) 0 0.5
+        , translate (0, 0) (w / 4, 0) 0.5 1
+        ]
     -- , circle ( 3 * w / 4, h / 2 ) 16
     --     [ translate (0, 0) (200, -50) 0 0.3
     --     , translate (0, 0) (-100, 25) 0.3 0.7
@@ -111,7 +150,7 @@ buildPath { p1, p2, p3, p4, h1, h2, h3, h4, escaped, radius } =
             ]
 
 
-metaball : Circle -> Circle -> List ( Path, String )
+metaball : Circle -> Circle -> List ( Path, Color )
 metaball circle1 circle2 =
     let
         vecAt center a r =
@@ -202,19 +241,19 @@ metaball circle1 circle2 =
                             , "L", String.fromFloat x, String.fromFloat y
                             ] |> String.join " "
             in
-                [ ( buildPath theMetaball, "red" )
-                , ( vecToSquarePath theMetaball.h1, "blue" )
-                , ( vecToSquarePath theMetaball.h2, "blue" )
-                , ( vecToSquarePath theMetaball.h3, "blue" )
-                , ( vecToSquarePath theMetaball.h4, "blue" )
-                , ( vecToSquarePath theMetaball.p1, "green" )
-                , ( vecToSquarePath theMetaball.p2, "green" )
-                , ( vecToSquarePath theMetaball.p3, "green" )
-                , ( vecToSquarePath theMetaball.p4, "green" )
+                [ ( buildPath theMetaball, Color "url(#red_black)" )
+                , ( vecToSquarePath theMetaball.h1, Color "blue" )
+                , ( vecToSquarePath theMetaball.h2, Color "blue" )
+                , ( vecToSquarePath theMetaball.h3, Color "blue" )
+                , ( vecToSquarePath theMetaball.h4, Color "blue" )
+                , ( vecToSquarePath theMetaball.p1, Color "green" )
+                , ( vecToSquarePath theMetaball.p2, Color "green" )
+                , ( vecToSquarePath theMetaball.p3, Color "green" )
+                , ( vecToSquarePath theMetaball.p4, Color "green" )
                 ]
 
 
-scene : Float -> ( Float, Float )  -> ( Int, Int ) -> ( List Circle, List ( Path, String ) )
+scene : Float -> ( Float, Float )  -> ( Int, Int ) -> ( List Circle, List ( Path, Color ) )
 scene t ( w, h ) ( mouseX, mouseY ) =
     let
         circleAtCursor = Circle (vec2 (toFloat mouseX) (toFloat mouseY)) 100 [] (vec2 0 0)
@@ -291,13 +330,25 @@ view vp t dt mousePos =
                 , SA.cy <| String.fromFloat <| getY origin
                 , SA.r  <| String.fromFloat radius
                 , SA.transform <| extractTransform transform
+                , SA.fill "url(#red_black)"
                 ]
                 [ ]
-        drawMetaball ( pathStr, fillColor ) =
+        drawMetaball ( pathStr, Color fillColor ) =
             S.path [ d pathStr, fill fillColor ] []
+        gradient =
+            S.linearGradient
+                [ SA.id "red_black", SA.x1 "0", SA.x2 "0", SA.y1 "100%", SA.y2 "0"
+                , SA.gradientUnits "userSpaceOnUse" ]
+                [ S.stop [ SA.offset "0%", SA.stopColor "red" ] []
+                , S.stop [ SA.offset "50%", SA.stopColor "black" ] []
+                , S.stop [ SA.offset "100%", SA.stopColor "blue" ] []
+                ]
     in
         S.svg [ SA.width <| String.fromFloat w, height <| String.fromFloat h ]
-            (
-            List.map drawCircle circles ++
-            List.map drawMetaball metaballs
-            )
+            [ S.defs [ ] [ gradient ]
+            , S.g [ ]
+                (
+                List.map drawCircle circles ++
+                List.map drawMetaball metaballs
+                )
+            ]
