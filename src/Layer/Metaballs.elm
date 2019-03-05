@@ -68,7 +68,10 @@ type ConnectionView
     | ConnectionView ( List ( Path, Color ) )
 
 
-type Scene = Scene ( List Circle, List ( Path, Color ) )
+type Scene = Scene (List Group)
+
+
+type Group = Group { circles : List Circle, connections: List ( Path, Color ) }
 
 
 type alias Segment =
@@ -87,29 +90,32 @@ translate ( x0, y0 ) ( x1, y1 ) start end =
     Translate { from = (vec2 x0 y0), to = (vec2 x1 y1), start = start, end = end }
 
 
-initialCircles : ( Float, Float ) -> List Circle
-initialCircles ( w, h ) =
-    [ circle ( 646.44, 251.24 ) 48
-        [ translate (0, 0) (40, 0) 0 0.5
-        , translate (0, 0) (-40, 0) 0.5 1
-        ]
-    , circle ( 545.65, 100.6 ) 72.5
-        [ translate (0, 0) (-60, 0) 0 0.5
-        , translate (0, 0) (60, 0) 0.5 1
-        ]
-    , circle ( 440.42, 250.07 ) 100
-        [ translate (0, 0) (-10, 0) 0 0.5
-        , translate (0, 0) (10, 0) 0.5 1
-        ]
-    , circle ( 107.42, 249.06 ) 56.42
-        [ translate (0, 0) (-80, 0) 0 0.5
-        , translate (0, 0) (80, 0) 0.5 1
-        ]
-    , circle ( 349.33, 225.06 ) 167.33
-        [ translate (0, 0) (-5, 0) 0 0.5
-        , translate (0, 0) (5, 0) 0.5 1
-        ]
-    ]
+startFrom : ( Float, Float ) -> List (List Circle)
+startFrom ( w, h ) =
+    let
+        group0 =
+            [ circle ( 646.44, 251.24 ) 48
+                [ translate (0, 0) (40, 0) 0 0.5
+                , translate (0, 0) (-40, 0) 0.5 1
+                ]
+            , circle ( 545.65, 100.6 ) 72.5
+                [ translate (0, 0) (-60, 0) 0 0.5
+                , translate (0, 0) (60, 0) 0.5 1
+                ]
+            , circle ( 440.42, 250.07 ) 100
+                [ translate (0, 0) (-10, 0) 0 0.5
+                , translate (0, 0) (10, 0) 0.5 1
+                ]
+            , circle ( 107.42, 249.06 ) 56.42
+                [ translate (0, 0) (-80, 0) 0 0.5
+                , translate (0, 0) (80, 0) 0.5 1
+                ]
+            , circle ( 349.33, 225.06 ) 167.33
+                [ translate (0, 0) (-5, 0) 0 0.5
+                , translate (0, 0) (5, 0) 0.5 1
+                ]
+            ]
+    in [ group0 ]
 
 
 buildPath : Connection -> Path
@@ -230,16 +236,12 @@ connect circle1 circle2 =
                     ]
 
 
-scene : Float -> ( Float, Float )  -> ( Int, Int ) -> Scene
-scene t ( w, h ) ( mouseX, mouseY ) =
+group : Float -> List Circle -> Group
+group t circles =
     let
-        circleAtCursor = Circle (vec2 (toFloat mouseX) (toFloat mouseY)) 100 [] (vec2 0 0)
-        animatedInitialCircles = List.map (applyTweens t) <| initialCircles ( w, h )
-        circles =
-            circleAtCursor :: animatedInitialCircles
-            --animatedInitialCircles
+        animatedCircles = List.map (applyTweens t) circles
         indexedCircles =
-            circles |> List.indexedMap Tuple.pair
+            animatedCircles |> List.indexedMap Tuple.pair
         connections =
             List.foldr (\(i, circle1) allConnections ->
                 allConnections ++
@@ -253,10 +255,18 @@ scene t ( w, h ) ( mouseX, mouseY ) =
                     ) [] indexedCircles
             ) [] indexedCircles
     in
-        Scene
-            ( circles
-            , List.concat <| List.filter (not << List.isEmpty) connections
-            )
+        Group
+            { circles = animatedCircles
+            , connections = List.concat <| List.filter (not << List.isEmpty) connections
+            }
+
+
+scene : Float -> ( Float, Float )  -> ( Int, Int ) -> Scene
+scene t ( w, h ) ( mouseX, mouseY ) =
+    let
+        circleAtCursor = Circle (vec2 (toFloat mouseX) (toFloat mouseY)) 100 [] (vec2 0 0)
+    in
+        Scene <| List.map (group t) <| startFrom ( w, h )
 
 
 getLocT : Float -> Float -> Float -> Float
@@ -304,7 +314,7 @@ view vp t dt mousePos =
     let
         -- _ = Debug.log "t" t
         ( w, h ) = ( getX vp.size, getY vp.size )
-        (Scene ( circles, connections )) = scene t ( w, h ) mousePos
+        (Scene groups) = scene t ( w, h ) mousePos
         drawCircle ({ origin, radius, transform })
             = S.circle
                 [ SA.cx <| String.fromFloat <| getX origin
@@ -324,6 +334,12 @@ view vp t dt mousePos =
         --         , S.stop [ SA.offset "50%", SA.stopColor "black" ] []
         --         , S.stop [ SA.offset "100%", SA.stopColor "blue" ] []
         --         ]
+        drawGroup (Group { circles, connections }) =
+            S.g [ ]
+                (
+                List.map drawCircle circles ++
+                List.map drawPath connections
+                )
         gradient =
             S.radialGradient
                 [ SA.id "gradient", SA.cx "593", SA.cy "402", SA.r "527.5685"
@@ -334,12 +350,8 @@ view vp t dt mousePos =
                 , S.stop [ SA.offset "0.6266", SA.stopColor "#89225D" ] []
                 , S.stop [ SA.offset "0.9311", SA.stopColor "#4F2050" ] []
                 ]
+        defs = S.defs [ ] [ gradient ]
     in
-        S.svg [ SA.width <| String.fromFloat w, height <| String.fromFloat h ]
-            [ S.defs [ ] [ gradient ]
-            , S.g [ ]
-                (
-                List.map drawCircle circles ++
-                List.map drawPath connections
-                )
-            ]
+        S.svg
+            [ SA.width <| String.fromFloat w, height <| String.fromFloat h ]
+            (defs :: List.map drawGroup groups)
