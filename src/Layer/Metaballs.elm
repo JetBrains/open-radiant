@@ -99,7 +99,7 @@ type alias Segment =
 minGroups = 2
 maxGroups = 7
 minNumberOfCircles = 5
-maxNumberOfCircles = 100
+maxNumberOfCircles = 10
 minRadius = 5
 maxRadius = 100
 
@@ -246,14 +246,14 @@ connect circle1 circle2 =
             in
                 ConnectionView
                     [ ( buildPath theConnection, Color "url(#gradient)" )
-                    , ( vecToSquarePath theConnection.h1, Color "blue" )
-                    , ( vecToSquarePath theConnection.h2, Color "blue" )
-                    , ( vecToSquarePath theConnection.h3, Color "blue" )
-                    , ( vecToSquarePath theConnection.h4, Color "blue" )
-                    , ( vecToSquarePath theConnection.p1, Color "green" )
-                    , ( vecToSquarePath theConnection.p2, Color "green" )
-                    , ( vecToSquarePath theConnection.p3, Color "green" )
-                    , ( vecToSquarePath theConnection.p4, Color "green" )
+                    -- , ( vecToSquarePath theConnection.h1, Color "blue" )
+                    -- , ( vecToSquarePath theConnection.h2, Color "blue" )
+                    -- , ( vecToSquarePath theConnection.h3, Color "blue" )
+                    -- , ( vecToSquarePath theConnection.h4, Color "blue" )
+                    -- , ( vecToSquarePath theConnection.p1, Color "green" )
+                    -- , ( vecToSquarePath theConnection.p2, Color "green" )
+                    -- , ( vecToSquarePath theConnection.p3, Color "green" )
+                    -- , ( vecToSquarePath theConnection.p4, Color "green" )
                     ]
 
 
@@ -348,36 +348,31 @@ view : Viewport {} -> Float -> Float -> ( Int, Int ) -> Model -> Html a
 view vp t dt mousePos model =
     let
         -- _ = Debug.log "t" t
+        groupsCount = List.length model.circles
         ( w, h ) = ( V2.getX vp.size, V2.getY vp.size )
         (Scene groups) = scene t ( w, h ) mousePos <| toCircles model
-        drawCircle ({ origin, radius, transform })
+        drawCircle groupIdx ({ origin, radius, transform })
             = S.circle
                 [ SA.cx <| String.fromFloat <| V2.getX origin
                 , SA.cy <| String.fromFloat <| V2.getY origin
                 , SA.r  <| String.fromFloat radius
                 , SA.transform <| extractTransform transform
-                , SA.fill "url(#gradient)"
+                , SA.fill <| "url(#gradient" ++ String.fromInt groupIdx ++ ")"
                 ]
                 [ ]
-        drawPath ( pathStr, Color fillColor ) =
-            S.path [ d pathStr, fill fillColor ] []
-        -- gradient =
-        --     S.linearGradient
-        --         [ SA.id "gradient", SA.x1 "0", SA.x2 "0", SA.y1 "100%", SA.y2 "0"
-        --         , SA.gradientUnits "userSpaceOnUse" ]
-        --         [ S.stop [ SA.offset "0%", SA.stopColor "red" ] []
-        --         , S.stop [ SA.offset "50%", SA.stopColor "black" ] []
-        --         , S.stop [ SA.offset "100%", SA.stopColor "blue" ] []
-        --         ]
-        drawGroup (Group { circles, connections }) =
+        drawPath groupIdx ( pathStr, _ ) =
+            S.path [ d pathStr, fill <| "url(#gradient" ++ String.fromInt groupIdx ++ ")" ] []
+        drawGroup groupIdx (Group { circles, connections }) =
             S.g [ ]
                 (
-                List.map drawCircle circles ++
-                List.map drawPath connections
+                List.map (drawCircle groupIdx) circles ++
+                List.map (drawPath groupIdx) connections
                 )
-        gradient =
+        gradient index =
             S.radialGradient
-                [ SA.id "gradient", SA.cx "593", SA.cy "402", SA.r "527.5685"
+                [ SA.id <| "gradient" ++ String.fromInt index
+                , SA.cx "593", SA.cy "402"
+                , SA.r (527.5685 * (toFloat (index + 1)) |> String.fromFloat)
                 , SA.gradientUnits "userSpaceOnUse" ]
                 [ S.stop [ SA.offset "0.125", SA.stopColor "#E14729" ] []
                 , S.stop [ SA.offset "0.2913", SA.stopColor "#D33450" ] []
@@ -385,8 +380,10 @@ view vp t dt mousePos model =
                 , S.stop [ SA.offset "0.6266", SA.stopColor "#89225D" ] []
                 , S.stop [ SA.offset "0.9311", SA.stopColor "#4F2050" ] []
                 ]
-        defs = S.defs [ ] [ gradient ]
+        defs =
+                S.defs [ ]
+                    <| List.map gradient <| List.range 0 groupsCount
     in
         S.svg
             [ SA.width <| String.fromFloat w, height <| String.fromFloat h ]
-            (defs :: List.map drawGroup groups)
+            (defs :: List.indexedMap (drawGroup ) groups)
