@@ -6,7 +6,8 @@ module Layer.Metaballs exposing
 
 import Viewport exposing (Viewport)
 
-import Math.Vector2 exposing (..)
+import Math.Vector2 as V2 exposing (..)
+import Math.Vector3 as V3 exposing (..)
 import Array
 import Html exposing (Html)
 import Svg as S exposing (..)
@@ -30,12 +31,16 @@ type Tween =
 
 
 type alias Model =
-    {
+    { positions: List Vec2
+    , radii: List Float
     }
 
 
 init : Model
-init = { }
+init =
+    { positions = []
+    , radii = []
+    }
 
 
 type Color = Color String
@@ -71,7 +76,11 @@ type ConnectionView
 type Scene = Scene (List Group)
 
 
-type Group = Group { circles : List Circle, connections: List ( Path, Color ) }
+type Group =
+    Group
+        { circles : List Circle
+        , connections: List ( Path, Color )
+        }
 
 
 type alias Segment =
@@ -121,7 +130,7 @@ startFrom ( w, h ) =
 buildPath : Connection -> Path
 buildPath { p1, p2, p3, p4, h1, h2, h3, h4, escaped, radius } =
     let
-        vecstr vec = String.fromFloat (getX vec) ++ "," ++ String.fromFloat (getY vec)
+        vecstr vec = String.fromFloat (V2.getX vec) ++ "," ++ String.fromFloat (V2.getY vec)
     in
         String.join " "
             [ "M", vecstr p1
@@ -136,21 +145,21 @@ connect : Circle -> Circle -> ConnectionView
 connect circle1 circle2 =
     let
         vecAt center a r =
-            let ( cx, cy ) = ( getX center, getY center )
+            let ( cx, cy ) = ( V2.getX center, V2.getY center )
             in
                 vec2
                     (cx + r * cos a)
                     (cy + r * sin a)
         angleBetween vec1 vec2 =
-            atan2 (getY vec1 - getY vec2) (getX vec1 - getX vec2)
-        center1 = add circle1.origin circle1.transform
-        center2 = add circle2.origin circle2.transform
+            atan2 (V2.getY vec1 - V2.getY vec2) (V2.getX vec1 - V2.getX vec2)
+        center1 = V2.add circle1.origin circle1.transform
+        center2 = V2.add circle2.origin circle2.transform
         radius1 = circle1.radius
         radius2 = circle2.radius
         maxDistance = Basics.min (radius1 + radius2 * distanceFactor) globalMaxDistance
         -- maxDistance = radius1 + radius2
         halfPi = pi / 2
-        d = distance center1 center2
+        d = V2.distance center1 center2
         v = 0.5
     in
         -- No blob if a radius is 0
@@ -193,7 +202,7 @@ connect circle1 circle2 =
                 -- Define handle length by the distance between
                 -- both ends of the curve
                 totalRadius = radius1 + radius2
-                d2Base = Basics.min (v * handleLenRate) (distance p1 p3 / totalRadius)
+                d2Base = Basics.min (v * handleLenRate) (V2.distance p1 p3 / totalRadius)
                 -- Take into account when circles are overlapping
                 d2 = d2Base * (Basics.min 1 (d * 2 / (radius1 + radius2)))
 
@@ -213,8 +222,8 @@ connect circle1 circle2 =
                     }
 
                 vecToSquarePath vec =
-                    let locVec = sub vec center1
-                    in case ( getX vec, getY vec ) of
+                    let locVec = V2.sub vec center1
+                    in case ( V2.getX vec, V2.getY vec ) of
                         ( x, y ) ->
                             [ "M", String.fromFloat x, String.fromFloat y
                             , "L", String.fromFloat <| x + 5, String.fromFloat y
@@ -287,7 +296,7 @@ applyTweens t toCircle =
                 Translate { from, to, start, end } ->
                     let tloc = getLocT start end t_
                     in
-                        case ( ( getX from, getY from ), ( getX to, getY to ) ) of
+                        case ( ( V2.getX from, V2.getY from ), ( V2.getX to, V2.getY to ) ) of
                             ( ( fromX, fromY ), ( toX, toY ) ) ->
                                 ( curX + fromX + ((toX - fromX) * tloc)
                                 , curY + fromY + ((toY - fromY) * tloc)
@@ -304,7 +313,7 @@ applyTweens t toCircle =
 
 extractTransform : Transform -> String
 extractTransform transform =
-    case ( getX transform, getY transform ) of
+    case ( V2.getX transform, V2.getY transform ) of
         ( tx, ty ) ->
             "translate(" ++ String.fromFloat tx ++ "," ++ String.fromFloat ty ++ ")"
 
@@ -313,12 +322,12 @@ view : Viewport {} -> Float -> Float -> ( Int, Int ) -> Html a
 view vp t dt mousePos =
     let
         -- _ = Debug.log "t" t
-        ( w, h ) = ( getX vp.size, getY vp.size )
+        ( w, h ) = ( V2.getX vp.size, V2.getY vp.size )
         (Scene groups) = scene t ( w, h ) mousePos
         drawCircle ({ origin, radius, transform })
             = S.circle
-                [ SA.cx <| String.fromFloat <| getX origin
-                , SA.cy <| String.fromFloat <| getY origin
+                [ SA.cx <| String.fromFloat <| V2.getX origin
+                , SA.cy <| String.fromFloat <| V2.getY origin
                 , SA.r  <| String.fromFloat radius
                 , SA.transform <| extractTransform transform
                 , SA.fill "url(#gradient)"
