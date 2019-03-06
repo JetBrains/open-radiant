@@ -109,6 +109,7 @@ type Msg
     | AlterAmplitude LayerIndex FSS.AmplitudeChange
     | ShiftColor LayerIndex FSS.ColorShiftPatch
     | ChangeOpacity LayerIndex FSS.Opacity
+    | RebuildMetaballs LayerIndex Metaballs.Model
     | Randomize
     | ApplyRandomizer PortModel
     | SavePng

@@ -104,10 +104,13 @@ update msg model =
 
         Bang ->
             ( model
-            , startGui
-                ( model |> IE.encodePortModel
-                , makeConstants
-                )
+            , Cmd.batch
+                [ startGui
+                    ( model |> IE.encodePortModel
+                    , makeConstants
+                    )
+                , generateAllMetaballs model
+                ]
             )
 
         ChangeMode mode ->
@@ -523,6 +526,11 @@ update msg model =
             let decodedPortModel = IE.decodePortModel createLayer portModel
             in ( decodedPortModel, rebuildAllFssLayersWith decodedPortModel )
 
+        RebuildMetaballs index metaballsModel ->
+            ( model |> rebuildMetaballs index metaballsModel
+            , Cmd.none
+            )
+
         NoOp -> ( model, Cmd.none )
 
 
@@ -544,6 +552,19 @@ getLayerModel index model =
         |> Array.fromList
         |> Array.get index
         |> Maybe.map .model
+
+
+rebuildMetaballs : LayerIndex -> Metaballs.Model -> Model -> Model
+rebuildMetaballs index newMetaballsModel model =
+    model |> updateLayerWithItsModel
+        index
+        (\(layer, layerModel) ->
+            ( layer
+            , case layerModel of
+                MetaballsModel _ -> MetaballsModel newMetaballsModel
+                _ -> layerModel
+            )
+        )
 
 
 updateFss : LayerIndex -> (FSS.Model -> FSS.Model) -> Model -> Model
@@ -765,6 +786,24 @@ decodeMousePosition =
     D.map2 Position
         (D.at [ "offsetX" ] D.int)
         (D.at [ "offsetY" ] D.int)
+
+
+generateAllMetaballs : Model -> Cmd Msg
+generateAllMetaballs model =
+    let
+        isMetaballLayer layerDef =
+            case layerDef.model of
+                MetaballsModel metaballsModel -> Just metaballsModel
+                _ -> Nothing
+    in
+        List.filterMap isMetaballLayer model.layers
+            |> List.indexedMap (\index _ -> generateMetaballs model.size index)
+            |> Cmd.batch
+
+
+generateMetaballs : SizeRule -> LayerIndex -> Cmd Msg
+generateMetaballs size layerIdx =
+    Metaballs.generate (RebuildMetaballs layerIdx) Metaballs.generator
 
 
 subscriptions : Model -> Sub Msg

@@ -3,6 +3,7 @@ module Layer.Metaballs exposing
     , init
     , view
     , generate
+    , generator
     )
 
 import Viewport exposing (Viewport)
