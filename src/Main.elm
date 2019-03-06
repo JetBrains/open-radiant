@@ -654,9 +654,9 @@ createLayer kind layerModel =
             HtmlLayer
             CoverLayer
             HtmlBlend.default
-        ( Metaballs, _ ) ->
+        ( Metaballs, MetaballsModel metaballsModel ) ->
             HtmlLayer
-            MetaballsLayer
+            (MetaballsLayer metaballsModel)
             HtmlBlend.default
         _ ->
             Model.emptyLayer
@@ -900,8 +900,8 @@ layerToHtml model viewport index { layer } =
                         (getRuleSizeOrZeroes model.size)
                         model.origin
                         htmlBlend
-                MetaballsLayer ->
-                    Metaballs.view viewport model.now model.timeShift model.mouse
+                MetaballsLayer metaballsModel ->
+                    Metaballs.view viewport model.now model.timeShift model.mouse metaballsModel
                 CanvasLayer ->
                     Canvas.view
                 NoContent -> div [] []

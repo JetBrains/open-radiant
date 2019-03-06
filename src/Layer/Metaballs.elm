@@ -2,6 +2,7 @@ module Layer.Metaballs exposing
     ( Model
     , init
     , view
+    , generate
     )
 
 import Viewport exposing (Viewport)
@@ -9,6 +10,7 @@ import Viewport exposing (Viewport)
 import Math.Vector2 as V2 exposing (..)
 import Math.Vector3 as V3 exposing (..)
 import Array
+import Random
 import Html exposing (Html)
 import Svg as S exposing (..)
 import Svg.Attributes as SA exposing (..)
@@ -43,6 +45,9 @@ init =
     }
 
 
+type alias ModelGenerator = Random.Generator Model
+
+
 type Color = Color String
 
 
@@ -68,6 +73,7 @@ type alias Connection =
 
 type alias Path = String
 
+
 type ConnectionView
     = NoConnection
     | ConnectionView ( List ( Path, Color ) )
@@ -90,6 +96,25 @@ type alias Segment =
     }
 
 
+generator : Random.Generator Model
+generator =
+    -- TODO: use size
+    let
+        generatePosition =
+                Random.map2 V2.vec2 (Random.float 0 9) (Random.float 0 9)
+        generatePositions len = Random.list len generatePosition
+        generateRadii len = Random.list len <| Random.float 0 9
+    in
+        Random.int 5 10
+            |> Random.andThen (\len ->
+                  Random.map2 Model (generatePositions len) (generateRadii len)
+            )
+
+
+generate : (Model -> msg) -> Random.Generator Model -> Cmd msg
+generate = Random.generate
+
+
 circle : ( Float, Float ) -> Float -> List Tween -> Circle
 circle ( x, y ) r tweens = Circle (vec2 x y) r tweens (vec2 0 0)
 
@@ -99,32 +124,32 @@ translate ( x0, y0 ) ( x1, y1 ) start end =
     Translate { from = (vec2 x0 y0), to = (vec2 x1 y1), start = start, end = end }
 
 
-startFrom : ( Float, Float ) -> List (List Circle)
-startFrom ( w, h ) =
-    let
-        group0 =
-            [ circle ( 646.44, 251.24 ) 48
-                [ translate (0, 0) (40, 0) 0 0.5
-                , translate (0, 0) (-40, 0) 0.5 1
-                ]
-            , circle ( 545.65, 100.6 ) 72.5
-                [ translate (0, 0) (-60, 0) 0 0.5
-                , translate (0, 0) (60, 0) 0.5 1
-                ]
-            , circle ( 440.42, 250.07 ) 100
-                [ translate (0, 0) (-10, 0) 0 0.5
-                , translate (0, 0) (10, 0) 0.5 1
-                ]
-            , circle ( 107.42, 249.06 ) 56.42
-                [ translate (0, 0) (-80, 0) 0 0.5
-                , translate (0, 0) (80, 0) 0.5 1
-                ]
-            , circle ( 349.33, 225.06 ) 167.33
-                [ translate (0, 0) (-5, 0) 0 0.5
-                , translate (0, 0) (5, 0) 0.5 1
-                ]
-            ]
-    in [ group0 ]
+-- startFrom : ( Float, Float ) -> List (List Circle)
+-- startFrom ( w, h ) =
+--     let
+--         group0 =
+--             [ circle ( 646.44, 251.24 ) 48
+--                 [ translate (0, 0) (40, 0) 0 0.5
+--                 , translate (0, 0) (-40, 0) 0.5 1
+--                 ]
+--             , circle ( 545.65, 100.6 ) 72.5
+--                 [ translate (0, 0) (-60, 0) 0 0.5
+--                 , translate (0, 0) (60, 0) 0.5 1
+--                 ]
+--             , circle ( 440.42, 250.07 ) 100
+--                 [ translate (0, 0) (-10, 0) 0 0.5
+--                 , translate (0, 0) (10, 0) 0.5 1
+--                 ]
+--             , circle ( 107.42, 249.06 ) 56.42
+--                 [ translate (0, 0) (-80, 0) 0 0.5
+--                 , translate (0, 0) (80, 0) 0.5 1
+--                 ]
+--             , circle ( 349.33, 225.06 ) 167.33
+--                 [ translate (0, 0) (-5, 0) 0 0.5
+--                 , translate (0, 0) (5, 0) 0.5 1
+--                 ]
+--             ]
+--     in [ group0 ]
 
 
 buildPath : Connection -> Path
@@ -270,12 +295,12 @@ group t circles =
             }
 
 
-scene : Float -> ( Float, Float )  -> ( Int, Int ) -> Scene
-scene t ( w, h ) ( mouseX, mouseY ) =
+scene : Float -> ( Float, Float )  -> ( Int, Int ) -> List (List Circle) -> Scene
+scene t ( w, h ) ( mouseX, mouseY ) startFrom =
     let
         circleAtCursor = Circle (vec2 (toFloat mouseX) (toFloat mouseY)) 100 [] (vec2 0 0)
     in
-        Scene <| List.map (group t) <| startFrom ( w, h )
+        Scene <| List.map (group t) startFrom
 
 
 getLocT : Float -> Float -> Float -> Float
@@ -318,12 +343,27 @@ extractTransform transform =
             "translate(" ++ String.fromFloat tx ++ "," ++ String.fromFloat ty ++ ")"
 
 
-view : Viewport {} -> Float -> Float -> ( Int, Int ) -> Html a
-view vp t dt mousePos =
+
+toCircles : Model -> List (List Circle)
+toCircles model =
+    let
+        group0 =
+            List.map2
+                (\pos radius ->
+                    circle ( V2.getX pos, V2.getY pos ) radius []
+                )
+                model.positions
+                model.radii
+    in
+        [ group0 ]
+
+
+view : Viewport {} -> Float -> Float -> ( Int, Int ) -> Model -> Html a
+view vp t dt mousePos model =
     let
         -- _ = Debug.log "t" t
         ( w, h ) = ( V2.getX vp.size, V2.getY vp.size )
-        (Scene groups) = scene t ( w, h ) mousePos
+        (Scene groups) = scene t ( w, h ) mousePos <| toCircles model
         drawCircle ({ origin, radius, transform })
             = S.circle
                 [ SA.cx <| String.fromFloat <| V2.getX origin
