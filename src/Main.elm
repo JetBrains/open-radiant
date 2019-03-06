@@ -804,7 +804,7 @@ generateAllMetaballs model =
 
 generateMetaballs : SizeRule -> LayerIndex -> Cmd Msg
 generateMetaballs size layerIdx =
-    Metaballs.generate (RebuildMetaballs layerIdx) Metaballs.generator
+    Metaballs.generate (RebuildMetaballs layerIdx) (Metaballs.generator <| getRuleSizeOrZeroes size)
 
 
 subscriptions : Model -> Sub Msg

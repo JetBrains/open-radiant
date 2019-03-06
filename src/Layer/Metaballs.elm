@@ -97,19 +97,25 @@ type alias Segment =
     }
 
 
-generator : Random.Generator Model
-generator =
+minNumberOfCircles = 5
+maxNumberOfCircles = 100
+minRadius = 5
+maxRadius = 100
+
+
+generator : ( Int, Int ) -> Random.Generator Model
+generator ( w, h ) =
     -- TODO: use size
     let
         generatePosition =
-                Random.map2 V2.vec2 (Random.float 0 1000) (Random.float 0 1000)
+                Random.map2 V2.vec2 (Random.float 0 <| toFloat w) (Random.float 0 <| toFloat h)
         generatePositions len = Random.list len generatePosition
-        generateRadii len = Random.list len <| Random.float 0 100
+        generateRadii len = Random.list len <| Random.float minRadius maxRadius
     in
-        Random.int 5 10
-            |> Random.andThen (\len ->
-                  Random.map2 Model (generatePositions len) (generateRadii len)
-            )
+        Random.int minNumberOfCircles maxNumberOfCircles
+            |> Random.andThen
+                (\len ->
+                    Random.map2 Model (generatePositions len) (generateRadii len))
 
 
 generate : (Model -> msg) -> Random.Generator Model -> Cmd msg
