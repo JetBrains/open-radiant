@@ -30,19 +30,18 @@ type Tween =
         { from: Vec2
         , to: Vec2
         , start: Float
-        , end: Float }
+        , end: Float
+        }
 
 
 type alias Model =
-    { positions: List Vec2
-    , radii: List Float
+    { circles: List (List ( Vec2, Float ))
     }
 
 
 init : Model
 init =
-    { positions = []
-    , radii = []
+    { circles = []
     }
 
 
@@ -97,6 +96,8 @@ type alias Segment =
     }
 
 
+minGroups = 2
+maxGroups = 7
 minNumberOfCircles = 5
 maxNumberOfCircles = 100
 minRadius = 5
@@ -105,17 +106,24 @@ maxRadius = 100
 
 generator : ( Int, Int ) -> Random.Generator Model
 generator ( w, h ) =
-    -- TODO: use size
     let
         generatePosition =
                 Random.map2 V2.vec2 (Random.float 0 <| toFloat w) (Random.float 0 <| toFloat h)
-        generatePositions len = Random.list len generatePosition
-        generateRadii len = Random.list len <| Random.float minRadius maxRadius
+        generateRadius = Random.float minRadius maxRadius
     in
-        Random.int minNumberOfCircles maxNumberOfCircles
+        Random.int minGroups maxGroups
             |> Random.andThen
-                (\len ->
-                    Random.map2 Model (generatePositions len) (generateRadii len))
+                (\numGroups ->
+                    Random.int minNumberOfCircles maxNumberOfCircles
+                        |> Random.andThen
+                            (\numCircles ->
+                                Random.pair generatePosition generateRadius
+                                    |> Random.list numCircles
+                            )
+                        |> Random.list numGroups
+                )
+            |> Random.map Model
+
 
 
 generate : (Model -> msg) -> Random.Generator Model -> Cmd msg
@@ -326,15 +334,14 @@ extractTransform transform =
 toCircles : Model -> List (List Circle)
 toCircles model =
     let
-        group0 =
-            List.map2
-                (\pos radius ->
+        convertGroup circles =
+            List.map
+                (\(pos, radius) ->
                     circle ( V2.getX pos, V2.getY pos ) radius []
                 )
-                model.positions
-                model.radii
+                circles
     in
-        [ group0 ]
+        List.map convertGroup model.circles
 
 
 view : Viewport {} -> Float -> Float -> ( Int, Int ) -> Model -> Html a
