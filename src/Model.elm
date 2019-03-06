@@ -48,6 +48,7 @@ import Layer.Voronoi as Voronoi
 import Layer.Template as Template
 import Layer.Vignette as Vignette
 import Layer.Metaballs as Metaballs
+import Layer.Fluid as Fluid
 
 
 type alias LayerIndex = Int
@@ -136,6 +137,7 @@ type LayerKind
     | Cover
     | Vignette
     | Metaballs
+    | Fluid
     | Empty
 
 
@@ -152,6 +154,7 @@ type LayerModel
     | TemplateModel Template.Model
     | VignetteModel Vignette.Model
     | MetaballsModel Metaballs.Model
+    | FluidModel Fluid.Model
     | NoModel
 
 
@@ -160,6 +163,7 @@ type WebGLLayer_
     | FractalLayer Fractal.Mesh
     | VoronoiLayer Voronoi.Mesh
     | TemplateLayer Template.Mesh
+    | FluidLayer Fluid.Mesh
     | FssLayer (Maybe FSS.SerializedScene) FSS.Mesh
     | MirroredFssLayer (Maybe FSS.SerializedScene) FSS.Mesh
     | VignetteLayer

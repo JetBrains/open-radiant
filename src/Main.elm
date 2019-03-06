@@ -45,6 +45,7 @@ import Layer.Cover as Cover
 import Layer.Canvas as Canvas
 import Layer.Vignette as Vignette
 import Layer.Metaballs as Metaballs
+import Layer.Fluid as Fluid
 
 
 sizeCoef : Float
@@ -90,6 +91,7 @@ initialLayers mode =
     -- , ( Cover, "Cover", NoModel )
     -- , ( Vignette, Vignette.init )
     [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
+    , ( Fluid, "Fluid", FluidModel Fluid.init )
     ]
     |> List.filter (\(kind, _, _) ->
         case ( kind, mode ) of
@@ -357,6 +359,8 @@ update msg model =
                                     TemplateLayer (templateModel |> Template.build)
                                 ( VignetteLayer, VignetteModel vignetteModel ) ->
                                     VignetteLayer
+                                ( FluidLayer _, FluidModel fluidModel ) ->
+                                    FluidLayer (fluidModel |> Fluid.build)
                                 _ -> webglLayer)
                             webglBlend
                         _ -> layer)
@@ -664,6 +668,10 @@ createLayer kind layerModel =
             WebGLLayer
             ( Fractal.build fractalModel |> FractalLayer )
             WGLBlend.default
+        ( Fluid, FluidModel fluidModel ) ->
+            WebGLLayer
+            ( Fluid.build fluidModel |> FluidLayer )
+            WGLBlend.default
         ( Vignette, _ ) ->
             WebGLLayer
             VignetteLayer
@@ -967,6 +975,12 @@ layerToEntities model viewport index layerDef =
                     ]
                 ( TemplateLayer mesh, _ ) ->
                     [ Template.makeEntity
+                        viewport
+                        [ DepthTest.default, WGLBlend.produce blend ]
+                        mesh
+                    ]
+                ( FluidLayer mesh, _ ) ->
+                    [ Fluid.makeEntity
                         viewport
                         [ DepthTest.default, WGLBlend.produce blend ]
                         mesh
