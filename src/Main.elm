@@ -446,6 +446,11 @@ update msg model =
             , Cmd.none
             )
 
+        RebuildMetaballs index metaballsModel ->
+            ( model |> rebuildMetaballs index metaballsModel
+            , Cmd.none
+            )
+
         ChangeVignette index opacity ->
             ( model
                 |> updateFss index
@@ -526,11 +531,6 @@ update msg model =
             let decodedPortModel = IE.decodePortModel createLayer portModel
             in ( decodedPortModel, rebuildAllFssLayersWith decodedPortModel )
 
-        RebuildMetaballs index metaballsModel ->
-            ( model |> rebuildMetaballs index metaballsModel
-            , Cmd.none
-            )
-
         NoOp -> ( model, Cmd.none )
 
 
@@ -559,6 +559,7 @@ rebuildMetaballs index newMetaballsModel model =
     model |> updateLayerWithItsModel
         index
         (\(layer, layerModel) ->
+            -- FIXME: why update model in two places??
             ( layer
             , case layerModel of
                 MetaballsModel _ -> MetaballsModel newMetaballsModel
@@ -675,9 +676,9 @@ createLayer kind layerModel =
             HtmlLayer
             CoverLayer
             HtmlBlend.default
-        ( Metaballs, MetaballsModel metaballsModel ) ->
+        ( Metaballs, _ ) ->
             HtmlLayer
-            (MetaballsLayer metaballsModel)
+            MetaballsLayer
             HtmlBlend.default
         _ ->
             Model.emptyLayer
@@ -928,22 +929,22 @@ mapControls model controlsMsg =
 
 
 layerToHtml : Model -> Viewport {} -> Int -> LayerDef -> Html Msg
-layerToHtml model viewport index { layer } =
-    case layer of
+layerToHtml model viewport index layerDef =
+    case layerDef.layer of
         HtmlLayer htmlLayer htmlBlend ->
-            case htmlLayer of
-                CoverLayer ->
+            case ( htmlLayer, layerDef.model ) of
+                ( CoverLayer, _ ) ->
                     Cover.view
                         model.mode
                         model.product
                         (getRuleSizeOrZeroes model.size)
                         model.origin
                         htmlBlend
-                MetaballsLayer metaballsModel ->
+                ( MetaballsLayer, MetaballsModel metaballsModel ) ->
                     Metaballs.view viewport model.now model.timeShift model.mouse metaballsModel
-                CanvasLayer ->
+                ( CanvasLayer, _ ) ->
                     Canvas.view
-                NoContent -> div [] []
+                _ -> div [] []
         _ -> div [] []
 
 

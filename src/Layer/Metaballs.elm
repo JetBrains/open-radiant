@@ -102,9 +102,9 @@ generator =
     -- TODO: use size
     let
         generatePosition =
-                Random.map2 V2.vec2 (Random.float 0 9) (Random.float 0 9)
+                Random.map2 V2.vec2 (Random.float 0 1000) (Random.float 0 1000)
         generatePositions len = Random.list len generatePosition
-        generateRadii len = Random.list len <| Random.float 0 9
+        generateRadii len = Random.list len <| Random.float 0 100
     in
         Random.int 5 10
             |> Random.andThen (\len ->
@@ -123,34 +123,6 @@ circle ( x, y ) r tweens = Circle (vec2 x y) r tweens (vec2 0 0)
 translate : ( Float, Float ) -> ( Float, Float ) -> Float -> Float -> Tween
 translate ( x0, y0 ) ( x1, y1 ) start end =
     Translate { from = (vec2 x0 y0), to = (vec2 x1 y1), start = start, end = end }
-
-
--- startFrom : ( Float, Float ) -> List (List Circle)
--- startFrom ( w, h ) =
---     let
---         group0 =
---             [ circle ( 646.44, 251.24 ) 48
---                 [ translate (0, 0) (40, 0) 0 0.5
---                 , translate (0, 0) (-40, 0) 0.5 1
---                 ]
---             , circle ( 545.65, 100.6 ) 72.5
---                 [ translate (0, 0) (-60, 0) 0 0.5
---                 , translate (0, 0) (60, 0) 0.5 1
---                 ]
---             , circle ( 440.42, 250.07 ) 100
---                 [ translate (0, 0) (-10, 0) 0 0.5
---                 , translate (0, 0) (10, 0) 0.5 1
---                 ]
---             , circle ( 107.42, 249.06 ) 56.42
---                 [ translate (0, 0) (-80, 0) 0 0.5
---                 , translate (0, 0) (80, 0) 0.5 1
---                 ]
---             , circle ( 349.33, 225.06 ) 167.33
---                 [ translate (0, 0) (-5, 0) 0 0.5
---                 , translate (0, 0) (5, 0) 0.5 1
---                 ]
---             ]
---     in [ group0 ]
 
 
 buildPath : Connection -> Path

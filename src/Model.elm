@@ -167,7 +167,7 @@ type WebGLLayer_
 
 type HtmlLayer_
     = CoverLayer
-    | MetaballsLayer Metaballs.Model
+    | MetaballsLayer
     | CanvasLayer
     | NoContent
 
