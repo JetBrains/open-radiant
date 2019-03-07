@@ -25,7 +25,7 @@ distanceFactor = 1.5
 globalMaxDistance = 2000
 circlesFill = "black"
 loop = 4000.0
-product = Product.WebStorm
+product = Product.PyCharm
 
 
 type Tween =

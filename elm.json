@@ -17,6 +17,7 @@
             "elm/url": "1.0.0",
             "elm-community/json-extra": "4.0.0",
             "elm-community/list-extra": "8.1.0",
+            "elm-community/random-extra": "3.0.0",
             "elm-explorations/linear-algebra": "1.0.3",
             "elm-explorations/webgl": "1.0.1"
         },
