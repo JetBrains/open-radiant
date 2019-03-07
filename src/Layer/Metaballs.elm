@@ -110,11 +110,11 @@ init =
 
 
 minGroups = 2
-maxGroups = 7
+maxGroups = 3
 minNumberOfCircles = 5
-maxNumberOfCircles = 10
-minRadius = 5
-maxRadius = 100
+maxNumberOfCircles = 30
+minRadius = 20
+maxRadius = 200
 minOpacity = 0.4
 maxOpacity = 1
 
@@ -194,7 +194,7 @@ connect circle1 circle2 =
         -- maxDistance = radius1 + radius2
         halfPi = pi / 2
         d = V2.distance center1 center2
-        v = 0.5
+        v = 0.4
     in
         -- No blob if a radius is 0
         -- or if distance between the circles is larger than max-dist
@@ -391,7 +391,9 @@ view vp t dt mousePos model =
                 , SA.cy <| String.fromFloat <| V2.getY origin
                 , SA.r  <| String.fromFloat radius
                 , SA.transform <| extractTransform transform
+                -- , SA.fill <| "url(#gradient" ++ String.fromInt groupIdx ++ ")"
                 , SA.fill <| "url(#gradient" ++ String.fromInt groupIdx ++ ")"
+
                 ]
                 [ ]
         drawPath groupIdx ( pathStr, _ ) =
@@ -410,11 +412,14 @@ view vp t dt mousePos model =
                 ]
                 []
         gradient groupIdx gradientPos opacity =
-            S.radialGradient
+            S.linearGradient
                 [ SA.id <| "gradient" ++ String.fromInt groupIdx
-                , SA.cx (V2.getX gradientPos |> String.fromFloat)
-                , SA.cy (V2.getY gradientPos |> String.fromFloat)
-                , SA.r (527.5685 * (toFloat (groupIdx + 1)) |> String.fromFloat)
+                , SA.x1 (250 * groupIdx |> String.fromInt)
+                , SA.y1 (250 * groupIdx |> String.fromInt)
+                -- , SA.x1 (V2.getX gradientPos |> String.fromFloat)
+                -- , SA.y1 (V2.getY gradientPos |> String.fromFloat)
+                -- , SA.r (527.5685 * (toFloat (groupIdx + 1)) |> String.fromFloat)
+                , SA.r "527.5685" 
                 , SA.gradientUnits "userSpaceOnUse" ]
                 [ gradientStop 0.0 colorOne opacity
                 , gradientStop 0.5 colorTwo opacity

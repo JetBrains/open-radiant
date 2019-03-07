@@ -91,7 +91,7 @@ initialLayers mode =
     -- , ( Cover, "Cover", NoModel )
     -- , ( Vignette, Vignette.init )
     [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
-    , ( Fluid, "Fluid", FluidModel Fluid.init )
+    -- , ( Fluid, "Fluid", FluidModel Fluid.init )
     ]
     |> List.filter (\(kind, _, _) ->
         case ( kind, mode ) of
