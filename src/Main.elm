@@ -800,19 +800,22 @@ decodeMousePosition =
 generateAllMetaballs : Model -> Cmd Msg
 generateAllMetaballs model =
     let
+        palette = model.product |> Product.getPalette
         isMetaballLayer layerDef =
             case layerDef.model of
                 MetaballsModel metaballsModel -> Just metaballsModel
                 _ -> Nothing
     in
         List.filterMap isMetaballLayer model.layers
-            |> List.indexedMap (\index _ -> generateMetaballs model.size index)
+            |> List.indexedMap (\index _ -> generateMetaballs palette model.size index)
             |> Cmd.batch
 
 
-generateMetaballs : SizeRule -> LayerIndex -> Cmd Msg
-generateMetaballs size layerIdx =
-    Metaballs.generate (RebuildMetaballs layerIdx) (Metaballs.generator <| getRuleSizeOrZeroes size)
+generateMetaballs : Product.Palette -> SizeRule -> LayerIndex -> Cmd Msg
+generateMetaballs palette size layerIdx =
+    Metaballs.generate
+        (RebuildMetaballs layerIdx)
+            (Metaballs.generator palette <| getRuleSizeOrZeroes size)
 
 
 subscriptions : Model -> Sub Msg
