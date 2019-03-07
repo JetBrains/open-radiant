@@ -16,6 +16,8 @@ import Html exposing (Html)
 import Svg as S exposing (..)
 import Svg.Attributes as SA exposing (..)
 
+import Product
+
 
 -- v = 0.5
 handleLenRate = 2.5
@@ -34,14 +36,16 @@ type Tween =
         }
 
 
-type alias Model =
-    { circles: List (List ( Vec2, Float ))
+type alias GroupSource =
+    { gradientCenter: Vec2
+    , opacity: Float
+    , circles: List ( Vec2, Float )
     }
 
 
-init : Model
-init =
-    { circles = []
+type alias Model =
+    { colors: Product.Palette
+    , groups: List GroupSource
     }
 
 
@@ -96,33 +100,49 @@ type alias Segment =
     }
 
 
+init : Model
+init =
+    { colors = []
+    , groups = []
+    }
+
+
 minGroups = 2
 maxGroups = 7
 minNumberOfCircles = 5
 maxNumberOfCircles = 10
 minRadius = 5
 maxRadius = 100
+minOpacity = 0
+maxOpacity = 1
 
 
-generator : ( Int, Int ) -> Random.Generator Model
-generator ( w, h ) =
+generator : Product.Palette -> ( Int, Int ) -> Random.Generator Model
+generator palette ( w, h ) =
     let
         generatePosition =
-                Random.map2 V2.vec2 (Random.float 0 <| toFloat w) (Random.float 0 <| toFloat h)
+            Random.map2 V2.vec2
+                (Random.float 0 <| toFloat w)
+                (Random.float 0 <| toFloat h)
         generateRadius = Random.float minRadius maxRadius
-    in
-        Random.int minGroups maxGroups
-            |> Random.andThen
-                (\numGroups ->
-                    Random.int minNumberOfCircles maxNumberOfCircles
+        generateCircles =
+            Random.int minNumberOfCircles maxNumberOfCircles
                         |> Random.andThen
                             (\numCircles ->
                                 Random.pair generatePosition generateRadius
                                     |> Random.list numCircles
                             )
-                        |> Random.list numGroups
+    in
+        Random.int minGroups maxGroups
+            |> Random.andThen
+                (\numGroups ->
+                    Random.map3 GroupSource
+                        generatePosition
+                        (Random.float minOpacity maxOpacity)
+                        generateCircles
+                    |> Random.list numGroups
                 )
-            |> Random.map Model
+            |> Random.map (Model palette)
 
 
 
@@ -334,21 +354,21 @@ extractTransform transform =
 toCircles : Model -> List (List Circle)
 toCircles model =
     let
-        convertGroup circles =
+        convertGroup theGroup =
             List.map
                 (\(pos, radius) ->
                     circle ( V2.getX pos, V2.getY pos ) radius []
                 )
-                circles
+                theGroup.circles
     in
-        List.map convertGroup model.circles
+        List.map convertGroup model.groups
 
 
 view : Viewport {} -> Float -> Float -> ( Int, Int ) -> Model -> Html a
 view vp t dt mousePos model =
     let
         -- _ = Debug.log "t" t
-        groupsCount = List.length model.circles
+        groupsCount = List.length model.groups
         ( w, h ) = ( V2.getX vp.size, V2.getY vp.size )
         (Scene groups) = scene t ( w, h ) mousePos <| toCircles model
         drawCircle groupIdx ({ origin, radius, transform })
