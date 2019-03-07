@@ -225,7 +225,11 @@ update msg model =
             )
 
         BackToNow ->
-            ( { model | timeShift = 0.0 }
+            ( { model 
+              | timeShift = 0.0
+              , now = model.now + model.timeShift
+              , paused = True 
+              }
             , Cmd.none
             )
 
@@ -1073,7 +1077,11 @@ view model =
         ( w, h ) =
                 getRuleSize model.size |> Maybe.withDefault ( -1, -1 )
         visible = w > 0 && h > 0
-        wrapHtml = div [ H.class "html-layers layers" ]
+        wrapHtml = 
+            div 
+                [ H.class "html-layers layers"
+                , Events.onClick TriggerPause 
+                ]
         wrapEntities =
             WebGL.toHtmlWith
                 [ WebGL.antialias
