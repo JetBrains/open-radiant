@@ -45,6 +45,7 @@ import Layer.Cover as Cover
 import Layer.Canvas as Canvas
 import Layer.Vignette as Vignette
 import Layer.Metaballs as Metaballs
+import Layer.Fluid as Fluid
 
 
 sizeCoef : Float
@@ -90,6 +91,7 @@ initialLayers mode =
     -- , ( Cover, "Cover", NoModel )
     -- , ( Vignette, Vignette.init )
     [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
+    -- , ( Fluid, "Fluid", FluidModel Fluid.init )
     ]
     |> List.filter (\(kind, _, _) ->
         case ( kind, mode ) of
@@ -223,7 +225,11 @@ update msg model =
             )
 
         BackToNow ->
-            ( { model | timeShift = 0.0 }
+            ( { model 
+              | timeShift = 0.0
+              , now = model.now + model.timeShift
+              , paused = True 
+              }
             , Cmd.none
             )
 
@@ -357,6 +363,8 @@ update msg model =
                                     TemplateLayer (templateModel |> Template.build)
                                 ( VignetteLayer, VignetteModel vignetteModel ) ->
                                     VignetteLayer
+                                ( FluidLayer _, FluidModel fluidModel ) ->
+                                    FluidLayer (fluidModel |> Fluid.build)
                                 _ -> webglLayer)
                             webglBlend
                         _ -> layer)
@@ -663,6 +671,10 @@ createLayer kind layerModel =
         ( Fractal, FractalModel fractalModel ) ->
             WebGLLayer
             ( Fractal.build fractalModel |> FractalLayer )
+            WGLBlend.default
+        ( Fluid, FluidModel fluidModel ) ->
+            WebGLLayer
+            ( Fluid.build fluidModel |> FluidLayer )
             WGLBlend.default
         ( Vignette, _ ) ->
             WebGLLayer
@@ -974,6 +986,12 @@ layerToEntities model viewport index layerDef =
                         [ DepthTest.default, WGLBlend.produce blend ]
                         mesh
                     ]
+                ( FluidLayer mesh, _ ) ->
+                    [ Fluid.makeEntity
+                        viewport
+                        [ DepthTest.default, WGLBlend.produce blend ]
+                        mesh
+                    ]
                 ( VoronoiLayer mesh, _ ) ->
                     [ Voronoi.makeEntity
                         viewport
@@ -1059,7 +1077,11 @@ view model =
         ( w, h ) =
                 getRuleSize model.size |> Maybe.withDefault ( -1, -1 )
         visible = w > 0 && h > 0
-        wrapHtml = div [ H.class "html-layers layers" ]
+        wrapHtml = 
+            div 
+                [ H.class "html-layers layers"
+                , Events.onClick TriggerPause 
+                ]
         wrapEntities =
             WebGL.toHtmlWith
                 [ WebGL.antialias

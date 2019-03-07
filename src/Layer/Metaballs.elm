@@ -110,11 +110,11 @@ init =
 
 
 minGroups = 2
-maxGroups = 7
+maxGroups = 3
 minNumberOfCircles = 5
-maxNumberOfCircles = 10
-minRadius = 5
-maxRadius = 100
+maxNumberOfCircles = 30
+minRadius = 20
+maxRadius = 200
 minOpacity = 0.4
 maxOpacity = 1
 
@@ -194,7 +194,7 @@ connect circle1 circle2 =
         -- maxDistance = radius1 + radius2
         halfPi = pi / 2
         d = V2.distance center1 center2
-        v = 0.5
+        v = 0.4
     in
         -- No blob if a radius is 0
         -- or if distance between the circles is larger than max-dist
@@ -356,19 +356,27 @@ extractTransform transform =
 
 
 
-toCircles : Model -> List (Float, List Circle)
-toCircles model =
+toCircles : Float -> (Float, Float) -> Model -> List (Float, List Circle)
+toCircles t (w, h) model =
     let
-        convertGroup theGroup =
+        convertGroup groupIndex theGroup =
             ( theGroup.opacity
-            , List.map
-                (\(pos, radius) ->
-                    circle ( V2.getX pos, V2.getY pos ) radius []
+            , List.indexedMap
+                (\circleIndex (pos, radius) ->
+                    let 
+                        shiftX = w * sin (t / 2000) * (toFloat circleIndex / 10) * (toFloat groupIndex / 10)
+                        shiftY = h * cos (t / 2000) * (toFloat circleIndex / 10) * (toFloat groupIndex / 10)
+                    in     
+                        circle ( V2.getX pos - shiftX, V2.getY pos - shiftY) radius []
+                    -- circle ( (w * sin (t / 2000) * 0.5),(h * cos (t / 2000)) ) radius []
+                        -- [ Translate { from = vec2 0 0, to = vec2 (50 * circleIndex |> toFloat) 100, start = 0, end = 0.5 } 
+                        -- , Translate { from = vec2 0 0, to = vec2 -100 -100, start = 0.5, end = 1.0 } 
+                        -- ]
                 )
                 theGroup.circles
             )
     in
-        List.map convertGroup model.groups
+        List.indexedMap convertGroup model.groups
 
 
 view : Viewport {} -> Float -> Float -> ( Int, Int ) -> Model -> Html a
@@ -384,16 +392,20 @@ view vp t dt mousePos model =
         -- _ = Debug.log "t" t
         groupsCount = List.length model.groups
         ( w, h ) = ( V2.getX vp.size, V2.getY vp.size )
-        (Scene groups) = scene t ( w, h ) mousePos <| toCircles model
-        drawCircle groupIdx ({ origin, radius, transform })
-            = S.circle
-                [ SA.cx <| String.fromFloat <| V2.getX origin
-                , SA.cy <| String.fromFloat <| V2.getY origin
-                , SA.r  <| String.fromFloat radius
-                , SA.transform <| extractTransform transform
-                , SA.fill <| "url(#gradient" ++ String.fromInt groupIdx ++ ")"
-                ]
-                [ ]
+        (Scene groups) = scene t ( w, h ) mousePos <| toCircles t ( w, h ) model
+        drawCircle groupIdx ({ origin, radius, transform }) = 
+                let 
+                    transformTo = V2.add origin transform 
+                in 
+                    S.circle
+                        [ SA.cx <| String.fromFloat <| V2.getX transformTo
+                        , SA.cy <| String.fromFloat <| V2.getY transformTo
+                        , SA.r  <| String.fromFloat radius
+                        -- , SA.transform <| extractTransform transform
+                        -- , SA.fill <| "url(#gradient" ++ String.fromInt groupIdx ++ ")"
+                        , SA.fill <| "url(#gradient" ++ String.fromInt groupIdx ++ ")"
+                        ]
+                        [ ]
         drawPath groupIdx ( pathStr, _ ) =
             S.path [ d pathStr, fill <| "url(#gradient" ++ String.fromInt groupIdx ++ ")" ] []
         drawGroup groupIdx (Group { circles, connections, opacity }) =
@@ -410,12 +422,18 @@ view vp t dt mousePos model =
                 ]
                 []
         gradient groupIdx gradientPos opacity =
-            S.radialGradient
+            S.linearGradient
                 [ SA.id <| "gradient" ++ String.fromInt groupIdx
-                , SA.cx (V2.getX gradientPos |> String.fromFloat)
-                , SA.cy (V2.getY gradientPos |> String.fromFloat)
-                , SA.r (527.5685 * (toFloat (groupIdx + 1)) |> String.fromFloat)
-                , SA.gradientUnits "userSpaceOnUse" ]
+                , SA.x1 (250 * groupIdx |> String.fromInt)
+                , SA.y1 (250 * groupIdx |> String.fromInt)
+                -- , SA.x2 (w |> String.fromFloat)
+                -- , SA.y2 (h |> String.fromFloat)
+                -- , SA.x1 (V2.getX gradientPos |> String.fromFloat)
+                -- , SA.y1 (V2.getY gradientPos |> String.fromFloat)
+                -- , SA.r (527.5685 * (toFloat (groupIdx + 1)) |> String.fromFloat)
+                , SA.r "527.5685" 
+                , SA.gradientUnits "userSpaceOnUse" 
+                ]
                 [ gradientStop 0.0 colorOne opacity
                 , gradientStop 0.5 colorTwo opacity
                 , gradientStop 1.0 colorThree opacity

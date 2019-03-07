@@ -100,6 +100,7 @@ encodeKind_ kind =
         M.Cover -> "cover"
         M.Vignette -> "vignette"
         M.Metaballs -> "metaballs"
+        M.Fluid -> "fluid"
         M.Empty -> "empty"
 
 
@@ -300,6 +301,8 @@ decodeKind layerTypeStr =
         "voronoi" -> M.Voronoi
         "cover" -> M.Cover
         "vignette" -> M.Vignette
+        "metaballs" -> M.Metaballs
+        "fluid" -> M.Fluid
         _ -> M.Empty
 
 
