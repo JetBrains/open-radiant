@@ -98,6 +98,7 @@ const exportZip_ = (app, exportedState) => {
     JSZipUtils.getBinaryContent(
         './player.bundle.js', (err, playerBundle) => {
         if (err) { throw err; }
+        console.log(playerBundle);
 
         JSZipUtils.getBinaryContent(
             './index.player.html',

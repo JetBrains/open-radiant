@@ -49,7 +49,7 @@ applyFragment fragment model =
 
 fragmentToMessage : Fragment -> Msg
 fragmentToMessage fragment =
-    case decodeFragment fragment of
+    Debug.log "fragmentToMessage" <| case decodeFragment fragment of
         ModeAndSizeRule mode rule -> ChangeModeAndResize mode rule
         SizeRule rule -> Resize rule
         Mode mode -> ChangeMode mode

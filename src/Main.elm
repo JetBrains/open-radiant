@@ -77,22 +77,22 @@ init flags url _ =
 
 initialLayers : UiMode -> List ( LayerKind, String, LayerModel )
 initialLayers mode =
-    -- [ ( Fss, "Lower Layer", FssModel FSS.init )
-    -- , ( Fss, "Mid Layer", FssModel FSS.init )
-    -- , ( Fss, "Top layer"
-    --   , let
-    --         fssModel = FSS.init
-    --     in
-    --         { fssModel
-    --         | renderMode = FSS.PartialLines
-    --         , shareMesh = True
-    --         } |> FssModel
-    --   )
-    -- , ( Cover, "Cover", NoModel )
-    -- , ( Vignette, Vignette.init )
-    [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
-    -- , ( Fluid, "Fluid", FluidModel Fluid.init )
+    [ ( Fss, "Lower Layer", FssModel FSS.init )
+    , ( Fss, "Mid Layer", FssModel FSS.init )
+    , ( Fss, "Top layer"
+      , let
+            fssModel = FSS.init
+        in
+            { fssModel
+            | renderMode = FSS.PartialLines
+            , shareMesh = True
+            } |> FssModel
+      )
+    , ( Cover, "Cover", NoModel )
     ]
+    -- [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
+    -- [ ( Fluid, "Fluid", FluidModel Fluid.init )
+    -- ]
     |> List.filter (\(kind, _, _) ->
         case ( kind, mode ) of
             ( Cover, Ads ) -> False
@@ -225,10 +225,10 @@ update msg model =
             )
 
         BackToNow ->
-            ( { model 
+            ( { model
               | timeShift = 0.0
               , now = model.now + model.timeShift
-              , paused = True 
+              , paused = True
               }
             , Cmd.none
             )
@@ -1077,10 +1077,10 @@ view model =
         ( w, h ) =
                 getRuleSize model.size |> Maybe.withDefault ( -1, -1 )
         visible = w > 0 && h > 0
-        wrapHtml = 
-            div 
+        wrapHtml =
+            div
                 [ H.class "html-layers layers"
-                , Events.onClick TriggerPause 
+                , Events.onClick TriggerPause
                 ]
         wrapEntities =
             WebGL.toHtmlWith
@@ -1139,7 +1139,7 @@ view model =
 
 document : Model -> Browser.Document Msg
 document model =
-    { title = "Elmsfeuer"
+    { title = "Elmsfeuer, Radiant"
     , body = [ view model ]
     }
 
