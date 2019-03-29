@@ -21,7 +21,7 @@ module Model exposing
     , PortLayerDef
     , PortBlend
     , Msg(..)
-    , Errors(..)
+    , Errors(..), hasErrors, addError, addErrors
     , Constants
     , makeConstants
     , SizeRule(..), encodeSizeRule, decodeSizeRule
@@ -646,3 +646,25 @@ decodeSizeRule str =
             Ok <| decodeSize (\w h -> UseViewport (ViewportSize w h)) w_and_h -1 -1
         "dimensionless"::_ -> Ok Dimensionless
         _ -> Err str
+
+
+hasErrors : Model -> Bool
+hasErrors model =
+    case model.errors of
+        Errors errorsList ->
+            List.isEmpty errorsList
+
+
+addError : String -> Model -> Model
+addError errorStr =
+    addErrors (errorStr |> List.singleton |> Errors)
+
+
+addErrors : Errors -> Model -> Model
+addErrors (Errors newErrors) model =
+    { model
+    | errors =
+        case model.errors of
+            Errors currentErrors ->
+                Errors <| currentErrors ++ newErrors
+    }

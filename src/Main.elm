@@ -560,21 +560,6 @@ update msg model =
         NoOp -> ( model, Cmd.none )
 
 
-addError : String -> Model -> Model
-addError errorStr =
-    addErrors (errorStr |> List.singleton |> Errors)
-
-
-addErrors : Errors -> Model -> Model
-addErrors (Errors newErrors) model =
-    { model
-    | errors =
-        case model.errors of
-            Errors currentErrors ->
-                Errors <| currentErrors ++ newErrors
-    }
-
-
 getSizeUpdate : Model -> SizeUpdate
 getSizeUpdate model =
     { size = getRuleSize model.size |> Maybe.withDefault ( -1, -1 )
@@ -1139,25 +1124,32 @@ view model =
         renderQueue = model |> RQ.groupLayers layerToEntities layerToHtml
     in div [ ]
         [ canvas [ H.id "js-save-buffer" ] [ ]
+        , if hasErrors model
+            then
+                div [ H.id "error-pane", H.class "has-errors" ]
+                    ( case model.errors of
+                        Errors errorsList ->
+                            errorsList |> List.map (\err -> span [] [ text err ])
+                    )
+            else div [ H.id "error-pane" ] []
         , renderQueue |> RQ.apply wrapHtml wrapEntities
         , if model.controlsVisible
             then ( div
                 [ H.class "overlay-panel import-export-panel hide-on-space" ]
-                [
-                  div [  H.class "timeline_holder" ] [
-                  span [ H.class "label past"] [ text "past" ]
-                , input
-                    [ type_ "range"
-                    , class "timeline"
-                    , H.min "0"
-                    , H.max "100"
-                    , extractTimeShift model.timeShift |> H.value
-                    , Events.onInput (\v -> adaptTimeShift v |> TimeTravel)
-                    , Events.onMouseUp BackToNow
+                [ div [ H.class "timeline_holder" ]
+                    [ span [ H.class "label past"] [ text "past" ]
+                    , input
+                        [ type_ "range"
+                        , class "timeline"
+                        , H.min "0"
+                        , H.max "100"
+                        , extractTimeShift model.timeShift |> H.value
+                        , Events.onInput (\v -> adaptTimeShift v |> TimeTravel)
+                        , Events.onMouseUp BackToNow
+                        ]
+                        []
+                    , span [ H.class "label future"] [text "future"]
                     ]
-                    []
-                , span [ H.class "label future"] [text "future"]
-                  ]
                 -- , input [ type_ "button", id "import-button", value "Import" ] [ text "Import" ]
                 -- , input [ type_ "button", onClick Export, value "Export" ] [ text "Export" ]
                 , input
