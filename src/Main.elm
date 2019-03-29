@@ -196,15 +196,16 @@ update msg model =
             )
 
         Import encodedModel ->
-            let
-                decodedModel =
-                    encodedModel
-                        |> IE.decodeModel model.mode createLayer Gui.gui
-                        |> Maybe.withDefault model
-            in
-                ( decodedModel
-                , rebuildAllFssLayersWith decodedModel
-                )
+            case (encodedModel
+                    |> IE.decodeModel model.mode createLayer Gui.gui) of
+                Ok decodedModel ->
+                    ( decodedModel
+                    , rebuildAllFssLayersWith decodedModel
+                    )
+                Err importError ->
+                    ( model |> addError importError
+                    , Cmd.none
+                    )
 
         Export ->
             ( model
@@ -536,10 +537,42 @@ update msg model =
             )
 
         ApplyRandomizer portModel ->
-            let decodedPortModel = IE.decodePortModel createLayer portModel
-            in ( decodedPortModel, rebuildAllFssLayersWith decodedPortModel )
+            case IE.decodePortModel createLayer portModel of
+                Ok decodedPortModel ->
+                    ( decodedPortModel
+                    , rebuildAllFssLayersWith decodedPortModel
+                    )
+                Err decodingErrors ->
+                    ( model |> addErrors (IE.adaptModelDecodeErrors decodingErrors)
+                    , Cmd.none
+                    )
+
+        AddError error ->
+            ( model |> addError error
+            , Cmd.none
+            )
+
+        AddErrors errors ->
+            ( model |> addErrors errors
+            , Cmd.none
+            )
 
         NoOp -> ( model, Cmd.none )
+
+
+addError : String -> Model -> Model
+addError errorStr =
+    addErrors (errorStr |> List.singleton |> Errors)
+
+
+addErrors : Errors -> Model -> Model
+addErrors (Errors newErrors) model =
+    { model
+    | errors =
+        case model.errors of
+            Errors currentErrors ->
+                Errors <| currentErrors ++ newErrors
+    }
 
 
 getSizeUpdate : Model -> SizeUpdate
@@ -850,7 +883,11 @@ subscriptions model =
             <| Browser.onMouseUp
             <| decodeMousePosition
         , rotate Rotate
-        , changeProduct (\productStr -> Product.decode productStr |> ChangeProduct)
+        , changeProduct
+            (\productStr ->
+                case Product.decode productStr of
+                    Ok product -> ChangeProduct product
+                    Err error -> AddError <| "Failed to decode product: " ++ error)
         , changeFssRenderMode (\{value, layer} ->
             FSS.decodeRenderMode value |> ChangeFssRenderMode layer)
         , changeFacesX (\{value, layer} ->
@@ -871,7 +908,12 @@ subscriptions model =
         , changeOpacity (\{value, layer} -> ChangeOpacity layer value)
         , changeVignette (\{value, layer} -> ChangeVignette layer value)
         , changeIris (\{value, layer} -> ChangeIris layer value)
-        , changeMode (\modeStr -> ChangeMode <| decodeMode modeStr)
+        , changeMode
+            (\modeStr ->
+                case decodeMode modeStr of
+                    Ok mode -> ChangeMode mode
+                    Err error -> AddError <| "Failed to decode mode: " ++ error
+            )
         , resize
             (\{ presetCode, viewport } ->
                 case viewport of

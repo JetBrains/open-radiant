@@ -21,6 +21,7 @@ module Model exposing
     , PortLayerDef
     , PortBlend
     , Msg(..)
+    , Errors(..)
     , Constants
     , makeConstants
     , SizeRule(..), encodeSizeRule, decodeSizeRule
@@ -62,6 +63,9 @@ type alias TimeDelta = Float
 
 type alias CreateLayer = LayerKind -> LayerModel -> Layer
 type alias CreateGui = Model -> Gui.Model Msg
+
+type alias Error = String
+type Errors = Errors (List Error) -- TODO: List (List String) ??
 
 
 type SizeRule
@@ -114,6 +118,8 @@ type Msg
     | Randomize
     | ApplyRandomizer PortModel
     | SavePng
+    | AddError Error
+    | AddErrors Errors
     | NoOp
 
 
@@ -213,7 +219,7 @@ type alias LayerDef =
     }
 
 
-type alias Model =
+type alias Model = -- TODO: Result Error { ... }
     { background: String
     , mode : UiMode
     , gui : Maybe (Gui.Model Msg)
@@ -230,6 +236,7 @@ type alias Model =
     , timeShift : TimeDelta
     , product : Product
     , controlsVisible : Bool
+    , errors: Errors
     -- voronoi : Voronoi.Config
     -- fractal : Fractal.Config
     -- , lights (taken from product)
@@ -336,6 +343,7 @@ initEmpty mode =
     --, range = ( 0.8, 1.0 )
     , product = Product.JetBrains
     , controlsVisible = True
+    , errors = Errors []
     }
 
 

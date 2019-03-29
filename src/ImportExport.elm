@@ -6,6 +6,7 @@ module ImportExport exposing
     , decodePortModel
     , encodeFss
     , fromFssPortModel
+    , adaptModelDecodeErrors
     )
 
 import Array
@@ -613,3 +614,33 @@ fromFssPortModel pm =
     --, palette = product |> getPalette
     }
 
+
+adaptModelDecodeErrors : List ModelDecodeError -> M.Errors
+adaptModelDecodeErrors modelDecodeErrors =
+    let
+        layerDecodeErrorToString index layerDecodeError =
+            "(" ++ String.fromInt index ++ ") " ++
+                case layerDecodeError of
+                    KindDecodeFailed whyKindDecodeFailed ->
+                        "Failed to decode kind: " ++ whyKindDecodeFailed
+                    BlendDecodeFailed whyBlendDecodeFailed ->
+                        "Failed to decode blend: " ++ whyBlendDecodeFailed
+                    LayerModelDecodeFailed whyLayerModelDecodeFailed ->
+                        "Failed to decode layer model: "
+                            ++ D.errorToString whyLayerModelDecodeFailed
+        modelDecodeErrorToString index modelDecodeError =
+            "(" ++ String.fromInt index ++ ") " ++
+                case modelDecodeError of
+                    LayerDecodeErrors layerDecodeErrors ->
+                        "Layers failed to decode: " ++
+                            (layerDecodeErrors
+                                |> List.indexedMap layerDecodeErrorToString
+                                |> String.join "; ")
+                    SizeRuleDecodeError whySizeRuleDecodeFailed ->
+                        "Failed to decode sizeRule: " ++ whySizeRuleDecodeFailed
+                    ProductDecodeError whyProductDecodeFailed ->
+                        "Failed to decode product: " ++ whyProductDecodeFailed
+    in
+        modelDecodeErrors
+            |> List.indexedMap modelDecodeErrorToString
+            |> M.Errors
