@@ -2,7 +2,7 @@ module Model exposing
     ( init
     , initEmpty
     , Model
-    , UiMode(..), encodeMode, decodeMode, tryDecodingMode
+    , UiMode(..), encodeMode, decodeMode
     , Layer(..)
     , emptyLayer
     , LayerIndex
@@ -123,7 +123,7 @@ type UiMode
     | Release
     | Ads
     | TronUi UiMode
-    -- TODO: | Player
+    | Player
 
 
 type LayerKind
@@ -138,7 +138,6 @@ type LayerKind
     | Vignette
     | Metaballs
     | Fluid
-    | Empty
 
 
 -- type LayerBlend
@@ -173,7 +172,7 @@ type HtmlLayer_
     = CoverLayer
     | MetaballsLayer
     | CanvasLayer
-    | NoContent
+    | NoContent -- TODO: get rid of `NoContent`?
 
 
 type Layer
@@ -201,7 +200,6 @@ type SizePreset
     | BlogFooter Factor
     | LandingPage
     | Wallpaper Int Int
-    | Unknown -- FIXME: do we need it?
 
 
 -- `change` is needed since we store a sample layer model
@@ -457,7 +455,6 @@ getPresetSize preset =
             Baidu w h -> ( w, h )
             Ad w h -> ( w, h )
             Wallpaper w h -> ( w, h )
-            Unknown -> ( -1, -1 )
 
 
 getPresetLabel : SizePreset -> String
@@ -485,7 +482,6 @@ getPresetLabel preset =
             Baidu w h -> " baidu"
             Ad w h -> ""
             Wallpaper w h -> ""
-            Unknown -> "unk"
 
 
 encodePreset : SizePreset -> SizePresetCode
@@ -512,7 +508,6 @@ encodePreset preset =
             Baidu w h -> "BA:_:" ++ sizeStr w h
             Ad w h -> "AD:_:" ++ sizeStr w h
             Wallpaper w h -> "WP:_:" ++ sizeStr w h
-            Unknown -> "UK"
 
 
 decodePreset : SizePresetCode -> Maybe SizePreset
@@ -592,26 +587,16 @@ encodeMode mode =
         Release -> "release"
         Ads -> "ads"
         TronUi innerMode -> "tron-" ++ encodeMode innerMode
+        Player -> "player"
 
 
-decodeMode : String -> UiMode
+decodeMode : String -> Result String UiMode
 decodeMode mode =
     if String.startsWith "tron-" mode
-    then TronUi <| decodeMode <| String.dropLeft 5 mode
-    else
-        case mode of
-            "dev" -> Development
-            "prod" -> Production
-            "release" -> Release
-            "ads" -> Ads
-            "tron" -> TronUi Production
-            _ -> Production
-
-
-tryDecodingMode : String -> Result String UiMode
-tryDecodingMode mode =
-    if String.startsWith "tron-" mode
-    then Ok <| TronUi <| decodeMode <| String.dropLeft 5 mode
+    then
+        String.dropLeft 5 mode
+            |> decodeMode
+            |> Result.map TronUi
     else
         case mode of
             "dev" -> Ok Development
@@ -619,6 +604,7 @@ tryDecodingMode mode =
             "release" -> Ok Release
             "ads" -> Ok Ads
             "tron" -> Ok <| TronUi Production
+            "player" -> Ok Player
             _ -> Err mode
 
 
@@ -631,7 +617,7 @@ encodeSizeRule rule =
         Dimensionless -> "dimensionless"
 
 
-decodeSizeRule : String -> SizeRule
+decodeSizeRule : String -> Result String SizeRule
 decodeSizeRule str =
     let
         decodeSize f w_and_h defaultWidth defaultHeight =
@@ -643,12 +629,12 @@ decodeSizeRule str =
                 _ -> f defaultWidth defaultHeight
     in case String.split "|" str of
         "custom"::w_and_h::_ ->
-            decodeSize Custom w_and_h -1 -1
+            Ok <| decodeSize Custom w_and_h -1 -1
         "preset"::presetStr::_ ->
             decodePreset presetStr
-                |> Maybe.withDefault Unknown
-                |> FromPreset
+                |> Result.fromMaybe (str ++ "|" ++ presetStr)
+                |> Result.map FromPreset
         "viewport"::w_and_h::_ ->
-            decodeSize (\w h -> UseViewport (ViewportSize w h)) w_and_h -1 -1
-        "dimensionless"::_ -> Dimensionless
-        _ -> Dimensionless
+            Ok <| decodeSize (\w h -> UseViewport (ViewportSize w h)) w_and_h -1 -1
+        "dimensionless"::_ -> Ok Dimensionless
+        _ -> Err str

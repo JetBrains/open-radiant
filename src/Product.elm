@@ -43,7 +43,6 @@ type Product
     | Hub
     | Kotlin
     | MPS
-    | Unknown
 
 
 -- These were the default ones
@@ -80,7 +79,6 @@ getPalette product =
         Hub -> [ "#00b8f1", "#9758fb", "#ffee45" ]
         Kotlin -> [ "#22b1ef", "#9062f7", "#fd8224" ]
         MPS -> [ "#0b8fff", "#21d789", "#ffdc52" ]
-        Unknown -> [ "#9151e1",  "#ec4476", "#fde74a" ]
 
 
 
@@ -110,36 +108,35 @@ getName product =
         Hub -> "Hub"
         Kotlin -> "Kotlin"
         MPS -> "MPS"
-        Unknown -> "Unknown"
 
 
-decode : String -> Product
+decode : String -> Result String Product
 decode id =
     case id of
-        "jetbrains" -> JetBrains
-        "intellij-idea" -> IntelliJ
-        "phpstorm" -> PhpStorm
-        "pycharm" -> PyCharm
-        "rubymine" -> RubyMine
-        "webstorm" -> WebStorm
-        "clion" -> CLion
-        "datagrip" -> DataGrip
-        "appcode" -> AppCode
-        "goland" -> GoLand
-        "resharper" -> ReSharper
-        "resharper-cpp" -> ReSharperCpp
-        "dotcover" -> DotCover
-        "dotmemory" -> DotMemory
-        "dotpeek" -> DotPeek
-        "dottrace" -> DotTrace
-        "rider" -> Rider
-        "teamcity" -> TeamCity
-        "youtrack" -> YouTrack
-        "upsource" -> UpSource
-        "hub" -> Hub
-        "kotlin" -> Kotlin
-        "mps" -> MPS
-        _ -> Unknown
+        "jetbrains" -> Ok JetBrains
+        "intellij-idea" -> Ok IntelliJ
+        "phpstorm" -> Ok PhpStorm
+        "pycharm" -> Ok PyCharm
+        "rubymine" -> Ok RubyMine
+        "webstorm" -> Ok WebStorm
+        "clion" -> Ok CLion
+        "datagrip" -> Ok DataGrip
+        "appcode" -> Ok AppCode
+        "goland" -> Ok GoLand
+        "resharper" -> Ok ReSharper
+        "resharper-cpp" -> Ok ReSharperCpp
+        "dotcover" -> Ok DotCover
+        "dotmemory" -> Ok DotMemory
+        "dotpeek" -> Ok DotPeek
+        "dottrace" -> Ok DotTrace
+        "rider" -> Ok Rider
+        "teamcity" -> Ok TeamCity
+        "youtrack" -> Ok YouTrack
+        "upsource" -> Ok UpSource
+        "hub" -> Ok Hub
+        "kotlin" -> Ok Kotlin
+        "mps" -> Ok MPS
+        _ -> Err id
 
 
 encode : Product -> String
@@ -168,23 +165,18 @@ encode product =
         Hub -> "hub"
         Kotlin -> "kotlin"
         MPS -> "mps"
-        Unknown -> "unknown"
 
 
-getLogoPath : Product -> Maybe String
+getLogoPath : Product -> String
 getLogoPath product =
-    (case product of
-        Unknown -> Nothing
-        knownProduct -> Just (encode knownProduct))
-            |> Maybe.map (\fileName -> fileName ++ ".svg")
+    let fileName = encode product
+    in fileName ++ ".svg"
 
 
-getTextLinePath : Product -> Maybe String
+getTextLinePath : Product -> String
 getTextLinePath product =
-    (case product of
-        Unknown -> Nothing
-        knownProduct -> Just (encode knownProduct))
-            |> Maybe.map (\fileName -> fileName ++ "-text.svg")
+    let fileName = encode product
+    in fileName ++ "-text.svg"
 
 
 getCoverTextSize : Product -> ( Int, Int )
