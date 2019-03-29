@@ -197,15 +197,16 @@ update msg model =
             )
 
         Import encodedModel ->
-            let
-                decodedModel =
-                    encodedModel
-                        |> IE.decodeModel model.mode createLayer Gui.gui
-                        |> Maybe.withDefault model
-            in
-                ( decodedModel
-                , rebuildAllFssLayersWith decodedModel
-                )
+            case (encodedModel
+                    |> IE.decodeModel model.mode createLayer Gui.gui) of
+                Ok decodedModel ->
+                    ( decodedModel
+                    , rebuildAllFssLayersWith decodedModel
+                    )
+                Err importError ->
+                    ( model |> addError importError
+                    , Cmd.none
+                    )
 
         Export ->
             ( model
@@ -537,8 +538,25 @@ update msg model =
             )
 
         ApplyRandomizer portModel ->
-            let decodedPortModel = IE.decodePortModel createLayer portModel
-            in ( decodedPortModel, rebuildAllFssLayersWith decodedPortModel )
+            case IE.decodePortModel createLayer portModel of
+                Ok decodedPortModel ->
+                    ( decodedPortModel
+                    , rebuildAllFssLayersWith decodedPortModel
+                    )
+                Err decodingErrors ->
+                    ( model |> addErrors (IE.adaptModelDecodeErrors decodingErrors)
+                    , Cmd.none
+                    )
+
+        AddError error ->
+            ( model |> addError error
+            , Cmd.none
+            )
+
+        AddErrors errors ->
+            ( model |> addErrors errors
+            , Cmd.none
+            )
 
         NoOp -> ( model, Cmd.none )
 
@@ -851,7 +869,11 @@ subscriptions model =
             <| Browser.onMouseUp
             <| decodeMousePosition
         , rotate Rotate
-        , changeProduct (\productStr -> Product.decode productStr |> ChangeProduct)
+        , changeProduct
+            (\productStr ->
+                case Product.decode productStr of
+                    Ok product -> ChangeProduct product
+                    Err error -> AddError <| "Failed to decode product: " ++ error)
         , changeFssRenderMode (\{value, layer} ->
             FSS.decodeRenderMode value |> ChangeFssRenderMode layer)
         , changeFacesX (\{value, layer} ->
@@ -872,7 +894,12 @@ subscriptions model =
         , changeOpacity (\{value, layer} -> ChangeOpacity layer value)
         , changeVignette (\{value, layer} -> ChangeVignette layer value)
         , changeIris (\{value, layer} -> ChangeIris layer value)
-        , changeMode (\modeStr -> ChangeMode <| decodeMode modeStr)
+        , changeMode
+            (\modeStr ->
+                case decodeMode modeStr of
+                    Ok mode -> ChangeMode mode
+                    Err error -> AddError <| "Failed to decode mode: " ++ error
+            )
         , resize
             (\{ presetCode, viewport } ->
                 case viewport of
@@ -1098,25 +1125,32 @@ view model =
         renderQueue = model |> RQ.groupLayers layerToEntities layerToHtml
     in div [ ]
         [ canvas [ H.id "js-save-buffer" ] [ ]
+        , if hasErrors model
+            then
+                div [ H.id "error-pane", H.class "has-errors" ]
+                    ( case model.errors of
+                        Errors errorsList ->
+                            errorsList |> List.map (\err -> span [] [ text err ])
+                    )
+            else div [ H.id "error-pane" ] []
         , renderQueue |> RQ.apply wrapHtml wrapEntities
         , if model.controlsVisible
             then ( div
                 [ H.class "overlay-panel import-export-panel hide-on-space" ]
-                [
-                  div [  H.class "timeline_holder" ] [
-                  span [ H.class "label past"] [ text "past" ]
-                , input
-                    [ type_ "range"
-                    , class "timeline"
-                    , H.min "0"
-                    , H.max "100"
-                    , extractTimeShift model.timeShift |> H.value
-                    , Events.onInput (\v -> adaptTimeShift v |> TimeTravel)
-                    , Events.onMouseUp BackToNow
+                [ div [ H.class "timeline_holder" ]
+                    [ span [ H.class "label past"] [ text "past" ]
+                    , input
+                        [ type_ "range"
+                        , class "timeline"
+                        , H.min "0"
+                        , H.max "100"
+                        , extractTimeShift model.timeShift |> H.value
+                        , Events.onInput (\v -> adaptTimeShift v |> TimeTravel)
+                        , Events.onMouseUp BackToNow
+                        ]
+                        []
+                    , span [ H.class "label future"] [text "future"]
                     ]
-                    []
-                , span [ H.class "label future"] [text "future"]
-                  ]
                 -- , input [ type_ "button", id "import-button", value "Import" ] [ text "Import" ]
                 -- , input [ type_ "button", onClick Export, value "Export" ] [ text "Export" ]
                 , input

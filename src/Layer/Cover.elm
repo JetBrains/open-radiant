@@ -59,10 +59,7 @@ view mode product ( w, h ) ( x, y ) blend =
 productName : Product -> ( Float, Float ) -> Blend.Blend -> Float -> Html a
 productName product pos blend scale =
     let
-        textPath =
-            case Product.getTextLinePath product of
-                Just fileName -> "./assets/" ++ fileName
-                Nothing -> ""
+        textPath = "./assets/" ++ Product.getTextLinePath product
         textSize = Product.getCoverTextSize product
     in
         image
@@ -78,10 +75,7 @@ productName product pos blend scale =
 logo : ( Float, Float ) -> Blend.Blend -> Float -> Html a
 logo ( logoX, logoY ) blend scale =
     let
-        logoPath =
-            case Product.getLogoPath Product.JetBrains of
-                Just fileName -> "./assets/" ++ fileName
-                Nothing -> ""
+        logoPath = "./assets/" ++ Product.getLogoPath Product.JetBrains
         ( logoWidth, logoHeight ) = ( 90, 90 )
     in image
             logoPath

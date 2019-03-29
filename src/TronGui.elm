@@ -86,7 +86,9 @@ gui from =
                 "rs" -> ChangeProduct Product.ReSharper
                 "rs cpp" -> ChangeProduct Product.ReSharperCpp
                 "idea" -> ChangeProduct Product.IntelliJ
-                _ -> ChangeProduct <| Product.decode label
+                _ -> Product.decode label
+                        |> Result.withDefault Product.JetBrains
+                        |> ChangeProduct
         chooseSize _ label =
             case label of
                 "window" -> RequestFitToWindow

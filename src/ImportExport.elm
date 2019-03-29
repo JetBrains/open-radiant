@@ -6,6 +6,7 @@ module ImportExport exposing
     , decodePortModel
     , encodeFss
     , fromFssPortModel
+    , adaptModelDecodeErrors
     )
 
 import Array
@@ -26,6 +27,19 @@ import Product exposing (..)
 
 import Model as M
 import TronGui as GUI
+
+
+type ModelDecodeError
+    = LayerDecodeErrors (List LayerDecodeError)
+    | SizeRuleDecodeError String
+    -- | ModeDecodeError String
+    | ProductDecodeError String
+
+
+type LayerDecodeError
+    = KindDecodeFailed String
+    | BlendDecodeFailed String
+    | LayerModelDecodeFailed D.Error
 
 
 encodeIntPair : ( Int, Int ) -> E.Value
@@ -101,7 +115,6 @@ encodeKind_ kind =
         M.Vignette -> "vignette"
         M.Metaballs -> "metaballs"
         M.Fluid -> "fluid"
-        M.Empty -> "empty"
 
 
 encodeKind : M.LayerKind -> E.Value
@@ -208,34 +221,64 @@ encodePortModel model =
     }
 
 
-decodePortModel : M.CreateLayer -> M.PortModel -> M.Model
+decodePortModel : M.CreateLayer -> M.PortModel -> Result (List ModelDecodeError) M.Model
 decodePortModel createLayer portModel =
     let
-        mode = M.decodeMode portModel.mode
-        initialModel = M.initEmpty mode
-        decodedModel =
-            { initialModel
-            | background = portModel.background
-            , mode = mode
-            , now = portModel.now
-            , theta = portModel.theta
-            , omega = portModel.omega
-            , layers = List.map (decodePortLayer createLayer) portModel.layers
-            , size =
-                case portModel.sizeRule of
-                    Just sizeRuleStr -> M.decodeSizeRule sizeRuleStr
-                    Nothing -> case portModel.size of
-                        ( w, h ) -> M.Custom w h
-            , origin = portModel.origin
-            , mouse = portModel.mouse
-            , product = portModel.product |> Product.decode
-            }
+        couldBeDecodedLayers =
+            List.map (decodePortLayer createLayer) portModel.layers
+        extractLayerDecodeErrors res =
+            case res of
+                Ok layer -> Nothing
+                Err errors -> Just <| LayerDecodeErrors errors
+        layerDecodeErrors =
+            couldBeDecodedLayers
+                |> List.filterMap extractLayerDecodeErrors
+        tryToDecodeSize maybeSizeRule =
+            case maybeSizeRule of
+                Just sizeRuleStr ->
+                    M.decodeSizeRule sizeRuleStr
+                        |> Result.mapError (List.singleton << SizeRuleDecodeError)
+                Nothing -> case portModel.size of
+                    ( w, h ) -> Ok <| M.Custom w h
+        applyDecoded decodedLayers decodedSize decodedProduct =
+            let
+                modeResult = M.decodeMode portModel.mode
+                mode =
+                    modeResult
+                        |> Result.withDefault M.Production
+                initialModel = M.initEmpty mode
+                decodedModel =
+                    { initialModel
+                    | background = portModel.background
+                    , mode = mode
+                    , now = portModel.now
+                    , theta = portModel.theta
+                    , omega = portModel.omega
+                    , layers = decodedLayers
+                    , size = decodedSize
+                    , origin = portModel.origin
+                    , mouse = portModel.mouse
+                    , product = decodedProduct
+                    }
+            in
+                { decodedModel
+                | gui = case mode of
+                    M.TronUi _ -> Just <| GUI.gui decodedModel
+                    _ -> Nothing
+                }
     in
-        { decodedModel
-        | gui = case mode of
-            M.TronUi _ -> GUI.gui decodedModel |> Just
-            _ -> Nothing
-        }
+        Result.map3 -- TODO: join in a list of all failures
+            applyDecoded
+            (if List.isEmpty layerDecodeErrors
+                then couldBeDecodedLayers
+                    |> List.filterMap Result.toMaybe
+                    |> Ok
+                else Err <| layerDecodeErrors)
+            (tryToDecodeSize portModel.sizeRule)
+            (portModel.product
+                |> Product.decode
+                |> Result.mapError (List.singleton << ProductDecodeError))
+
 
 
 encodePortLayer : M.LayerDef -> M.PortLayerDef
@@ -259,51 +302,68 @@ encodePortLayer layerDef =
     }
 
 
-decodePortLayer : M.CreateLayer -> M.PortLayerDef -> M.LayerDef
+decodePortLayer : M.CreateLayer -> M.PortLayerDef -> Result (List LayerDecodeError) M.LayerDef
 decodePortLayer createLayer portLayerDef =
-    let
-        kind = decodeKind portLayerDef.kind
-        layerModel = portLayerDef.model
-                |> D.decodeString (layerModelDecoder kind)
-                -- |> Debug.log "Layer Model Decode Result: "
-                |> Result.toMaybe
-                |> Maybe.withDefault M.NoModel
-        layerNoBlend = createLayer kind layerModel
-        layer = case layerNoBlend of
-            M.WebGLLayer webglLayer _ ->
-                portLayerDef.blend
-                    |> Tuple.first
-                    |> Maybe.withDefault WGLBlend.default
-                    |> M.WebGLLayer webglLayer
-            M.HtmlLayer htmlLayer _ ->
-                portLayerDef.blend
-                    |> Tuple.second
-                    |> Maybe.map HtmlBlend.decode
-                    |> Maybe.withDefault HtmlBlend.default
-                    |> M.HtmlLayer htmlLayer
-    in
-        { kind = kind
-        , on = portLayerDef.isOn
-        , layer = layer
-        , model = layerModel
-        , name = portLayerDef.name
-        }
+    decodeKind portLayerDef.kind
+        |> Result.mapError KindDecodeFailed
+        |> Result.andThen
+            (\kind ->
+                portLayerDef.model
+                    |> D.decodeString (layerModelDecoder kind)
+                    |> Result.map (\layerModel -> ( kind, layerModel ))
+                    |> Result.mapError LayerModelDecodeFailed
+            )
+        |> Result.map
+            (\( kind, layerModel ) ->
+                let
+                    layerNoBlend = createLayer kind layerModel
+                in
+                    { layer =
+                        case layerNoBlend of
+                            M.WebGLLayer webglLayer _ ->
+                                portLayerDef.blend
+                                    |> Tuple.first
+                                    |> Maybe.withDefault WGLBlend.default
+                                    -- TODO: produce BlendDecodeError?
+                                    |> M.WebGLLayer webglLayer
+                            M.HtmlLayer htmlLayer _ ->
+                                portLayerDef.blend
+                                    |> Tuple.second
+                                    |> Maybe.map HtmlBlend.decode
+                                    |> Maybe.withDefault HtmlBlend.default
+                                    -- TODO: produce BlendDecodeError?
+                                    |> M.HtmlLayer htmlLayer
+                    , layerModel = layerModel
+                    , kind = kind
+                    }
+            )
+        |> Result.mapError List.singleton
+        |> Result.map
+            (\{ layer, layerModel, kind } ->
+                -- TODO: try to avoid using records in this mapping
+                { kind = kind
+                , on = portLayerDef.isOn
+                , layer = layer
+                , model = layerModel
+                , name = portLayerDef.name
+                }
+            )
 
 
-decodeKind : String -> M.LayerKind
+decodeKind : String -> Result String M.LayerKind
 decodeKind layerTypeStr =
     case layerTypeStr of
-        "fss" -> M.Fss
-        "fss-mirror" -> M.MirroredFss
-        "lorenz" -> M.Lorenz
-        "fractal" -> M.Fractal
-        "template" -> M.Template
-        "voronoi" -> M.Voronoi
-        "cover" -> M.Cover
-        "vignette" -> M.Vignette
-        "metaballs" -> M.Metaballs
-        "fluid" -> M.Fluid
-        _ -> M.Empty
+        "fss" -> Ok M.Fss
+        "fss-mirror" -> Ok M.MirroredFss
+        "lorenz" -> Ok M.Lorenz
+        "fractal" -> Ok M.Fractal
+        "template" -> Ok M.Template
+        "voronoi" -> Ok M.Voronoi
+        "cover" -> Ok M.Cover
+        "vignette" -> Ok M.Vignette
+        "metaballs" -> Ok M.Metaballs
+        "fluid" -> Ok M.Fluid
+        _ -> Err layerTypeStr
 
 
 intPairDecoder : D.Decoder (Int, Int)
@@ -332,33 +392,55 @@ intPairDecoder =
 --             )
 
 
+resultToDecoder : Result String a -> D.Decoder a
+resultToDecoder result =
+    case result of
+        Ok res -> D.succeed res
+        Err err -> D.fail err
+
+
+resultToDecoder_ : (x -> String) -> Result x a -> D.Decoder a
+resultToDecoder_ errToStr result =
+    case result of
+        Ok res -> D.succeed res
+        Err err -> D.fail <| errToStr err
+
+
+
 layerDefDecoder : M.CreateLayer -> D.Decoder M.LayerDef
 layerDefDecoder createLayer =
     let
         createLayerDef kindStr layerModelStr name isOn blendStr =
-            let
-                kind = decodeKind kindStr
-                layerModel = layerModelStr
-                        |> D.decodeString (layerModelDecoder kind)
-                        -- |> Debug.log "Layer Model Decode Result: "
-                        |> Result.toMaybe
-                        |> Maybe.withDefault M.NoModel
-                layerNoBlend = createLayer kind layerModel
-                layer = case layerNoBlend of
-                    M.WebGLLayer webglLayer _ ->
-                        WGLBlend.decodeOne blendStr
-                            |> Maybe.withDefault WGLBlend.default
-                            |> M.WebGLLayer webglLayer
-                    M.HtmlLayer htmlLayer _ ->
-                        HtmlBlend.decode blendStr |>
-                            M.HtmlLayer htmlLayer
-            in
-                { kind = kind
-                , on = isOn
-                , layer = layer
-                , model = layerModel
-                , name = name
-                }
+            decodeKind kindStr
+                |> resultToDecoder
+                |> D.andThen
+                    (\kind ->
+                        layerModelStr
+                            |> D.decodeString (layerModelDecoder kind)
+                            |> resultToDecoder_ D.errorToString
+                            |> D.map (\layerModel -> ( kind, layerModel ))
+                    )
+                |> D.map
+                    (\( kind, layerModel ) ->
+                        let
+                            layerNoBlend = createLayer kind layerModel
+                            layer =
+                                case layerNoBlend of
+                                    M.WebGLLayer webglLayer _ ->
+                                        WGLBlend.decodeOne blendStr
+                                            |> Maybe.withDefault WGLBlend.default
+                                            |> M.WebGLLayer webglLayer
+                                    M.HtmlLayer htmlLayer _ ->
+                                        HtmlBlend.decode blendStr |>
+                                            M.HtmlLayer htmlLayer
+                        in
+                            { kind = kind
+                            , on = isOn
+                            , layer = layer
+                            , model = layerModel
+                            , name = name
+                            }
+                    )
     in
         D.map5 createLayerDef
             (D.field "kind" D.string)
@@ -366,25 +448,7 @@ layerDefDecoder createLayer =
             (D.field "name" D.string)
             (D.field "isOn" D.bool)
             (D.field "blend" D.string)
-
-
--- layerDecoder : M.LayerKind -> D.Decoder M.Layer
--- layerDecoder kind =
---     case kind of
---         M.Fss ->
---             let
---                 createLayer renderType model isOn =
---                      -- TODO
---                     M.HtmlLayer M.NoContent HtmlBlend.default
---             in
---                 D.decode createLayer
---                     |> D.required "renderMode" D.string
---                     |> D.required "model" D.string
---                     |> D.required "isOn" D.bool
---          -- TODO
---         _ ->
---             M.HtmlLayer M.NoContent HtmlBlend.default
---                 |> D.decode
+            |> D.andThen identity
 
 
 layerModelDecoder : M.LayerKind -> D.Decoder M.LayerModel
@@ -465,25 +529,38 @@ modelDecoder mode createLayer createGui =
             productStr =
             let
                 initialModel = M.init mode [] createLayer createGui
-                product = Product.decode productStr
+                sizeResult =
+                    case maybeSizeRule of
+                        Just sizeRuleStr -> M.decodeSizeRule sizeRuleStr
+                        Nothing -> case maybeSize of
+                            Just (w, h) -> Ok <| M.Custom w h
+                            Nothing -> Err "Unknown Size"
             in
-                { initialModel
-                | background = background
-                , theta = theta
-                , omega = omega
-                , layers = layers
-                , size = case maybeSizeRule of
-                    Just sizeRuleStr -> M.decodeSizeRule sizeRuleStr
-                    Nothing -> case maybeSize of
-                        Just (w, h) -> M.Custom w h
-                        Nothing -> M.Dimensionless
-                , origin = origin
-                , mouse = mouse
-                , now = now
-                , product = product
-                --, palette = Product.getPalette product
-                }
+                sizeResult
+                    |> resultToDecoder
+                    |> D.map2
+                        (\product size ->
+                            { initialModel
+                            | background = background
+                            , theta = theta
+                            , omega = omega
+                            , layers = layers
+                            , size = size
+                            , origin = origin
+                            , mouse = mouse
+                            , now = now
+                            , product = product
+                            --, palette = Product.getPalette product
+                            }
+                        )
+                        (Product.decode productStr |> resultToDecoder)
+
     in
+        -- case maybeSizeRule of
+        --     Just sizeRuleStr -> M.decodeSizeRule sizeRuleStr
+        --     Nothing -> case maybeSize of
+        --         Just (w, h) -> M.Custom w h
+        --         Nothing -> M.Dimensionless
         D.succeed createModel
             |> D.andMap (D.field "background" D.string)
             |> D.andMap (D.field "theta" D.float)
@@ -495,13 +572,13 @@ modelDecoder mode createLayer createGui =
             |> D.andMap (D.field "mouse" intPairDecoder)
             |> D.andMap (D.field "now" D.float)
             |> D.andMap (D.field "product" D.string)
+            |> D.andThen identity
 
 
-decodeModel : M.UiMode -> M.CreateLayer -> M.CreateGui -> String -> Maybe M.Model
+decodeModel : M.UiMode -> M.CreateLayer -> M.CreateGui -> String -> Result String M.Model
 decodeModel mode createLayer createGui modelStr =
     D.decodeString (modelDecoder mode createLayer createGui) modelStr
-        -- |> Debug.log "Decode Result: "
-        |> Result.toMaybe
+        |> Result.mapError D.errorToString
 
 
 encodeFss : FSS.Model -> Product -> FSS.PortModel
@@ -537,3 +614,33 @@ fromFssPortModel pm =
     --, palette = product |> getPalette
     }
 
+
+adaptModelDecodeErrors : List ModelDecodeError -> M.Errors
+adaptModelDecodeErrors modelDecodeErrors =
+    let
+        layerDecodeErrorToString index layerDecodeError =
+            "(" ++ String.fromInt index ++ ") " ++
+                case layerDecodeError of
+                    KindDecodeFailed whyKindDecodeFailed ->
+                        "Failed to decode kind: " ++ whyKindDecodeFailed
+                    BlendDecodeFailed whyBlendDecodeFailed ->
+                        "Failed to decode blend: " ++ whyBlendDecodeFailed
+                    LayerModelDecodeFailed whyLayerModelDecodeFailed ->
+                        "Failed to decode layer model: "
+                            ++ D.errorToString whyLayerModelDecodeFailed
+        modelDecodeErrorToString index modelDecodeError =
+            "(" ++ String.fromInt index ++ ") " ++
+                case modelDecodeError of
+                    LayerDecodeErrors layerDecodeErrors ->
+                        "Layers failed to decode: " ++
+                            (layerDecodeErrors
+                                |> List.indexedMap layerDecodeErrorToString
+                                |> String.join "; ")
+                    SizeRuleDecodeError whySizeRuleDecodeFailed ->
+                        "Failed to decode sizeRule: " ++ whySizeRuleDecodeFailed
+                    ProductDecodeError whyProductDecodeFailed ->
+                        "Failed to decode product: " ++ whyProductDecodeFailed
+    in
+        modelDecodeErrors
+            |> List.indexedMap modelDecodeErrorToString
+            |> M.Errors

@@ -29,31 +29,42 @@ type FragmentData
 
 
 applyFragment : Fragment -> Model -> Model
-applyFragment fragment model =
-    case decodeFragment fragment of
-        ModeAndSizeRule mode rule ->
-            { model
-            | size = rule
-            , mode = mode
-            }
-        SizeRule rule ->
-            { model
-            | size = rule
-            }
-        Mode mode ->
-            { model
-            | mode = mode
-            }
-        NoData -> model
+applyFragment fragmentStr model =
+    decodeFragment fragmentStr
+        |> Result.map
+            (\fragment ->
+                case fragment of
+                    ModeAndSizeRule mode rule ->
+                        { model
+                        | size = rule
+                        , mode = mode
+                        }
+                    SizeRule rule ->
+                        { model
+                        | size = rule
+                        }
+                    Mode mode ->
+                        { model
+                        | mode = mode
+                        }
+                    NoData -> model
+            )
+        |> Result.withDefault model
 
 
 fragmentToMessage : Fragment -> Msg
-fragmentToMessage fragment =
-    Debug.log "fragmentToMessage" <| case decodeFragment fragment of
-        ModeAndSizeRule mode rule -> ChangeModeAndResize mode rule
-        SizeRule rule -> Resize rule
-        Mode mode -> ChangeMode mode
-        NoData -> NoOp
+fragmentToMessage fragmentStr =
+    case decodeFragment fragmentStr
+        |> Result.map
+            (\fragment ->
+                case fragment of
+                    ModeAndSizeRule mode rule -> ChangeModeAndResize mode rule
+                    SizeRule rule -> Resize rule
+                    Mode mode -> ChangeMode mode
+                    NoData -> NoOp
+            ) of
+        Ok fragmentMsg -> fragmentMsg
+        Err errMsg -> AddErrors <| Errors <| List.singleton errMsg
 
 
 applyUrl : Url -> Model -> Model
@@ -80,17 +91,22 @@ onUrlRequest : Browser.UrlRequest -> Msg
 onUrlRequest req = NoOp
 
 
-decodeFragment : String -> FragmentData
+decodeFragment : String -> Result String FragmentData
 decodeFragment str =
     case String.split "/" str of
-        modeStr::ruleStr::_ -> ModeAndSizeRule (decodeMode modeStr) (decodeSizeRule ruleStr)
+        modeStr::ruleStr::_ ->
+            Result.map2
+                ModeAndSizeRule
+                (decodeMode modeStr)
+                (decodeSizeRule ruleStr)
         modeOrRule::_ ->
-            case tryDecodingMode modeOrRule of
+            case decodeMode modeOrRule of
                 Ok mode ->
-                    Mode mode
+                    Ok <| Mode mode
                 Err sizeRuleStr ->
-                    SizeRule <| decodeSizeRule sizeRuleStr
-        _ -> NoData
+                    decodeSizeRule sizeRuleStr
+                        |> Result.map SizeRule
+        _ -> Ok NoData
 
 
 encodeFragment : FragmentData -> String
