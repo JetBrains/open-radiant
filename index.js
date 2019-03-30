@@ -15,7 +15,6 @@ const FileSaver = require('jszip/vendor/FileSaver');
 
 // initialize Elm Application
 const App = require('./src/Main.elm');
-console.log(App);
 //const mountNode = document.getElementById('elm-target');
 const mountNode = document.getElementById('js-animation');
 // The third value on embed are the initial values for incomming ports into Elm
@@ -114,6 +113,8 @@ const exportZip_ = (app, exportedState) => {
             zip.file('player.bundle.js', playerBundle, { binary: true });
             zip.file('scene.js', 'window.jsGenScene = ' + json + ';');
             zip.file('index.html', playerHtml, { binary: true });
+            //zip.file('index.css', playerHtml, { binary: true });
+            // FIXME: add index.css
             const assets = zip.folder('assets');
             const assetPromises =
                 [ source.product + '-text', 'jetbrains' ]

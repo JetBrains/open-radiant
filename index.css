@@ -109,7 +109,7 @@ svg.text-layer {
     z-index: 20;
 }
 
-.timeline_holder {
+.timeline-holder {
     margin-bottom: 20px;
 }
 
@@ -218,6 +218,29 @@ svg.text-layer {
     left: 0;
     display: none;
     /* border: 1px solid red; */
+}
+
+#error-pane {
+    display: none;
+}
+
+#error-pane.has-errors {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    min-height: 1.4em;
+    z-index: 10000;
+    width: 100%;
+    padding: 5px;
+    color: firebrick;
+    background-color: #fefefe;
+    border-bottom: solid red 3px;
+}
+
+#error-pane.has-errors span {
+    display: block;
+    padding: 2px;
 }
 
 .dg.ac {

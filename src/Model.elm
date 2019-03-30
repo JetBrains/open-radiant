@@ -343,7 +343,7 @@ initEmpty mode =
     --, range = ( 0.8, 1.0 )
     , product = Product.JetBrains
     , controlsVisible = True
-    , errors = Errors []
+    , errors = Errors [ ]
     }
 
 
@@ -652,7 +652,7 @@ hasErrors : Model -> Bool
 hasErrors model =
     case model.errors of
         Errors errorsList ->
-            List.isEmpty errorsList
+            not <| List.isEmpty errorsList
 
 
 addError : String -> Model -> Model

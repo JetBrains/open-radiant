@@ -1055,7 +1055,7 @@ layerToEntities model viewport index layerDef =
                             maybeBorrowedSerialized
                             [ DepthTest.default, WGLBlend.produce blend, sampleAlphaToCoverage ]
                             maybeBorrowedMesh -- seems this mesh is already built with "Triangles", so there's no sense in reusing it
-                    ]
+                        ]
                 ( MirroredFssLayer serialized mesh, FssModel fssModel ) ->
                     let
                         -- TODO: store clip position in the layer
@@ -1122,8 +1122,12 @@ view model =
                 , Events.onClick TriggerPause
                 ]
         renderQueue = model |> RQ.groupLayers layerToEntities layerToHtml
+        isInPlayerMode =
+            case model.mode of
+                Player -> True
+                _ -> False
     in div [ ]
-        [ canvas [ H.id "js-save-buffer" ] [ ]
+        [ if not isInPlayerMode then canvas [ H.id "js-save-buffer" ] [ ] else div [] []
         , if hasErrors model
             then
                 div [ H.id "error-pane", H.class "has-errors" ]
@@ -1136,7 +1140,7 @@ view model =
         , if model.controlsVisible
             then ( div
                 [ H.class "overlay-panel import-export-panel hide-on-space" ]
-                [ div [ H.class "timeline_holder" ]
+                [ div [ H.class "timeline-holder" ]
                     [ span [ H.class "label past"] [ text "past" ]
                     , input
                         [ type_ "range"
