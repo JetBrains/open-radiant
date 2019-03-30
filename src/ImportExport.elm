@@ -39,6 +39,7 @@ type ModelDecodeError
 type LayerDecodeError
     = KindDecodeFailed String
     | BlendDecodeFailed String
+    | LayerCreationFailed String
     | LayerModelDecodeFailed D.Error
 
 
@@ -101,24 +102,15 @@ encodeAmplitude { amplitudeX, amplitudeY, amplitudeZ } =
 --         |> E.array
 
 
-encodeKind_ : M.LayerKind -> String
-encodeKind_ kind =
-    case kind of
-        M.Fss -> "fss"
-        M.MirroredFss -> "fss-mirror"
-        M.Lorenz -> "lorenz"
-        M.Fractal -> "fractal"
-        M.Template -> "template"
-        M.Canvas -> "canvas"
-        M.Voronoi -> "voronoi"
-        M.Cover -> "cover"
-        M.Vignette -> "vignette"
-        M.Metaballs -> "metaballs"
-        M.Fluid -> "fluid"
-
-
 encodeKind : M.LayerKind -> E.Value
-encodeKind = E.string << encodeKind_
+encodeKind = E.string << M.encodeKind
+
+
+webglOrHtml : M.LayerDef -> String
+webglOrHtml layerDef =
+     case layerDef.layer of
+        M.WebGLLayer _ _ -> "webgl"
+        M.HtmlLayer _ _ -> "html"
 
 
 encodeLayerDef : M.LayerDef -> E.Value
@@ -144,6 +136,7 @@ encodeLayerDef layerDef =
         , ( "isOn", layerDef.on |> E.bool )
         , ( "model", encodeLayerModel layerDef.model )
         , ( "name", layerDef.name |> E.string )
+        , ( "webglOrHtml", webglOrHtml layerDef |> E.string )
         -- , ( "mesh", E.string "" )
         ]
 
@@ -283,12 +276,9 @@ decodePortModel createLayer portModel =
 
 encodePortLayer : M.LayerDef -> M.PortLayerDef
 encodePortLayer layerDef =
-    { kind = encodeKind_ layerDef.kind
+    { kind = M.encodeKind layerDef.kind
     , isOn = layerDef.on
-    , webglOrHtml =
-        case layerDef.layer of
-            M.WebGLLayer _ _ -> "webgl"
-            M.HtmlLayer _ _ -> "html"
+    , webglOrHtml = webglOrHtml layerDef
     , blend =
         case layerDef.layer of
             M.WebGLLayer _ webglBlend ->
@@ -303,8 +293,8 @@ encodePortLayer layerDef =
 
 
 decodePortLayer : M.CreateLayer -> M.PortLayerDef -> Result (List LayerDecodeError) M.LayerDef
-decodePortLayer createLayer portLayerDef =
-    decodeKind portLayerDef.kind
+decodePortLayer createLayer portLayerDef  =
+    M.decodeKind portLayerDef.kind
         |> Result.mapError KindDecodeFailed
         |> Result.andThen
             (\kind ->
@@ -313,33 +303,36 @@ decodePortLayer createLayer portLayerDef =
                     |> Result.map (\layerModel -> ( kind, layerModel ))
                     |> Result.mapError LayerModelDecodeFailed
             )
-        |> Result.map
+        |> Result.andThen
             (\( kind, layerModel ) ->
-                let
-                    layerNoBlend = createLayer kind layerModel
-                in
-                    { layer =
-                        case layerNoBlend of
-                            M.WebGLLayer webglLayer _ ->
-                                portLayerDef.blend
-                                    |> Tuple.first
-                                    |> Maybe.withDefault WGLBlend.default
-                                    -- TODO: produce BlendDecodeError?
-                                    |> M.WebGLLayer webglLayer
-                            M.HtmlLayer htmlLayer _ ->
-                                portLayerDef.blend
-                                    |> Tuple.second
-                                    |> Maybe.map HtmlBlend.decode
-                                    |> Maybe.withDefault HtmlBlend.default
-                                    -- TODO: produce BlendDecodeError?
-                                    |> M.HtmlLayer htmlLayer
-                    , layerModel = layerModel
-                    , kind = kind
-                    }
+                createLayer kind layerModel
+                    |> Result.fromMaybe
+                        (LayerCreationFailed <| "kind: " ++ M.encodeKind kind)
+                    |> Result.map (\layer -> ( kind, layerModel, layer ))
+            )
+        |> Result.map
+            (\( kind, layerModel, layerWithoutBlend ) ->
+                ( case layerWithoutBlend of
+                    M.WebGLLayer webglLayer _ ->
+                        portLayerDef.blend
+                            |> Tuple.first
+                            |> Maybe.withDefault WGLBlend.default
+                            -- TODO: produce BlendDecodeError?
+                            |> M.WebGLLayer webglLayer
+                    M.HtmlLayer htmlLayer _ ->
+                        portLayerDef.blend
+                            |> Tuple.second
+                            |> Maybe.map HtmlBlend.decode
+                            |> Maybe.withDefault HtmlBlend.default
+                            -- TODO: produce BlendDecodeError?
+                            |> M.HtmlLayer htmlLayer
+                , layerModel
+                , kind
+                )
             )
         |> Result.mapError List.singleton
         |> Result.map
-            (\{ layer, layerModel, kind } ->
+            (\( layer, layerModel, kind ) ->
                 -- TODO: try to avoid using records in this mapping
                 { kind = kind
                 , on = portLayerDef.isOn
@@ -350,46 +343,11 @@ decodePortLayer createLayer portLayerDef =
             )
 
 
-decodeKind : String -> Result String M.LayerKind
-decodeKind layerTypeStr =
-    case layerTypeStr of
-        "fss" -> Ok M.Fss
-        "fss-mirror" -> Ok M.MirroredFss
-        "lorenz" -> Ok M.Lorenz
-        "fractal" -> Ok M.Fractal
-        "template" -> Ok M.Template
-        "voronoi" -> Ok M.Voronoi
-        "cover" -> Ok M.Cover
-        "vignette" -> Ok M.Vignette
-        "metaballs" -> Ok M.Metaballs
-        "fluid" -> Ok M.Fluid
-        _ -> Err layerTypeStr
-
-
 intPairDecoder : D.Decoder (Int, Int)
 intPairDecoder =
     D.map2 Tuple.pair
         (D.field "v1" D.int)
         (D.field "v2" D.int)
-
--- layerDefsDecoder =
---     let
---         createLayerDef kind blend isOn =
---             { kind = determineLayerType kind
---             , blend = WGLBlend.decodeOne blend
---                 |> Debug.log "Blend: "
---                 |> Maybe.withDefault WGLBlend.default
---             , isOn = isOn
---             --, config = FSS.init
---             -- , mesh = FSS.emptyMesh
---             }
---     in
---         D.list
---             ( D.decode createLayerDef
---                 |> D.required "kind" D.string
---                 |> D.required "blend" D.string
---                 |> D.required "isOn" D.bool
---             )
 
 
 resultToDecoder : Result String a -> D.Decoder a
@@ -406,12 +364,18 @@ resultToDecoder_ errToStr result =
         Err err -> D.fail <| errToStr err
 
 
+maybeToDecoder : String -> Maybe a -> D.Decoder a
+maybeToDecoder failureReason maybe =
+    case maybe of
+        Just v -> D.succeed v
+        Nothing -> D.fail failureReason
+
 
 layerDefDecoder : M.CreateLayer -> D.Decoder M.LayerDef
 layerDefDecoder createLayer =
     let
         createLayerDef kindStr layerModelStr name isOn blendStr =
-            decodeKind kindStr
+            M.decodeKind kindStr
                 |> resultToDecoder
                 |> D.andThen
                     (\kind ->
@@ -420,12 +384,18 @@ layerDefDecoder createLayer =
                             |> resultToDecoder_ D.errorToString
                             |> D.map (\layerModel -> ( kind, layerModel ))
                     )
-                |> D.map
+                |> D.andThen
                     (\( kind, layerModel ) ->
+                        createLayer kind layerModel
+                            |> maybeToDecoder
+                                ("Failed to create layer with kind: " ++ M.encodeKind kind)
+                            |> D.map (\layer -> ( kind, layerModel, layer ))
+                    )
+                |> D.map
+                    (\( kind, layerModel, layerWithoutBlend ) ->
                         let
-                            layerNoBlend = createLayer kind layerModel
                             layer =
-                                case layerNoBlend of
+                                case layerWithoutBlend of
                                     M.WebGLLayer webglLayer _ ->
                                         WGLBlend.decodeOne blendStr
                                             |> Maybe.withDefault WGLBlend.default
@@ -514,7 +484,7 @@ layerModelDecoder kind =
 
 
 modelDecoder : M.UiMode -> M.CreateLayer -> M.CreateGui -> D.Decoder M.Model
-modelDecoder mode createLayer createGui =
+modelDecoder currentMode createLayer createGui =
     let
         createModel
             background
@@ -528,7 +498,7 @@ modelDecoder mode createLayer createGui =
             now
             productStr =
             let
-                initialModel = M.init mode [] createLayer createGui
+                initialModel = M.init currentMode [] createLayer createGui
                 sizeResult =
                     case maybeSizeRule of
                         Just sizeRuleStr -> M.decodeSizeRule sizeRuleStr
@@ -576,8 +546,8 @@ modelDecoder mode createLayer createGui =
 
 
 decodeModel : M.UiMode -> M.CreateLayer -> M.CreateGui -> String -> Result String M.Model
-decodeModel mode createLayer createGui modelStr =
-    D.decodeString (modelDecoder mode createLayer createGui) modelStr
+decodeModel currentMode createLayer createGui modelStr =
+    D.decodeString (modelDecoder currentMode createLayer createGui) modelStr
         |> Result.mapError D.errorToString
 
 
@@ -625,6 +595,8 @@ adaptModelDecodeErrors modelDecodeErrors =
                         "Failed to decode kind: " ++ whyKindDecodeFailed
                     BlendDecodeFailed whyBlendDecodeFailed ->
                         "Failed to decode blend: " ++ whyBlendDecodeFailed
+                    LayerCreationFailed whyLayerCreationFailed ->
+                        "Failed to create layer: " ++ whyLayerCreationFailed
                     LayerModelDecodeFailed whyLayerModelDecodeFailed ->
                         "Failed to decode layer model: "
                             ++ D.errorToString whyLayerModelDecodeFailed

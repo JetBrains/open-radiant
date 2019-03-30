@@ -8,7 +8,7 @@ module Model exposing
     , LayerIndex
     , LayerDef
     , LayerModel(..)
-    , LayerKind(..)
+    , LayerKind(..), encodeKind, decodeKind
     , WebGLLayer_(..)
     , HtmlLayer_(..)
     , CreateLayer
@@ -61,7 +61,7 @@ type alias Pos = (Int, Int)
 type alias TimeNow = Float
 type alias TimeDelta = Float
 
-type alias CreateLayer = LayerKind -> LayerModel -> Layer
+type alias CreateLayer = LayerKind -> LayerModel -> Maybe Layer
 type alias CreateGui = Model -> Gui.Model Msg
 
 type alias Error = String
@@ -304,16 +304,8 @@ init uiMode initialLayers createLayer createGui =
     let
         emptyModel = initEmpty uiMode
         modelWithLayers =
-            { emptyModel
-            | layers = initialLayers |> List.map
-                (\(kind, name, layerModel) ->
-                    { kind = kind
-                    , layer = layerModel |> createLayer kind
-                    , name = name
-                    , model = layerModel
-                    , on = True
-                    })
-            }
+            emptyModel
+                |> replaceLayers initialLayers createLayer
     in
         { modelWithLayers
         | gui =
@@ -616,6 +608,39 @@ decodeMode mode =
             _ -> Err mode
 
 
+encodeKind : LayerKind -> String
+encodeKind kind =
+    case kind of
+        Fss -> "fss"
+        MirroredFss -> "fss-mirror"
+        Lorenz -> "lorenz"
+        Fractal -> "fractal"
+        Template -> "template"
+        Canvas -> "canvas"
+        Voronoi -> "voronoi"
+        Cover -> "cover"
+        Vignette -> "vignette"
+        Metaballs -> "metaballs"
+        Fluid -> "fluid"
+
+
+decodeKind : String -> Result String LayerKind
+decodeKind layerTypeStr =
+    case layerTypeStr of
+        "fss" -> Ok Fss
+        "fss-mirror" -> Ok MirroredFss
+        "lorenz" -> Ok Lorenz
+        "fractal" -> Ok Fractal
+        "template" -> Ok Template
+        "voronoi" -> Ok Voronoi
+        "cover" -> Ok Cover
+        "vignette" -> Ok Vignette
+        "metaballs" -> Ok Metaballs
+        "fluid" -> Ok Fluid
+        _ -> Err layerTypeStr
+
+
+
 encodeSizeRule : SizeRule -> String
 encodeSizeRule rule =
     case rule of
@@ -668,3 +693,65 @@ addErrors (Errors newErrors) model =
             Errors currentErrors ->
                 Errors <| currentErrors ++ newErrors
     }
+
+
+noticeResult : (a -> Model -> Model) -> (x -> String) -> Result x a -> Model -> Model
+noticeResult addValue errorToString result model =
+    case result of
+        Ok v -> model |> addValue v
+        Err error -> model |> addError (errorToString error)
+
+
+noticeResult_ : (a -> Model -> Model) -> (x -> String) -> Result (List x) a -> Model -> Model
+noticeResult_ addValue errorToString result model =
+    case result of
+        Ok v -> model |> addValue v
+        Err errors -> model |> addErrors (errors |> List.map errorToString |> Errors)
+
+
+tryToCreateLayers
+     : List ( LayerKind, String, LayerModel )
+    -> CreateLayer
+    -> Result (List ( Int, LayerKind, String )) (List LayerDef)
+tryToCreateLayers source createLayer =
+    source
+        |> List.indexedMap
+            (\index (kind, name, layerModel) ->
+                layerModel
+                    |> createLayer kind
+                    |> Maybe.map
+                        (\layer ->
+                            { kind = kind
+                            , layer = layer
+                            , name = name
+                            , model = layerModel
+                            , on = True
+                            }
+                        )
+                    |> Result.fromMaybe (index, kind, name)
+            )
+        |> List.foldl
+            (\layerResult mainResult ->
+                case ( mainResult, layerResult ) of
+                    ( Ok allDefs, Ok layerDef ) -> Ok <| layerDef :: allDefs
+                    ( Ok _, Err layerError ) -> Err <| List.singleton layerError
+                    ( Err allErrors, Ok _ ) -> Err allErrors
+                    ( Err allErrors, Err layerError ) -> Err <| layerError :: allErrors
+            )
+            (Ok [])
+
+
+replaceLayers
+     : List ( LayerKind, String, LayerModel )
+    -> CreateLayer
+    -> Model
+    -> Model
+replaceLayers source createLayer model =
+    model
+        |> (tryToCreateLayers source createLayer |>
+                noticeResult_
+                    (\layers model_ -> { model_ | layers = layers })
+                    (\(index, kind, name) ->
+                        "Failed to create layer: (" ++ String.fromInt index ++ ", "
+                            ++ encodeKind kind ++ ") "
+                            ++ name))

@@ -666,59 +666,68 @@ getBlendForPort layer =
     )
 
 
-createLayer : LayerKind -> LayerModel -> Layer
+createLayer : LayerKind -> LayerModel -> Maybe Layer
 createLayer kind layerModel =
     case ( kind, layerModel ) of
         ( Fss, FssModel fssModel )  ->
-            WebGLLayer
-            ( FSS.build fssModel Nothing |> FssLayer Nothing )
-            WGLBlend.default
+            Just <|
+                WebGLLayer
+                ( FSS.build fssModel Nothing |> FssLayer Nothing )
+                WGLBlend.default
         ( MirroredFss, FssModel fssModel ) ->
-            WebGLLayer
-            ( FSS.build fssModel Nothing |> MirroredFssLayer Nothing )
-            WGLBlend.default
-            -- (WGLBlend.build
-            --    (B.customAdd, B.oneMinusSrcColor, B.oneMinusSrcColor)
-            --    (B.customAdd, B.srcColor, B.zero)
-            -- )
+            Just <|
+                WebGLLayer
+                ( FSS.build fssModel Nothing |> MirroredFssLayer Nothing )
+                WGLBlend.default
+                -- (WGLBlend.build
+                --    (B.customAdd, B.oneMinusSrcColor, B.oneMinusSrcColor)
+                --    (B.customAdd, B.srcColor, B.zero)
+                -- )
         ( Lorenz, LorenzModel lorenzModel ) ->
-            WebGLLayer
-            (Lorenz.build lorenzModel |> LorenzLayer)
-            WGLBlend.default
+            Just <|
+                WebGLLayer
+                (Lorenz.build lorenzModel |> LorenzLayer)
+                WGLBlend.default
         ( Template, TemplateModel templateModel ) ->
-            WebGLLayer
-            ( Template.build templateModel |> TemplateLayer )
-            WGLBlend.default
+            Just <|
+                WebGLLayer
+                ( Template.build templateModel |> TemplateLayer )
+                WGLBlend.default
         ( Voronoi, VoronoiModel voronoiModel ) ->
-            WebGLLayer
-            ( Voronoi.build voronoiModel |> VoronoiLayer )
-            WGLBlend.default
+            Just <|
+                WebGLLayer
+                ( Voronoi.build voronoiModel |> VoronoiLayer )
+                WGLBlend.default
         ( Fractal, FractalModel fractalModel ) ->
-            WebGLLayer
-            ( Fractal.build fractalModel |> FractalLayer )
-            WGLBlend.default
+            Just <|
+                WebGLLayer
+                ( Fractal.build fractalModel |> FractalLayer )
+                WGLBlend.default
         ( Fluid, FluidModel fluidModel ) ->
-            WebGLLayer
-            ( Fluid.build fluidModel |> FluidLayer )
-            WGLBlend.default
+            Just <|
+                WebGLLayer
+                ( Fluid.build fluidModel |> FluidLayer )
+                WGLBlend.default
         ( Vignette, _ ) ->
-            WebGLLayer
-            VignetteLayer
-            (WGLBlend.build
-                (B.customAdd, B.srcAlpha, B.oneMinusSrcAlpha)
-                (B.customAdd, B.one, B.oneMinusSrcAlpha) )
-            -- WGLBlend.Blend Nothing (0, 1, 7) (0, 1, 7) |> VignetteLayer Vignette.init
-            -- VignetteLayer Vignette.init WGLBlend.default
+            Just <|
+                WebGLLayer
+                VignetteLayer
+                (WGLBlend.build
+                    (B.customAdd, B.srcAlpha, B.oneMinusSrcAlpha)
+                    (B.customAdd, B.one, B.oneMinusSrcAlpha) )
+                -- WGLBlend.Blend Nothing (0, 1, 7) (0, 1, 7) |> VignetteLayer Vignette.init
+                -- VignetteLayer Vignette.init WGLBlend.default
         ( Cover, _ ) ->
-            HtmlLayer
-            CoverLayer
-            HtmlBlend.default
+            Just <|
+                HtmlLayer
+                CoverLayer
+                HtmlBlend.default
         ( Metaballs, _ ) ->
-            HtmlLayer
-            MetaballsLayer
-            HtmlBlend.default
-        _ ->
-            Model.emptyLayer
+            Just <|
+                HtmlLayer
+                MetaballsLayer
+                HtmlBlend.default
+        _ -> Nothing
 
 
 -- extractFssBuildOptions : Model -> FssBuildOptions
