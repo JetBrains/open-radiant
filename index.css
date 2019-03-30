@@ -241,6 +241,9 @@ svg.text-layer {
 #error-pane.has-errors span {
     display: block;
     padding: 2px;
+    max-height: 4em;
+    overflow: hidden;
+    font-size: 0.6em;
 }
 
 .dg.ac {

@@ -29,7 +29,6 @@ const batchPause = 1000;
 let savingBatch = false;
 
 const exportScene = (scene) => {
-    //console.log(scene);
     return scene.meshes[0].geometry.vertices.map((vertex) => (
         { v0: vertex.v0,
           time: vertex.time,
@@ -47,7 +46,6 @@ const prepareModelForImport = (model) => {
             layerDef_.model = JSON.stringify(layerDef.model);
             return layerDef_;
         });
-    //console.log('sending for the import', toSend);
 
     return toSend;
 }
@@ -75,7 +73,6 @@ const export_ = (app, exportedState) => {
             ? exportScene(fssScenes[index]) || exportScene(buildFSS(model, layer.model))
             : null;
     })
-    // console.log(stateObj);
     return {
         source: stateObj,
         json: JSON.stringify(stateObj, null, 2)
@@ -86,35 +83,50 @@ const waitForContent = ({ path, name }) => {
     return new Promise((resolve, reject) => {
         JSZipUtils.getBinaryContent(path, (err, content) => {
             if (err) { reject(err); return; }
-            // console.log('packing ' + path);
             resolve({ path, name, content });
         });
     });
 };
 
 const exportZip_ = (app, exportedState) => {
-    // waitForContent
-    JSZipUtils.getBinaryContent(
-        './player.bundle.js', (err, playerBundle) => {
-        if (err) { throw err; }
-        console.log(playerBundle);
-
+    const sequenceFiles = function (fileList, handler, filesContent) {
+        const fileListCopy = fileList.concat([]);
+        const nextFilePath = fileListCopy.shift();
         JSZipUtils.getBinaryContent(
-            './index.player.html',
-            (err, playerHtml) => {
-            if (err) { throw err; }
+            nextFilePath, (err, nextFileContent) => {
+                if (err) { throw err; }
+                if (!filesContent) { filesContent = {}; };
+                filesContent[nextFilePath] = nextFileContent;
+                if (fileListCopy.length == 0) {
+                    handler(filesContent);
+                    return;
+                };
+                sequenceFiles(fileListCopy, handler, filesContent);
+            }
+        );
+    }
 
+    const PATHS =
+        { 'bundle': './player.bundle.js',
+          'html': './index.player.html',
+          'style': './index.css' };
+    const NAMES =
+        { 'bundle': 'player.bundle.js',
+          'html': 'index.html',
+          'style': 'index.css',
+          'scene': 'scene.js' };
+
+    sequenceFiles([ PATHS.bundle, PATHS.html, PATHS.style ],
+        (files) => {
+            const playerBundle = files[PATHS.bundle];
+            const playerHtml = files[PATHS.html];
+            const playerCss = files[PATHS.style];
             const { json, source }  = export_(app, exportedState);
             const zip = new JSZip();
-            // const js = zip.folder("js");
-            // js.file('run-scene.js', runScene, { binary: true });
-            // js.file(zipMinified ? 'Main.min.js' : 'Main.js', elmApp, { binary: true });
-            // js.file('scene.js', 'window.jsGenScene = ' + json + ';');
-            zip.file('player.bundle.js', playerBundle, { binary: true });
-            zip.file('scene.js', 'window.jsGenScene = ' + json + ';');
-            zip.file('index.html', playerHtml, { binary: true });
-            //zip.file('index.css', playerHtml, { binary: true });
-            // FIXME: add index.css
+            zip.file(NAMES.bundle, playerBundle, { binary: true });
+            zip.file(NAMES.scene, 'window.jsGenScene = ' + json + ';');
+            zip.file(NAMES.html, playerHtml, { binary: true });
+            zip.file(NAMES.style, playerCss, { binary: true });
             const assets = zip.folder('assets');
             const assetPromises =
                 [ source.product + '-text', 'jetbrains' ]
@@ -133,12 +145,7 @@ const exportZip_ = (app, exportedState) => {
                     )
                    .then(() => zip.generateAsync({type:"blob"}))
                    .then(content => new FileSaver(content, source.product + "_html5.zip"));
-            // zip.generateAsync({type:"blob"})
-            //     .then(function(content) {
-            //         new FileSaver(content, "export.zip");
-            //     });
         });
-    });
 }
 
 const prepareImportExport = () => {
