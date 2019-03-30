@@ -18,7 +18,7 @@ const App = require('./src/Main.elm');
 //const mountNode = document.getElementById('elm-target');
 const mountNode = document.getElementById('js-animation');
 // The third value on embed are the initial values for incomming ports into Elm
-const app = App.Elm.Main.init({ node: mountNode });
+const app = App.Elm.Main.init({ node: mountNode, flags: { forcedMode: null } });
 
 const startGui = require('./gui.js');
 const buildFSS = require('./fss.js');

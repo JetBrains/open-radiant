@@ -64,7 +64,7 @@ fragmentToMessage fragmentStr =
                     NoData -> NoOp
             ) of
         Ok fragmentMsg -> fragmentMsg
-        Err errMsg -> AddErrors <| Errors <| List.singleton errMsg
+        Err errMsg -> AddError <| "Unknown URL fragment: " ++ errMsg
 
 
 applyUrl : Url -> Model -> Model

@@ -56,12 +56,19 @@ initialMode : UiMode
 initialMode = Production
 
 
-init : {} -> Url -> Nav.Key -> ( Model, Cmd Msg )
+type alias Flags = { forcedMode: Maybe String }
+
+
+init : Flags -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url _ =
     let
+        mode =
+            flags.forcedMode
+                |> Maybe.map (decodeMode >> Result.withDefault initialMode)
+                |> Maybe.withDefault initialMode
         model = Model.init
-                    initialMode
-                    (initialLayers initialMode)
+                    mode
+                    (initialLayers mode)
                     createLayer
                     Gui.gui
                 |> Nav.applyUrl url
@@ -77,23 +84,22 @@ init flags url _ =
 
 initialLayers : UiMode -> List ( LayerKind, String, LayerModel )
 initialLayers mode =
---    [ ( Fss, "Lower Layer", FssModel FSS.init )
---    , ( Fss, "Mid Layer", FssModel FSS.init )
---    , ( Fss, "Top layer"
---      , let
---            fssModel = FSS.init
---        in
---            { fssModel
---            | renderMode = FSS.PartialLines
---            , shareMesh = True
---            } |> FssModel
---      )
---    , ( Cover, "Cover", NoModel )
---    ]
-    -- [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
-     [
-        ( Fluid, "Fluid", FluidModel Fluid.init )
-     ]
+    -- [ ( Fss, "Lower Layer", FssModel FSS.init )
+    -- , ( Fss, "Mid Layer", FssModel FSS.init )
+    -- , ( Fss, "Top layer"
+    --   , let
+    --         fssModel = FSS.init
+    --     in
+    --         { fssModel
+    --         | renderMode = FSS.PartialLines
+    --         , shareMesh = True
+    --         } |> FssModel
+    --   )
+    -- , ( Cover, "Cover", NoModel )
+    -- ]
+    -- -- [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
+    [ ( Fluid, "Fluid", FluidModel Fluid.init )
+    ]
     |> List.filter (\(kind, _, _) ->
         case ( kind, mode ) of
             ( Cover, Ads ) -> False
@@ -1107,7 +1113,7 @@ view model =
         visible = w > 0 && h > 0
         wrapHtml =
             div
-                [ H.class "html-layers layers"
+                [ H.class "html-layers", H.class "layers"
                 , Events.onClick TriggerPause
                 ]
         wrapEntities =
@@ -1117,7 +1123,7 @@ view model =
                 , WebGL.clearColor 0.0 0.0 0.0 1.0
                 -- , WebGL.depth 0.5
                 ]
-                [ H.class "webgl-layers layers"
+                [ H.class "webgl-layers", H.class "layers"
                 , width w, height h
                 , style "display" (if visible then "block" else "none")
                 , Events.onClick TriggerPause
@@ -1127,7 +1133,7 @@ view model =
             case model.mode of
                 Player -> True
                 _ -> False
-    in div [ ]
+    in div [ H.class <| "mode-" ++ encodeMode model.mode ]
         [ if not isInPlayerMode then canvas [ H.id "js-save-buffer" ] [ ] else div [] []
         , if hasErrors model
             then
@@ -1140,7 +1146,7 @@ view model =
         , renderQueue |> RQ.apply wrapHtml wrapEntities
         , if model.controlsVisible
             then ( div
-                [ H.class "overlay-panel import-export-panel hide-on-space" ]
+                ([ "overlay-panel", "import-export-panel", "hide-on-space" ] |> List.map H.class)
                 [ div [ H.class "timeline-holder" ]
                     [ span [ H.class "label past"] [ text "past" ]
                     , input
@@ -1153,7 +1159,7 @@ view model =
                         , Events.onMouseUp BackToNow
                         ]
                         []
-                    , span [ H.class "label future"] [text "future"]
+                    , span [ H.class "label", H.class "future" ] [ text "future" ]
                     ]
                 -- , input [ type_ "button", id "import-button", value "Import" ] [ text "Import" ]
                 -- , input [ type_ "button", onClick Export, value "Export" ] [ text "Export" ]
@@ -1183,7 +1189,7 @@ document model =
     }
 
 
-main : Program {} Model Msg
+main : Program Flags Model Msg
 main =
     Browser.application
         { init = init
