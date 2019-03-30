@@ -95,7 +95,7 @@ initialLayers mode =
     --         , shareMesh = True
     --         } |> FssModel
     --   )
-    -- , ( Cover, "Cover", NoModel )
+    -- , ( Cover, "Cover", CoverModel Cover.init )
     -- ]
     -- -- [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
     [ ( Fluid, "Fluid", FluidModel Fluid.init )
@@ -1153,7 +1153,7 @@ view model =
                     )
             else div [ H.id "error-pane" ] []
         , renderQueue |> RQ.apply wrapHtml wrapEntities
-        , if model.controlsVisible
+        , if model.controlsVisible && not isInPlayerMode
             then ( div
                 ([ "overlay-panel", "import-export-panel", "hide-on-space" ] |> List.map H.class)
                 [ div [ H.class "timeline-holder" ]

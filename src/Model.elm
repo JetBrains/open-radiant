@@ -4,7 +4,7 @@ module Model exposing
     , Model
     , UiMode(..), encodeMode, decodeMode
     , Layer(..)
-    , emptyLayer
+    , emptyLayer, initLayerModel
     , LayerIndex
     , LayerDef
     , LayerModel(..)
@@ -42,6 +42,8 @@ import Html.Blend as HtmlBlend
 import Product exposing (Product)
 import Product
 import Gui.Gui as Gui
+import Layer.Canvas as Canvas
+-- import Layer.Cover as Cover
 import Layer.FSS as FSS
 import Layer.Lorenz as Lorenz
 import Layer.Fractal as Fractal
@@ -159,9 +161,11 @@ type LayerModel
     | TemplateModel Template.Model
     | VignetteModel Vignette.Model
     | MetaballsModel Metaballs.Model
+    | CanvasModel Canvas.Model
+    | CoverModel {}
     | FluidModel Fluid.Model
-    | NoModel
 
+-- FIXME: Cover module needs Model module and so by importing it we form the cycle reference
 
 type WebGLLayer_
     = LorenzLayer Lorenz.Mesh
@@ -671,6 +675,22 @@ decodeSizeRule str =
             Ok <| decodeSize (\w h -> UseViewport (ViewportSize w h)) w_and_h -1 -1
         "dimensionless"::_ -> Ok Dimensionless
         _ -> Err str
+
+
+initLayerModel : LayerKind -> LayerModel
+initLayerModel kind =
+    case kind of
+        Lorenz -> LorenzModel Lorenz.init
+        Fractal -> FractalModel Fractal.init
+        Template -> TemplateModel Template.init
+        Canvas -> CanvasModel Canvas.init
+        Voronoi -> VoronoiModel Voronoi.init
+        Fss -> FssModel FSS.init
+        MirroredFss -> FssModel FSS.init
+        Cover -> CoverModel {}
+        Vignette -> VignetteModel Vignette.init
+        Metaballs -> MetaballsModel Metaballs.init
+        Fluid -> FluidModel Fluid.init
 
 
 hasErrors : Model -> Bool

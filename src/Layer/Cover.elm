@@ -12,6 +12,9 @@ import Model exposing (UiMode(..))
 import Product
 
 
+-- type alias Model = {}
+
+
 defaultSize = 110
 defaultWidth = 1500.0
 -- imageWidth : Int
@@ -20,6 +23,10 @@ defaultWidth = 1500.0
 -- imageHeight = 120
 scaleFactor : Float
 scaleFactor = 0.1
+
+
+-- init : Model
+-- init = {}
 
 
 view : UiMode -> Product -> (Int, Int) -> (Int, Int) -> Blend.Blend -> Html a

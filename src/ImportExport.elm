@@ -23,6 +23,7 @@ import WebGL.Blend as WGLBlend
 import Html.Blend as HtmlBlend
 
 import Layer.FSS as FSS
+import Layer.Lorenz as Lorenz
 import Product exposing (..)
 
 import Model as M
@@ -461,8 +462,8 @@ layerModelDecoder kind =
                                 , vignette = vignette
                                 , iris = iris
                                 }
-                        _ -> M.NoModel
-                        -- _ -> Debug.log "failed to parse model" M.NoModel
+                            |> D.succeed
+                        _ -> D.fail "failed to parse model"
             in
                 D.succeed createFssModel
                     |> D.andMap (D.field "renderMode" D.string)
@@ -476,11 +477,11 @@ layerModelDecoder kind =
                     |> D.andMap (D.field "shareMesh" D.bool)
                     |> D.andMap (D.field "vignette" D.float)
                     |> D.andMap (D.field "iris" D.float)
+                    |> D.andThen identity
         M.MirroredFss ->
             layerModelDecoder M.Fss
-        -- TODO
-        _ ->
-            D.succeed M.NoModel
+        -- TODO: add parsing other models here
+        _ -> D.succeed <| M.initLayerModel kind
 
 
 modelDecoder : M.UiMode -> M.CreateLayer -> M.CreateGui -> D.Decoder M.Model

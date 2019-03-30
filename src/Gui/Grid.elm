@@ -72,11 +72,8 @@ doCellPurpose { cell, nestPos, isSelected, onSelect } =
         Button _ handler ->
             handler () |> SendToUser
         ChoiceItem label ->
-            -- ( Just parentPos, Just Selected ) -> Deselect parentPos nestPos |> Just
-            --case Debug.log "isSelected" isSelected of
             case isSelected of
                 Just NotSelected ->
-                    -- (Debug.log "onSelect" onSelect)
                     onSelect
                         |> Maybe.map ((|>) label)
                         |> Maybe.map (SelectAndSendToUser nestPos)
