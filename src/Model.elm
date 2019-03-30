@@ -326,7 +326,7 @@ init uiMode initialLayers createLayer createGui =
 
 initEmpty : UiMode -> Model
 initEmpty mode =
-    { background = "#333"
+    { background = "#171717"
     , mode = mode
     , gui = Nothing
     , paused = False
