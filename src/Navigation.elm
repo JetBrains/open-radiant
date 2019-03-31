@@ -27,9 +27,9 @@ type alias Fragment = String
 
 type FragmentData
     = NoData
-    | Mode UiMode
+    | Mode AppMode
     | SizeRule SizeRule
-    | ModeAndSizeRule UiMode SizeRule
+    | ModeAndSizeRule AppMode SizeRule
 
 
 applyFragment : Fragment -> Model -> Model

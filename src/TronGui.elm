@@ -8,7 +8,7 @@ import Gui.Nest exposing (..)
 
 import Layer.FSS as FSS
 
-import Model.AppMode exposing (UiMode(..))
+import Model.AppMode exposing (AppMode(..))
 import Model.Core exposing (..)
 import Model.Product as Product exposing (Product(..))
 import Model.SizeRule exposing (..)
@@ -143,7 +143,7 @@ gui from =
 
 
 
-webglBlendGrid : UiMode -> WGLBlend.Blend -> LayerIndex -> Nest Msg
+webglBlendGrid : AppMode -> WGLBlend.Blend -> LayerIndex -> Nest Msg
 webglBlendGrid mode currentBlend layerIndex =
     let
         blendFuncs =
@@ -222,7 +222,7 @@ webglBlendGrid mode currentBlend layerIndex =
             ]
 
 
-fssControls : UiMode -> FSS.Model -> WGLBlend.Blend -> LayerIndex -> Nest Msg
+fssControls : AppMode -> FSS.Model -> WGLBlend.Blend -> LayerIndex -> Nest Msg
 fssControls mode fssModel currentBlend layerIndex =
     let
         { lightSpeed, faces, amplitude, vignette, iris, colorShift } = fssModel

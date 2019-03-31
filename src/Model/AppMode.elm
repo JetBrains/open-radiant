@@ -1,20 +1,20 @@
 module Model.AppMode exposing
-    ( UiMode(..)
+    ( AppMode(..)
     , encodeMode
     , decodeMode
     )
 
 
-type UiMode
+type AppMode
     = Development
     | Production
     | Release
     | Ads
-    | TronUi UiMode
+    | TronUi AppMode
     | Player
 
 
-encodeMode : UiMode -> String
+encodeMode : AppMode -> String
 encodeMode mode =
     case mode of
         Development -> "dev"
@@ -25,7 +25,7 @@ encodeMode mode =
         Player -> "player"
 
 
-decodeMode : String -> Result String UiMode
+decodeMode : String -> Result String AppMode
 decodeMode mode =
     if String.startsWith "tron-" mode
     then

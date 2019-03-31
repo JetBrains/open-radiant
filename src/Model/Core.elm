@@ -35,8 +35,8 @@ type alias CreateGui = Model -> Gui.Model Msg
 
 type Msg
     = Bang
-    | ChangeMode UiMode
-    | ChangeModeAndResize UiMode SizeRule
+    | ChangeMode AppMode
+    | ChangeModeAndResize AppMode SizeRule
     | Animate TimeDelta
     | GuiMessage (Gui.Msg Msg)
     | Resize SizeRule
@@ -83,7 +83,7 @@ type Msg
 
 type alias Model = -- TODO: Result Error { ... }
     { background: String
-    , mode : UiMode
+    , mode : AppMode
     , gui : Maybe (Gui.Model Msg)
     , paused : Bool
     , autoRotate : Bool
@@ -123,28 +123,28 @@ type alias PortModel =
 
 
 init
-    :  UiMode
+    :  AppMode
     -> List ( LayerKind, String, LayerModel )
     -> CreateLayer
     -> CreateGui
     -> Model
-init uiMode initialLayers createLayer createGui =
+init appMode initialLayers createLayer createGui =
     let
-        emptyModel = initEmpty uiMode
+        emptyModel = initEmpty appMode
         modelWithLayers =
             emptyModel
                 |> replaceLayers initialLayers createLayer
     in
         { modelWithLayers
         | gui =
-            case uiMode of
-                TronUi innerUiMode ->
-                    Just <| createGui { modelWithLayers | mode = innerUiMode }
+            case appMode of
+                TronUi innerAppMode ->
+                    Just <| createGui { modelWithLayers | mode = innerAppMode }
                 _ -> Nothing
         }
 
 
-initEmpty : UiMode -> Model
+initEmpty : AppMode -> Model
 initEmpty mode =
     { background = "#171717"
     , mode = mode

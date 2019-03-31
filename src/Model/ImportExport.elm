@@ -489,7 +489,7 @@ layerModelDecoder kind =
         _ -> D.succeed <| M.initLayerModel kind
 
 
-modelDecoder : M.UiMode -> M.CreateLayer -> M.CreateGui -> D.Decoder M.Model
+modelDecoder : M.AppMode -> M.CreateLayer -> M.CreateGui -> D.Decoder M.Model
 modelDecoder currentMode createLayer createGui =
     let
         createModel
@@ -551,7 +551,7 @@ modelDecoder currentMode createLayer createGui =
             |> D.andThen identity
 
 
-decodeModel : M.UiMode -> M.CreateLayer -> M.CreateGui -> String -> Result String M.Model
+decodeModel : M.AppMode -> M.CreateLayer -> M.CreateGui -> String -> Result String M.Model
 decodeModel currentMode createLayer createGui modelStr =
     D.decodeString (modelDecoder currentMode createLayer createGui) modelStr
         |> Result.mapError D.errorToString

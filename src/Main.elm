@@ -60,7 +60,7 @@ sizeCoef : Float
 sizeCoef = 1.0
 
 
-initialMode : UiMode
+initialMode : AppMode
 initialMode = Production
 
 
@@ -90,7 +90,7 @@ init flags url _ =
         )
 
 
-initialLayers : UiMode -> List ( LayerKind, String, LayerModel )
+initialLayers : AppMode -> List ( LayerKind, String, LayerModel )
 initialLayers mode =
     -- [ ( Fss, "Lower Layer", FssModel FSS.init )
     -- , ( Fss, "Mid Layer", FssModel FSS.init )

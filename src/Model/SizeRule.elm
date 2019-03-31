@@ -48,7 +48,7 @@ type SizePreset
     | Wallpaper Int Int
 
 
-getSizePresets : UiMode -> List SizePreset
+getSizePresets : AppMode -> List SizePreset
 getSizePresets mode =
     case mode of
         Release ->

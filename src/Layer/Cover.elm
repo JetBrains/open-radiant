@@ -7,7 +7,7 @@ import Html.Attributes exposing (style, class, attribute, contenteditable)
 import Model.Html.Blend as Blend
 import Json.Encode as E
 
-import Model.AppMode exposing (UiMode(..))
+import Model.AppMode exposing (AppMode(..))
 import Model.Product as Product exposing (Product)
 import Model.Product exposing (..)
 
@@ -29,7 +29,7 @@ scaleFactor = 0.1
 -- init = {}
 
 
-view : UiMode -> Product -> (Int, Int) -> (Int, Int) -> Blend.Blend -> Html a
+view : AppMode -> Product -> (Int, Int) -> (Int, Int) -> Blend.Blend -> Html a
 view mode product ( w, h ) ( x, y ) blend =
     let
         scale = toFloat w / defaultWidth
