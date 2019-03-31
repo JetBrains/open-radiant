@@ -2,6 +2,7 @@ module Model.Layer exposing (..)
 
 import Model.Html.Blend as HtmlBlend
 import Model.WebGL.Blend as WGLBlend
+import WebGL.Settings.Blend as B
 
 import Layer.Canvas as Canvas
 -- import Layer.Cover as Cover
@@ -158,3 +159,79 @@ decodeKind layerTypeStr =
         "metaballs" -> Ok Metaballs
         "fluid" -> Ok Fluid
         _ -> Err layerTypeStr
+
+
+getBlendForPort : Layer -> PortBlend
+getBlendForPort layer =
+    ( case layer of
+        WebGLLayer _ webglBlend -> Just webglBlend
+        _ -> Nothing
+    , case layer of
+        HtmlLayer _ htmlBlend ->
+            HtmlBlend.encode htmlBlend |> Just
+        _ -> Nothing
+    )
+
+
+createLayer : LayerKind -> LayerModel -> Maybe Layer
+createLayer kind layerModel =
+    case ( kind, layerModel ) of
+        ( Fss, FssModel fssModel )  ->
+            Just <|
+                WebGLLayer
+                ( FSS.build fssModel Nothing |> FssLayer Nothing )
+                WGLBlend.default
+        ( MirroredFss, FssModel fssModel ) ->
+            Just <|
+                WebGLLayer
+                ( FSS.build fssModel Nothing |> MirroredFssLayer Nothing )
+                WGLBlend.default
+                -- (WGLBlend.build
+                --    (B.customAdd, B.oneMinusSrcColor, B.oneMinusSrcColor)
+                --    (B.customAdd, B.srcColor, B.zero)
+                -- )
+        ( Lorenz, LorenzModel lorenzModel ) ->
+            Just <|
+                WebGLLayer
+                (Lorenz.build lorenzModel |> LorenzLayer)
+                WGLBlend.default
+        ( Template, TemplateModel templateModel ) ->
+            Just <|
+                WebGLLayer
+                ( Template.build templateModel |> TemplateLayer )
+                WGLBlend.default
+        ( Voronoi, VoronoiModel voronoiModel ) ->
+            Just <|
+                WebGLLayer
+                ( Voronoi.build voronoiModel |> VoronoiLayer )
+                WGLBlend.default
+        ( Fractal, FractalModel fractalModel ) ->
+            Just <|
+                WebGLLayer
+                ( Fractal.build fractalModel |> FractalLayer )
+                WGLBlend.default
+        ( Fluid, FluidModel fluidModel ) ->
+            Just <|
+                WebGLLayer
+                ( Fluid.build fluidModel |> FluidLayer )
+                WGLBlend.default
+        ( Vignette, _ ) ->
+            Just <|
+                WebGLLayer
+                VignetteLayer
+                (WGLBlend.build
+                    (B.customAdd, B.srcAlpha, B.oneMinusSrcAlpha)
+                    (B.customAdd, B.one, B.oneMinusSrcAlpha) )
+                -- WGLBlend.Blend Nothing (0, 1, 7) (0, 1, 7) |> VignetteLayer Vignette.init
+                -- VignetteLayer Vignette.init WGLBlend.default
+        ( Cover, _ ) ->
+            Just <|
+                HtmlLayer
+                CoverLayer
+                HtmlBlend.default
+        ( Metaballs, _ ) ->
+            Just <|
+                HtmlLayer
+                MetaballsLayer
+                HtmlBlend.default
+        _ -> Nothing

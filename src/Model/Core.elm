@@ -4,10 +4,16 @@ module Model.Core exposing
     , PortModel
     , init
     , initEmpty
+    , getOrigin, adaptSize
+    , extractTimeShift, adaptTimeShift
+    , getLayerModel
+    , updateLayer, updateLayerDef, updateLayerBlend, updateLayerWithItsModel
     , CreateGui
     , hasErrors, addError, addErrors
     , TimeDelta, Pos, Size
     )
+
+import Array
 
 import Model.Layer exposing (..)
 import Model.AppMode exposing (..)
@@ -22,6 +28,14 @@ import Layer.FSS as FSS
 import Layer.Metaballs as Metaballs
 
 import Gui.Gui as Gui
+
+
+sizeCoef : Float
+sizeCoef = 1.0
+
+
+timeShiftRange : Float
+timeShiftRange = 500.0
 
 
 type alias TimeNow = Float
@@ -249,3 +263,108 @@ replaceLayers source createLayer model =
                         "Failed to create layer: (" ++ String.fromInt index ++ ", "
                             ++ encodeKind kind ++ ") "
                             ++ name))
+
+
+getLayerModel : LayerIndex -> Model -> Maybe LayerModel
+getLayerModel index model =
+    model.layers
+        |> Array.fromList
+        |> Array.get index
+        |> Maybe.map .model
+
+
+updateLayer
+    :  Int
+    -> (Layer -> LayerModel -> Layer)
+    -> Model
+    -> Model
+updateLayer index f model =
+    model |> updateLayerDef index
+        (\layerDef ->
+            { layerDef
+            | layer = f layerDef.layer layerDef.model
+            })
+
+
+
+updateLayerDef
+    :  Int
+    -> (LayerDef -> LayerDef)
+    -> Model
+    -> Model
+updateLayerDef index f model =
+    let
+        layersArray = Array.fromList model.layers
+    in
+        case layersArray |> Array.get index of
+            Just layerDef ->
+                { model
+                | layers = layersArray
+                    |> Array.set index (f layerDef)
+                    |> Array.toList
+                }
+            Nothing -> model
+
+
+updateLayerWithItsModel
+    :  Int
+    -> (( Layer, LayerModel ) -> ( Layer, LayerModel ))
+    -> Model
+    -> Model
+updateLayerWithItsModel index f model =
+    model |> updateLayerDef index
+        (\layerDef ->
+            case f (layerDef.layer, layerDef.model) of
+                ( newLayer, newModel ) ->
+                    { layerDef
+                    | layer = newLayer
+                    , model = newModel
+                    })
+
+
+updateLayerBlend
+    : Int
+    -> (WGLBlend.Blend -> Maybe WGLBlend.Blend)
+    -> (HtmlBlend.Blend -> Maybe HtmlBlend.Blend)
+    -> Model
+    -> Model
+updateLayerBlend index ifWebgl ifHtml model =
+    model |> updateLayerDef index
+        (\layerDef ->
+            { layerDef
+            | layer = case layerDef.layer of
+                WebGLLayer webglLayer webglBlend ->
+                    ifWebgl webglBlend
+                        |> Maybe.withDefault webglBlend
+                        |> WebGLLayer webglLayer
+                HtmlLayer htmlLayer htmlBlend ->
+                    ifHtml htmlBlend
+                        |> Maybe.withDefault htmlBlend
+                        |> HtmlLayer htmlLayer
+            })
+
+
+getOrigin : Size -> Pos
+getOrigin (width, height) =
+    ( toFloat width  * (1 - sizeCoef) / 2 |> ceiling
+    , toFloat height * (1 - sizeCoef) / 2 |> ceiling
+    )
+
+
+adaptSize : Size -> Size
+adaptSize (width, height) =
+    ( toFloat width  * sizeCoef |> floor
+    , toFloat height * sizeCoef |> floor
+    )
+
+
+adaptTimeShift : String -> TimeDelta
+adaptTimeShift v =
+    let floatV = String.toFloat v
+         |> Maybe.withDefault 0.0
+    in (floatV - 50.0) / 100.0 * timeShiftRange
+
+
+extractTimeShift : TimeDelta -> String
+extractTimeShift v =
+    (v / timeShiftRange * 100.0) + 50.0 |> String.fromFloat

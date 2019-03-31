@@ -56,15 +56,23 @@ import Layer.Metaballs as Metaballs
 import Layer.Fluid as Fluid
 
 
-sizeCoef : Float
-sizeCoef = 1.0
-
-
 initialMode : AppMode
 initialMode = Production
 
 
 type alias Flags = { forcedMode: Maybe String }
+
+
+main : Program Flags Model Msg
+main =
+    Browser.application
+        { init = init
+        , view = document
+        , subscriptions = subscriptions
+        , update = update
+        , onUrlChange = Nav.onUrlChange
+        , onUrlRequest = Nav.onUrlRequest
+        }
 
 
 init : Flags -> Url -> Nav.Key -> ( Model, Cmd Msg )
@@ -575,295 +583,6 @@ update msg model =
         NoOp -> ( model, Cmd.none )
 
 
-getSizeUpdate : Model -> SizeUpdate
-getSizeUpdate model =
-    { size = getRuleSize model.size |> Maybe.withDefault ( -1, -1 )
-    , sizeRule = encodeSizeRule model.size
-    -- , product = Product.encode model.product
-    -- , coverSize = Product.getCoverTextSize model.product
-    -- , background = model.background
-    , sizeConstant = -1
-    -- , mode = encodeMode model.mode
-    }
-
-
-getLayerModel : LayerIndex -> Model -> Maybe LayerModel
-getLayerModel index model =
-    model.layers
-        |> Array.fromList
-        |> Array.get index
-        |> Maybe.map .model
-
-
-rebuildMetaballs : LayerIndex -> Metaballs.Model -> Model -> Model
-rebuildMetaballs index newMetaballsModel model =
-    model |> updateLayerWithItsModel
-        index
-        (\(layer, layerModel) ->
-            -- FIXME: why update model in two places??
-            ( layer
-            , case layerModel of
-                MetaballsModel _ -> MetaballsModel newMetaballsModel
-                _ -> layerModel
-            )
-        )
-
-
-updateFss : LayerIndex -> (FSS.Model -> FSS.Model) -> Model -> Model
-updateFss index f model =
-    model |> updateLayerWithItsModel
-        index
-        (\(layer, layerModel) ->
-            ( layer
-            , case layerModel of
-                FssModel fssModel ->
-                    f fssModel |> FssModel
-                _ -> layerModel
-            )
-        )
-
-updateAndRebuildFssWith
-    : LayerIndex
-    -> (FSS.Model -> FSS.Model)
-    -> Model
-    -> ( Model, Cmd Msg )
-updateAndRebuildFssWith index f curModel =
-    let
-        newModel = updateFss index f curModel
-    in
-        ( newModel
-        , case (newModel |> getLayerModel index) of
-            Just (FssModel fssModel) ->
-                requestFssRebuild
-                    { layer = index
-                    , model = IE.encodePortModel newModel
-                    , value = IE.encodeFss fssModel newModel.product
-                    }
-            _ -> Cmd.none
-        )
-
-
-rebuildAllFssLayersWith : Model -> Cmd Msg
-rebuildAllFssLayersWith model =
-    let
-        isLayerFss layerDef =
-            case layerDef.model of
-                FssModel fssModel -> Just fssModel
-                _ -> Nothing
-        rebuildPotentialFss index fssModel =
-            requestFssRebuild
-                { layer = index
-                , model = IE.encodePortModel model
-                , value = IE.encodeFss fssModel model.product
-                }
-    in
-        List.filterMap isLayerFss model.layers
-          |> List.indexedMap rebuildPotentialFss
-          |> Cmd.batch
-
-
-getBlendForPort : Layer -> PortBlend
-getBlendForPort layer =
-    ( case layer of
-        WebGLLayer _ webglBlend -> Just webglBlend
-        _ -> Nothing
-    , case layer of
-        HtmlLayer _ htmlBlend ->
-            HtmlBlend.encode htmlBlend |> Just
-        _ -> Nothing
-    )
-
-
-createLayer : LayerKind -> LayerModel -> Maybe Layer
-createLayer kind layerModel =
-    case ( kind, layerModel ) of
-        ( Fss, FssModel fssModel )  ->
-            Just <|
-                WebGLLayer
-                ( FSS.build fssModel Nothing |> FssLayer Nothing )
-                WGLBlend.default
-        ( MirroredFss, FssModel fssModel ) ->
-            Just <|
-                WebGLLayer
-                ( FSS.build fssModel Nothing |> MirroredFssLayer Nothing )
-                WGLBlend.default
-                -- (WGLBlend.build
-                --    (B.customAdd, B.oneMinusSrcColor, B.oneMinusSrcColor)
-                --    (B.customAdd, B.srcColor, B.zero)
-                -- )
-        ( Lorenz, LorenzModel lorenzModel ) ->
-            Just <|
-                WebGLLayer
-                (Lorenz.build lorenzModel |> LorenzLayer)
-                WGLBlend.default
-        ( Template, TemplateModel templateModel ) ->
-            Just <|
-                WebGLLayer
-                ( Template.build templateModel |> TemplateLayer )
-                WGLBlend.default
-        ( Voronoi, VoronoiModel voronoiModel ) ->
-            Just <|
-                WebGLLayer
-                ( Voronoi.build voronoiModel |> VoronoiLayer )
-                WGLBlend.default
-        ( Fractal, FractalModel fractalModel ) ->
-            Just <|
-                WebGLLayer
-                ( Fractal.build fractalModel |> FractalLayer )
-                WGLBlend.default
-        ( Fluid, FluidModel fluidModel ) ->
-            Just <|
-                WebGLLayer
-                ( Fluid.build fluidModel |> FluidLayer )
-                WGLBlend.default
-        ( Vignette, _ ) ->
-            Just <|
-                WebGLLayer
-                VignetteLayer
-                (WGLBlend.build
-                    (B.customAdd, B.srcAlpha, B.oneMinusSrcAlpha)
-                    (B.customAdd, B.one, B.oneMinusSrcAlpha) )
-                -- WGLBlend.Blend Nothing (0, 1, 7) (0, 1, 7) |> VignetteLayer Vignette.init
-                -- VignetteLayer Vignette.init WGLBlend.default
-        ( Cover, _ ) ->
-            Just <|
-                HtmlLayer
-                CoverLayer
-                HtmlBlend.default
-        ( Metaballs, _ ) ->
-            Just <|
-                HtmlLayer
-                MetaballsLayer
-                HtmlBlend.default
-        _ -> Nothing
-
-
--- extractFssBuildOptions : Model -> FssBuildOptions
--- extractFssBuildOptions = prepareGuiConfig
-
-
-timeShiftRange : Float
-timeShiftRange = 500.0
-
-
-adaptTimeShift : String -> TimeDelta
-adaptTimeShift v =
-    let floatV = String.toFloat v
-         |> Maybe.withDefault 0.0
-    in (floatV - 50.0) / 100.0 * timeShiftRange
-
-
-extractTimeShift : TimeDelta -> String
-extractTimeShift v =
-    (v / timeShiftRange * 100.0) + 50.0 |> String.fromFloat
-
-
-updateLayerDef
-    :  Int
-    -> (LayerDef -> LayerDef)
-    -> Model
-    -> Model
-updateLayerDef index f model =
-    let
-        layersArray = Array.fromList model.layers
-    in
-        case layersArray |> Array.get index of
-            Just layerDef ->
-                { model
-                | layers = layersArray
-                    |> Array.set index (f layerDef)
-                    |> Array.toList
-                }
-            Nothing -> model
-
-
-updateLayer
-    :  Int
-    -> (Layer -> LayerModel -> Layer)
-    -> Model
-    -> Model
-updateLayer index f model =
-    model |> updateLayerDef index
-        (\layerDef ->
-            { layerDef
-            | layer = f layerDef.layer layerDef.model
-            })
-
-
-updateLayerWithItsModel
-    :  Int
-    -> (( Layer, LayerModel ) -> ( Layer, LayerModel ))
-    -> Model
-    -> Model
-updateLayerWithItsModel index f model =
-    model |> updateLayerDef index
-        (\layerDef ->
-            case f (layerDef.layer, layerDef.model) of
-                ( newLayer, newModel ) ->
-                    { layerDef
-                    | layer = newLayer
-                    , model = newModel
-                    })
-
-
-updateLayerBlend
-    : Int
-    -> (WGLBlend.Blend -> Maybe WGLBlend.Blend)
-    -> (HtmlBlend.Blend -> Maybe HtmlBlend.Blend)
-    -> Model
-    -> Model
-updateLayerBlend index ifWebgl ifHtml model =
-    model |> updateLayerDef index
-        (\layerDef ->
-            { layerDef
-            | layer = case layerDef.layer of
-                WebGLLayer webglLayer webglBlend ->
-                    ifWebgl webglBlend
-                        |> Maybe.withDefault webglBlend
-                        |> WebGLLayer webglLayer
-                HtmlLayer htmlLayer htmlBlend ->
-                    ifHtml htmlBlend
-                        |> Maybe.withDefault htmlBlend
-                        |> HtmlLayer htmlLayer
-            })
-
-
-tellGui : (Gui.Model Msg -> a -> Gui.Msg Msg) -> Model -> a -> Msg
-tellGui f model =
-    model.gui
-        |> Maybe.map (\gui -> f gui >> GuiMessage)
-        |> Maybe.withDefault (always NoOp)
-
-
-
-decodeMousePosition : D.Decoder Position
-decodeMousePosition =
-    D.map2 Position
-        (D.at [ "offsetX" ] D.int)
-        (D.at [ "offsetY" ] D.int)
-
-
-generateAllMetaballs : Model -> Cmd Msg
-generateAllMetaballs model =
-    let
-        palette = model.product |> Product.getPalette
-        isMetaballLayer layerDef =
-            case layerDef.model of
-                MetaballsModel metaballsModel -> Just metaballsModel
-                _ -> Nothing
-    in
-        List.filterMap isMetaballLayer model.layers
-            |> List.indexedMap (\index _ -> generateMetaballs palette model.size index)
-            |> Cmd.batch
-
-
-generateMetaballs : Product.Palette -> SizeRule -> LayerIndex -> Cmd Msg
-generateMetaballs palette size layerIdx =
-    Metaballs.generate
-        (RebuildMetaballs layerIdx)
-            (Metaballs.generator palette <| getRuleSizeOrZeroes size)
-
-
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
@@ -961,18 +680,114 @@ subscriptions model =
         ]
 
 
-adaptSize : Size -> Size
-adaptSize (width, height) =
-    ( toFloat width  * sizeCoef |> floor
-    , toFloat height * sizeCoef |> floor
-    )
+view : Model -> Html Msg
+view model =
+    let
+        ( w, h ) =
+                getRuleSize model.size |> Maybe.withDefault ( -1, -1 )
+        visible = w > 0 && h > 0
+        wrapHtml =
+            div
+                [ H.class "html-layers", H.class "layers"
+                , Events.onClick TriggerPause
+                ]
+        wrapEntities =
+            WebGL.toHtmlWith
+                [ WebGL.antialias
+                , WebGL.alpha True
+                , WebGL.clearColor 0.0 0.0 0.0 1.0
+                -- , WebGL.depth 0.5
+                ]
+                [ H.class "webgl-layers", H.class "layers"
+                , width w, height h
+                , style "display" (if visible then "block" else "none")
+                , Events.onClick TriggerPause
+                ]
+        renderQueue = model |> RQ.groupLayers layerToEntities layerToHtml
+        isInPlayerMode =
+            case model.mode of
+                Player -> True
+                _ -> False
+    in div [ H.class <| "mode-" ++ encodeMode model.mode ]
+        [ if not isInPlayerMode then canvas [ H.id "js-save-buffer" ] [ ] else div [] []
+        , if hasErrors model
+            then
+                div [ H.id "error-pane", H.class "has-errors" ]
+                    ( case model.errors of
+                        Errors errorsList ->
+                            errorsList |> List.map (\err -> span [] [ text err ])
+                    )
+            else div [ H.id "error-pane" ] []
+        , renderQueue |> RQ.apply wrapHtml wrapEntities
+        , if model.controlsVisible && not isInPlayerMode
+            then ( div
+                ([ "overlay-panel", "import-export-panel", "hide-on-space" ] |> List.map H.class)
+                [ div [ H.class "timeline-holder" ]
+                    [ span [ H.class "label past"] [ text "past" ]
+                    , input
+                        [ type_ "range"
+                        , class "timeline"
+                        , H.min "0"
+                        , H.max "100"
+                        , extractTimeShift model.timeShift |> H.value
+                        , Events.onInput (\v -> adaptTimeShift v |> TimeTravel)
+                        , Events.onMouseUp BackToNow
+                        ]
+                        []
+                    , span [ H.class "label", H.class "future" ] [ text "future" ]
+                    ]
+                -- , input [ type_ "button", id "import-button", value "Import" ] [ text "Import" ]
+                -- , input [ type_ "button", onClick Export, value "Export" ] [ text "Export" ]
+                , input
+                    [ type_ "button", class "export_html5"
+                    , Events.onClick ExportZip, value "warp in html5" ]
+                    [ text "Export to html5.zip" ]
+                , input
+                    [ type_ "button", class "export_png"
+                    , Events.onClick SavePng, value "blast to png" ]
+                    [ text "Export to png" ]
+                , div [ H.class "spacebar_info" ] [ text "spacebar to hide controls, click to pause" ]
+                ]
+            ) else div [] []
+        , model.gui
+            |> Maybe.map Gui.view
+            |> Maybe.map (Html.map GuiMessage)
+            |> Maybe.map (\guiLayer -> div [ H.class "hide-on-space" ] [ guiLayer ])
+            |> Maybe.withDefault (div [] [])
+        ]
 
 
-getOrigin : Size -> Pos
-getOrigin (width, height) =
-    ( toFloat width  * (1 - sizeCoef) / 2 |> ceiling
-    , toFloat height * (1 - sizeCoef) / 2 |> ceiling
-    )
+document : Model -> Browser.Document Msg
+document model =
+    { title = "Elmsfeuer, Radiant"
+    , body = [ view model ]
+    }
+
+
+getSizeUpdate : Model -> SizeUpdate
+getSizeUpdate model =
+    { size = getRuleSize model.size |> Maybe.withDefault ( -1, -1 )
+    , sizeRule = encodeSizeRule model.size
+    -- , product = Product.encode model.product
+    -- , coverSize = Product.getCoverTextSize model.product
+    -- , background = model.background
+    , sizeConstant = -1
+    -- , mode = encodeMode model.mode
+    }
+
+
+tellGui : (Gui.Model Msg -> a -> Gui.Msg Msg) -> Model -> a -> Msg
+tellGui f model =
+    model.gui
+        |> Maybe.map (\gui -> f gui >> GuiMessage)
+        |> Maybe.withDefault (always NoOp)
+
+
+decodeMousePosition : D.Decoder Position
+decodeMousePosition =
+    D.map2 Position
+        (D.at [ "offsetX" ] D.int)
+        (D.at [ "offsetY" ] D.int)
 
 
 ensureFits : (Int, Int) -> Pos -> Maybe Pos
@@ -1122,100 +937,97 @@ resizeToViewport =
         Browser.getViewport
 
 
-view : Model -> Html Msg
-view model =
+rebuildMetaballs : LayerIndex -> Metaballs.Model -> Model -> Model
+rebuildMetaballs index newMetaballsModel model =
+    model |> updateLayerWithItsModel
+        index
+        (\(layer, layerModel) ->
+            -- FIXME: why update model in two places??
+            ( layer
+            , case layerModel of
+                MetaballsModel _ -> MetaballsModel newMetaballsModel
+                _ -> layerModel
+            )
+        )
+
+
+updateFss : LayerIndex -> (FSS.Model -> FSS.Model) -> Model -> Model
+updateFss index f model =
+    model |> updateLayerWithItsModel
+        index
+        (\(layer, layerModel) ->
+            ( layer
+            , case layerModel of
+                FssModel fssModel ->
+                    f fssModel |> FssModel
+                _ -> layerModel
+            )
+        )
+
+updateAndRebuildFssWith
+    : LayerIndex
+    -> (FSS.Model -> FSS.Model)
+    -> Model
+    -> ( Model, Cmd Msg )
+updateAndRebuildFssWith index f curModel =
     let
-        ( w, h ) =
-                getRuleSize model.size |> Maybe.withDefault ( -1, -1 )
-        visible = w > 0 && h > 0
-        wrapHtml =
-            div
-                [ H.class "html-layers", H.class "layers"
-                , Events.onClick TriggerPause
-                ]
-        wrapEntities =
-            WebGL.toHtmlWith
-                [ WebGL.antialias
-                , WebGL.alpha True
-                , WebGL.clearColor 0.0 0.0 0.0 1.0
-                -- , WebGL.depth 0.5
-                ]
-                [ H.class "webgl-layers", H.class "layers"
-                , width w, height h
-                , style "display" (if visible then "block" else "none")
-                , Events.onClick TriggerPause
-                ]
-        renderQueue = model |> RQ.groupLayers layerToEntities layerToHtml
-        isInPlayerMode =
-            case model.mode of
-                Player -> True
-                _ -> False
-    in div [ H.class <| "mode-" ++ encodeMode model.mode ]
-        [ if not isInPlayerMode then canvas [ H.id "js-save-buffer" ] [ ] else div [] []
-        , if hasErrors model
-            then
-                div [ H.id "error-pane", H.class "has-errors" ]
-                    ( case model.errors of
-                        Errors errorsList ->
-                            errorsList |> List.map (\err -> span [] [ text err ])
-                    )
-            else div [ H.id "error-pane" ] []
-        , renderQueue |> RQ.apply wrapHtml wrapEntities
-        , if model.controlsVisible && not isInPlayerMode
-            then ( div
-                ([ "overlay-panel", "import-export-panel", "hide-on-space" ] |> List.map H.class)
-                [ div [ H.class "timeline-holder" ]
-                    [ span [ H.class "label past"] [ text "past" ]
-                    , input
-                        [ type_ "range"
-                        , class "timeline"
-                        , H.min "0"
-                        , H.max "100"
-                        , extractTimeShift model.timeShift |> H.value
-                        , Events.onInput (\v -> adaptTimeShift v |> TimeTravel)
-                        , Events.onMouseUp BackToNow
-                        ]
-                        []
-                    , span [ H.class "label", H.class "future" ] [ text "future" ]
-                    ]
-                -- , input [ type_ "button", id "import-button", value "Import" ] [ text "Import" ]
-                -- , input [ type_ "button", onClick Export, value "Export" ] [ text "Export" ]
-                , input
-                    [ type_ "button", class "export_html5"
-                    , Events.onClick ExportZip, value "warp in html5" ]
-                    [ text "Export to html5.zip" ]
-                , input
-                    [ type_ "button", class "export_png"
-                    , Events.onClick SavePng, value "blast to png" ]
-                    [ text "Export to png" ]
-                , div [ H.class "spacebar_info" ] [ text "spacebar to hide controls, click to pause" ]
-                ]
-            ) else div [] []
-        , model.gui
-            |> Maybe.map Gui.view
-            |> Maybe.map (Html.map GuiMessage)
-            |> Maybe.map (\guiLayer -> div [ H.class "hide-on-space" ] [ guiLayer ])
-            |> Maybe.withDefault (div [] [])
-        ]
+        newModel = updateFss index f curModel
+    in
+        ( newModel
+        , case (newModel |> getLayerModel index) of
+            Just (FssModel fssModel) ->
+                requestFssRebuild
+                    { layer = index
+                    , model = IE.encodePortModel newModel
+                    , value = IE.encodeFss fssModel newModel.product
+                    }
+            _ -> Cmd.none
+        )
 
 
-document : Model -> Browser.Document Msg
-document model =
-    { title = "Elmsfeuer, Radiant"
-    , body = [ view model ]
-    }
+rebuildAllFssLayersWith : Model -> Cmd Msg
+rebuildAllFssLayersWith model =
+    let
+        isLayerFss layerDef =
+            case layerDef.model of
+                FssModel fssModel -> Just fssModel
+                _ -> Nothing
+        rebuildPotentialFss index fssModel =
+            requestFssRebuild
+                { layer = index
+                , model = IE.encodePortModel model
+                , value = IE.encodeFss fssModel model.product
+                }
+    in
+        List.filterMap isLayerFss model.layers
+          |> List.indexedMap rebuildPotentialFss
+          |> Cmd.batch
 
 
-main : Program Flags Model Msg
-main =
-    Browser.application
-        { init = init
-        , view = document
-        , subscriptions = subscriptions
-        , update = update
-        , onUrlChange = Nav.onUrlChange
-        , onUrlRequest = Nav.onUrlRequest
-        }
+-- extractFssBuildOptions : Model -> FssBuildOptions
+-- extractFssBuildOptions = prepareGuiConfig
+
+
+generateAllMetaballs : Model -> Cmd Msg
+generateAllMetaballs model =
+    let
+        palette = model.product |> Product.getPalette
+        isMetaballLayer layerDef =
+            case layerDef.model of
+                MetaballsModel metaballsModel -> Just metaballsModel
+                _ -> Nothing
+    in
+        List.filterMap isMetaballLayer model.layers
+            |> List.indexedMap (\index _ -> generateMetaballs palette model.size index)
+            |> Cmd.batch
+
+
+generateMetaballs : Product.Palette -> SizeRule -> LayerIndex -> Cmd Msg
+generateMetaballs palette size layerIdx =
+    Metaballs.generate
+        (RebuildMetaballs layerIdx)
+            (Metaballs.generator palette <| getRuleSizeOrZeroes size)
+
 
 
 -- INCOMING PORTS
