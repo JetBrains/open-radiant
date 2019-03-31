@@ -4,12 +4,12 @@ module Layer.Cover exposing
 
 import Html exposing (..)
 import Html.Attributes exposing (style, class, attribute, contenteditable)
-import Html.Blend as Blend
-import Product exposing (..)
+import Model.Html.Blend as Blend
 import Json.Encode as E
 
-import Model exposing (UiMode(..))
-import Product
+import Model.AppMode exposing (UiMode(..))
+import Model.Product as Product exposing (Product)
+import Model.Product exposing (..)
 
 
 -- type alias Model = {}

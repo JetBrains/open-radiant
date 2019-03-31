@@ -1,4 +1,4 @@
-module Product exposing
+module Model.Product exposing
     ( Product(..)
     , Palette
     , getPalette

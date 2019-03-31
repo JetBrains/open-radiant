@@ -8,11 +8,13 @@ import Gui.Nest exposing (..)
 
 import Layer.FSS as FSS
 
-import WebGL.Blend as WGLBlend
-import Html.Blend as HtmlBlend
-
-import Product as Product
-import Model exposing (..)
+import Model.AppMode exposing (UiMode(..))
+import Model.Core exposing (..)
+import Model.Product as Product exposing (Product(..))
+import Model.SizeRule exposing (..)
+import Model.Layer exposing (..)
+import Model.WebGL.Blend as WGLBlend
+import Model.Html.Blend as HtmlBlend
 
 
 gui : Model -> Gui.Model Msg

@@ -5,11 +5,15 @@ module Navigation exposing
     , onUrlRequest
     )
 
+
 import Browser
 import Browser.Navigation exposing (..)
 import Url exposing (..)
 
-import Model exposing (..)
+
+import Model.AppMode exposing (..)
+import Model.SizeRule exposing (..)
+import Model.Core exposing (..)
 
 
 type alias Fragment = String

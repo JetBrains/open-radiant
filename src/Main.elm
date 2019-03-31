@@ -22,18 +22,26 @@ import WebGL.Settings.Blend as B
 import WebGL.Settings exposing (sampleAlphaToCoverage)
 import WebGL.Settings.DepthTest as DepthTest
 
-import Model exposing (..)
+import Model.Core exposing (..)
+import Model.Core as Model exposing (init)
+import Model.AppMode exposing (..)
+import Model.Product exposing (Product)
+import Model.Product as Product
+import Model.Constants exposing (..)
+import Model.Layer exposing (..)
+import Model.SizeRule exposing (..)
+import Model.Error exposing (..)
+import Model.ImportExport as IE
+import Model.WebGL.Blend as WGLBlend
+import Model.Html.Blend as HtmlBlend
+
 import Gui.Gui as Gui
 import Gui.Mouse exposing (Position)
 import TronGui as Gui
 import Viewport exposing (Viewport)
 import RenderQueue as RQ
-import WebGL.Blend as WGLBlend
-import Html.Blend as HtmlBlend
+
 import Controls
-import ImportExport as IE
-import Product exposing (Product)
-import Product as Product
 import Navigation as Nav
 
 import Layer.Lorenz as Lorenz

@@ -1,4 +1,4 @@
-module Html.Blend exposing
+module Model.Html.Blend exposing
     ( Blend(..)
     , PortBlend
     , default

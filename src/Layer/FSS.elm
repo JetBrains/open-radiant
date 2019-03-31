@@ -31,9 +31,7 @@ import WebGL.Settings exposing (Setting)
 
 
 import Viewport exposing (Viewport)
-import Product exposing (ProductId)
-
-
+import Model.Product exposing (ProductId)
 
 
 type alias Mouse = { x: Int, y: Int }
