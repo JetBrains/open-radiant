@@ -377,6 +377,8 @@ setTimeout(() => {
 
         app.ports.requestFssRebuild.subscribe(({ layer : index, model, value : fssModel }) => {
             const layer = model.layers[index];
+            //console.log(model.layers);
+            //console.log('requestFssRebuild', index, model.layers[index], isFss(layer));
             if (isFss(layer)) {
                 // console.log('forced to rebuild FSS layer', index);
                 // FIXME: just use layer.model instead of `fssModel`

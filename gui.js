@@ -14,7 +14,6 @@ const update = (gui) => () => {
 }
 
 const getSizeSet = (mode, constants) => {
-  //console.log(constants);
   const modeValues = constants['sizes'].filter(s => s.mode == mode);
   if (modeValues.length < 1) return [];
   let sizeSet = {};

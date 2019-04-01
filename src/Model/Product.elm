@@ -48,29 +48,29 @@ type Product
 
 allProducts : List Product
 allProducts =
-    [ JetBrains
-    , IntelliJ
-    , PhpStorm
-    , PyCharm
-    , RubyMine
-    , WebStorm
-    , CLion
-    , DataGrip
-    , AppCode
-    , GoLand
-    , ReSharper
-    , ReSharperCpp
-    , DotCover
-    , DotMemory
-    , DotPeek
-    , DotTrace
-    , Rider
-    , TeamCity
-    , YouTrack
-    , UpSource
-    , Hub
-    , Kotlin
-    , MPS
+    [ JetBrains -- 0
+    , IntelliJ -- 1
+    , PhpStorm -- 2
+    , PyCharm -- 3
+    , RubyMine -- 4
+    , WebStorm -- 5
+    , CLion -- 6
+    , DataGrip -- 7
+    , AppCode -- 8
+    , GoLand -- 9
+    , ReSharper -- 10
+    , ReSharperCpp -- 11
+    , DotCover -- 12
+    , DotMemory -- 13
+    , DotPeek -- 14
+    , DotTrace -- 15
+    , Rider -- 16
+    , TeamCity -- 17
+    , YouTrack -- 18
+    , UpSource -- 19
+    , Hub -- 20
+    , Kotlin -- 21
+    , MPS -- 22
     ]
 
 
@@ -108,7 +108,6 @@ getPalette product =
         Hub -> [ "#00b8f1", "#9758fb", "#ffee45" ]
         Kotlin -> [ "#22b1ef", "#9062f7", "#fd8224" ]
         MPS -> [ "#0b8fff", "#21d789", "#ffdc52" ]
-
 
 
 getName : Product -> String

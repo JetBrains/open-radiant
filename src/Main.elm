@@ -100,22 +100,22 @@ init flags url _ =
 
 initialLayers : AppMode -> List ( LayerKind, String, LayerModel )
 initialLayers mode =
-    -- [ ( Fss, "Lower Layer", FssModel FSS.init )
-    -- , ( Fss, "Mid Layer", FssModel FSS.init )
-    -- , ( Fss, "Top layer"
-    --   , let
-    --         fssModel = FSS.init
-    --     in
-    --         { fssModel
-    --         | renderMode = FSS.PartialLines
-    --         , shareMesh = True
-    --         } |> FssModel
-    --   )
-    -- , ( Cover, "Cover", CoverModel Cover.init )
-    -- ]
-    -- -- [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
-    [ ( Fluid, "Fluid", FluidModel Fluid.init )
+    [ ( Fss, "Lower Layer", FssModel FSS.init )
+    , ( Fss, "Mid Layer", FssModel FSS.init )
+    , ( Fss, "Top layer"
+      , let
+            fssModel = FSS.init
+        in
+            { fssModel
+            | renderMode = FSS.PartialLines
+            , shareMesh = True
+            } |> FssModel
+      )
+    , ( Cover, "Cover", CoverModel Cover.init )
     ]
+    -- -- [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
+    -- [ ( Fluid, "Fluid", FluidModel Fluid.init )
+    -- ]
     |> List.filter (\(kind, _, _) ->
         case ( kind, mode ) of
             ( Cover, Ads ) -> False
@@ -358,7 +358,7 @@ update msg model =
 
         ChangeProduct product ->
             let modelWithProduct = { model | product = product }
-            in ( modelWithProduct, rebuildAllFssLayersWith model )
+            in ( modelWithProduct, rebuildAllFssLayersWith modelWithProduct )
 
         Configure index layerModel ->
             ( model |> updateLayer index
@@ -992,15 +992,20 @@ rebuildAllFssLayersWith model =
             case layerDef.model of
                 FssModel fssModel -> Just fssModel
                 _ -> Nothing
-        rebuildPotentialFss index fssModel =
+        rebuildPotentialFss ( index, fssModel ) =
             requestFssRebuild
                 { layer = index
                 , model = IE.encodePortModel model
                 , value = IE.encodeFss fssModel model.product
                 }
     in
-        List.filterMap isLayerFss model.layers
-          |> List.indexedMap rebuildPotentialFss
+        model.layers
+          |> List.indexedMap Tuple.pair
+          |> List.filterMap
+                (\(index, layer) ->
+                    isLayerFss layer |> Maybe.map (Tuple.pair index)
+                )
+          |> List.map rebuildPotentialFss
           |> Cmd.batch
 
 
@@ -1017,9 +1022,14 @@ generateAllMetaballs model =
                 MetaballsModel metaballsModel -> Just metaballsModel
                 _ -> Nothing
     in
-        List.filterMap isMetaballLayer model.layers
-            |> List.indexedMap (\index _ -> generateMetaballs palette model.size index)
-            |> Cmd.batch
+        model.layers
+          |> List.indexedMap Tuple.pair
+          |> List.filterMap
+                (\(index, layer) ->
+                    isMetaballLayer layer |> Maybe.map (Tuple.pair index)
+                )
+          |> List.map (\(index, _) -> generateMetaballs palette model.size index)
+          |> Cmd.batch
 
 
 generateMetaballs : Product.Palette -> SizeRule -> LayerIndex -> Cmd Msg

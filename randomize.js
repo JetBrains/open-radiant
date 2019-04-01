@@ -135,7 +135,7 @@ const randomize = (applyRandomizer, model, updateGui) => (config) => () => {
     });
     // console.log(toSend);
 
-    // toSend.layers = model.layers.reverse().map((layerDef, index) => {
+    // toSend.layers = model.layers.concat([]).reverse().map((layerDef, index) => {
     //     return layerDef;
     // });
     if (updateGui) updateGui();
