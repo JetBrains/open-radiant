@@ -13,7 +13,10 @@ module Model.Core exposing
     , TimeDelta, Pos, Size
     )
 
-import Array
+import Array 
+import Array exposing (Array)
+
+import WebGL.Texture exposing (Texture)
 
 import Model.Layer exposing (..)
 import Model.AppMode exposing (..)
@@ -87,6 +90,8 @@ type Msg
     | ShiftColor LayerIndex FSS.ColorShiftPatch
     | ChangeOpacity LayerIndex FSS.Opacity
     | RebuildMetaballs LayerIndex Metaballs.Model
+    | LoadGradientTextures (List String)
+    | ApplyGradientTextures (List Texture) 
     | Randomize
     | ApplyRandomizer PortModel
     | SavePng
@@ -284,7 +289,6 @@ updateLayer index f model =
             { layerDef
             | layer = f layerDef.layer layerDef.model
             })
-
 
 
 updateLayerDef

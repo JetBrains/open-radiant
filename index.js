@@ -7,7 +7,8 @@ require('./src/Gui/Gui.css');
 
 const deepClone = require('./deep-clone.js');
 const randomize = require('./randomize.js');
-const isFss = require('./is-fss.js');
+const buildGradients = require('./gradients.js');
+const is = require('./check-layer-type.js');
 const drawToCanvas = require('./draw-to-canvas.js');
 const JSZip = require('jszip');
 const JSZipUtils = require('jszip-utils');
@@ -55,7 +56,7 @@ const import_ = (app, parsedState) => {
     app.ports.import_.send(JSON.stringify(preparedModel));
 
     parsedState.layers.map((layer, index) => {
-        if (isFss(layer)) {
+        if (is.fss(layer)) {
             const fssScene = buildFSS(parsedState, layer.model, layer.sceneFuzz);
             fssScenes[index] = fssScene;
             app.ports.rebuildFss.send({ value: fssScene, layer: index });
@@ -69,7 +70,7 @@ const export_ = (app, exportedState) => {
     app.ports.pause.send(null);
     const stateObj = JSON.parse(exportedState);
     stateObj.layers.forEach((layer, index) => {
-        layer.sceneFuzz = isFss(layer)
+        layer.sceneFuzz = is.fss(layer)
             ? exportScene(fssScenes[index]) || exportScene(buildFSS(model, layer.model))
             : null;
     })
@@ -367,19 +368,24 @@ setTimeout(() => {
         }
 
         model.layers.forEach((layer, index) => {
-            if (isFss(layer)) {
+            if (is.fss(layer)) {
                 // console.log('rebuild FSS layer', index);
                 const fssScene = buildFSS(model, layer.model);
                 fssScenes[index] = fssScene;
                 app.ports.rebuildFss.send({ value: fssScene, layer: index });
             }
+            if (is.fluid(layer)) {
+                const gradients = buildGradients(model, layer.model);
+                app.ports.loadGradients.send({ value: gradients, layer: index });
+            }
+
         });
 
         app.ports.requestFssRebuild.subscribe(({ layer : index, model, value : fssModel }) => {
             const layer = model.layers[index];
             //console.log(model.layers);
-            //console.log('requestFssRebuild', index, model.layers[index], isFss(layer));
-            if (isFss(layer)) {
+            //console.log('requestFssRebuild', index, model.layers[index], is.fss(layer));
+            if (is.fss(layer)) {
                 // console.log('forced to rebuild FSS layer', index);
                 // FIXME: just use layer.model instead of `fssModel`
                 const fssScene = buildFSS(model, fssModel);

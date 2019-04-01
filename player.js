@@ -1,5 +1,5 @@
 const buildFSS = require('./fss.js');
-const isFss = require('./is-fss.js');
+const is = require('./check-layer-type.js');
 const deepClone = require('./deep-clone.js')
 const App = require('./src/Main.elm');
 
@@ -10,7 +10,7 @@ const import_ = (app, importedState) => {
 
     app.ports.requestFssRebuild.subscribe(({ layer : index, model, value : fssModel }) => {
         const layer = model.layers[index];
-        if (isFss(layer)) {
+        if (is.fss(layer)) {
             //console.log('forced to rebuild FSS layer', index);
             // FIXME: just use layer.model instead of `fssModel`
             const fssScene = buildFSS(model, fssModel, parsedState.layers[index].sceneFuzz);

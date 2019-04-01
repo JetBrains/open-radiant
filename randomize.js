@@ -11,7 +11,7 @@ const {
     factorKeys,
     setsKeys
 } = require('./constants.js');
-const isFss = require('./is-fss.js');
+const is = require('./check-layer-type.js');
 
 const randomize = (applyRandomizer, model, updateGui) => (config) => () => {
     const toSend = deepClone(model);
@@ -28,7 +28,7 @@ const randomize = (applyRandomizer, model, updateGui) => (config) => () => {
 
     toSend.layers.forEach((layerDef, index) => {
         // .visible
-        if (isFss(layerDef)) {
+        if (is.fss(layerDef)) {
           const mirror = Math.random() > 0.5 ? true : false;
           layerDef.model.mirror = mirror;
           config['mirror' + index] = mirror;

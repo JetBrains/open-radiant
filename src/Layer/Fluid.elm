@@ -4,23 +4,33 @@ module Layer.Fluid exposing
     , makeEntity
     , build
     , init
+    , loadTextures
     )
+
+import Array exposing (Array)
+import Task
 
 import Math.Vector3 as Vec3 exposing (vec3, Vec3)
 import WebGL
 import WebGL.Settings exposing (Setting)
+import WebGL.Texture as Texture
+import WebGL.Texture exposing (Texture)
 
 import Viewport exposing (Viewport)
 
 
-type alias Model = {}
+type alias Model = 
+    { textures: List Texture 
+    }
 
 
 type alias Mesh = WebGL.Mesh Vertex
 
 
 init : Model
-init = {}
+init = 
+    { textures = [] 
+    }
 
 
 makeEntity : Viewport {} -> List Setting -> Mesh -> WebGL.Entity
@@ -50,17 +60,24 @@ build model =
           , Vertex (vec3 1 1 0) (vec3 0 1 0)
           , Vertex (vec3 1 -1 0) (vec3 0 0 1)
           ),
-
-        ( Vertex (vec3 -1 1 0) (vec3 1 0 0)
-        , Vertex (vec3 -1 -1 0) (vec3 0 1 0)
-        , Vertex (vec3 1 -1 0) (vec3 0 0 1)
-        )
-
-
-
-        ]
+          ( Vertex (vec3 -1 1 0) (vec3 1 0 0)
+          , Vertex (vec3 -1 -1 0) (vec3 0 1 0)
+          , Vertex (vec3 1 -1 0) (vec3 0 0 1)
+          )
+      ]
 
 
+loadTextures : List String -> (List Texture -> msg) -> (Texture.Error -> msg) -> Cmd msg
+loadTextures gradientUrls success fail = 
+    gradientUrls
+        |> List.map Texture.load
+        |> Task.sequence
+        |> Task.attempt
+            (\result ->
+                case result of
+                    Err error -> fail error
+                    Ok textures -> success textures
+            )
 
 -- Shaders
 

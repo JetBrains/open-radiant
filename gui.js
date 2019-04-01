@@ -1,6 +1,6 @@
 const deepClone = require('./deep-clone.js');
 const C = require('./constants.js');
-const isFss = require('./is-fss.js');
+const is = require('./check-layer-type.js');
 const randomize = require('./randomize.js');
 const dat = require('dat.gui');
 
@@ -69,7 +69,7 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
 
       this['visible' + index] = true;
 
-      if (isFss(layer)) {
+      if (is.fss(layer)) {
         this['mirror' + index] =  layer.model.mirror;
         this['renderMode' + index] = 'triangles';
         this['lightSpeed' + index] = layer.model.lightSpeed;
@@ -239,7 +239,7 @@ function start(document, model, constants, funcs) {
     }
 
     function addLayerProps(folder, config, layer, index) {
-      if (isFss(layer)) {
+      if (is.fss(layer)) {
         const mirrorSwitch = folder.add(config, 'mirror' + index).name('rorschach');
         const lightSpeed = folder.add(config, 'lightSpeed' + index).name('light pace')
                                  .min(100).max(2000);

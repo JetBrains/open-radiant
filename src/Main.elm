@@ -100,22 +100,22 @@ init flags url _ =
 
 initialLayers : AppMode -> List ( LayerKind, String, LayerModel )
 initialLayers mode =
-    [ ( Fss, "Lower Layer", FssModel FSS.init )
-    , ( Fss, "Mid Layer", FssModel FSS.init )
-    , ( Fss, "Top layer"
-      , let
-            fssModel = FSS.init
-        in
-            { fssModel
-            | renderMode = FSS.PartialLines
-            , shareMesh = True
-            } |> FssModel
-      )
-    , ( Cover, "Cover", CoverModel Cover.init )
-    ]
+--    [ ( Fss, "Lower Layer", FssModel FSS.init )
+--    , ( Fss, "Mid Layer", FssModel FSS.init )
+--    , ( Fss, "Top layer"
+--      , let
+--            fssModel = FSS.init
+--        in
+--            { fssModel
+--            | renderMode = FSS.PartialLines
+--            , shareMesh = True
+--            } |> FssModel
+--      )
+--    , ( Cover, "Cover", CoverModel Cover.init )
+--    ]
     -- -- [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
-    -- [ ( Fluid, "Fluid", FluidModel Fluid.init )
-    -- ]
+    [ ( Fluid, "Fluid", FluidModel Fluid.init )
+    ]
     |> List.filter (\(kind, _, _) ->
         case ( kind, mode ) of
             ( Cover, Ads ) -> False
@@ -134,7 +134,9 @@ update msg model =
                     ( model |> IE.encodePortModel
                     , makeConstants
                     )
-                , generateAllMetaballs model
+                , if hasMetaballLayers model
+                    then generateAllMetaballs model
+                    else Cmd.none
                 ]
             )
 
@@ -155,7 +157,7 @@ update msg model =
                 newModel =
                     Model.init mode (initialLayers mode) createLayer Gui.gui
                 newModelWithSize =
-                    { model
+                    { newModel
                     | size = rule
                     , origin = getOrigin ( width, height )
                     }
@@ -360,7 +362,7 @@ update msg model =
             let modelWithProduct = { model | product = product }
             in ( modelWithProduct, rebuildAllFssLayersWith modelWithProduct )
 
-        Configure index layerModel ->
+        Configure index _ ->
             ( model |> updateLayer index
                 (\layer curLayerModel ->
                     case layer of
@@ -385,7 +387,7 @@ update msg model =
                                         MirroredFssLayer maybeScene newMesh
                                 ( TemplateLayer _, TemplateModel templateModel ) ->
                                     TemplateLayer (templateModel |> Template.build)
-                                ( VignetteLayer, VignetteModel vignetteModel ) ->
+                                ( VignetteLayer, VignetteModel _ ) ->
                                     VignetteLayer
                                 ( FluidLayer _, FluidModel fluidModel ) ->
                                     FluidLayer (fluidModel |> Fluid.build)
@@ -580,6 +582,19 @@ update msg model =
             , Cmd.none
             )
 
+        LoadGradientTextures gradientUrls -> 
+            ( model
+            , Fluid.loadTextures 
+                gradientUrls 
+                ApplyGradientTextures
+                (\_ -> Debug.log "err" NoOp)
+            )
+
+        ApplyGradientTextures gradientTextures -> 
+            ( model
+            , Cmd.none
+            )
+
         NoOp -> ( model, Cmd.none )
 
 
@@ -666,6 +681,7 @@ subscriptions model =
         , rebuildFss (\{ layer, value } ->
             RebuildFss layer value
           )
+        , loadGradients (\{ value } -> LoadGradientTextures value)
         , applyRandomizer ApplyRandomizer
         , import_ Import
         , pause (\_ -> Pause)
@@ -937,6 +953,11 @@ resizeToViewport =
         Browser.getViewport
 
 
+hasMetaballLayers : Model -> Bool
+hasMetaballLayers model
+    = True -- FIXME: implement, think that on Bang (where it is called) initialLayers could not exist yet
+
+
 rebuildMetaballs : LayerIndex -> Metaballs.Model -> Model -> Model
 rebuildMetaballs index newMetaballsModel model =
     model |> updateLayerWithItsModel
@@ -1067,6 +1088,8 @@ port configureMirroredFss : ({ value: FSS.PortModel, layer: LayerIndex } -> msg)
 port changeProduct : (String -> msg) -> Sub msg
 
 port rebuildFss : ({ value: FSS.SerializedScene, layer: LayerIndex } -> msg) -> Sub msg
+
+port loadGradients : ({ value: List String, layer: LayerIndex } -> msg) -> Sub msg
 
 port turnOn : (LayerIndex -> msg) -> Sub msg
 
