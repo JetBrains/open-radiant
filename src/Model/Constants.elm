@@ -6,6 +6,9 @@ module Model.Constants exposing
 
 import Model.AppMode exposing (..)
 import Model.SizeRule exposing (..)
+import Model.Product as Product
+
+type alias ProductRec = { label : String, id: String, index: Int }
 
 
 type alias Constants =
@@ -17,7 +20,8 @@ type alias Constants =
             , code: SizePresetCode
             }
         }
-    , products : List { product : String, label: String }
+    , products : List ProductRec
+    --, blendFuncs : List String
     }
 
 
@@ -43,5 +47,16 @@ makeConstants =
                       , values = sizePresetsConstants mode
                       }
                    )
-        , products = []
+        , products =
+            Product.allProducts
+                |> List.indexedMap
+                    (\index product ->
+                        { label = Product.getName product
+                        , id = Product.encode product
+                        , index = index
+                        }
+                    )
+        -- TODO: see constants.js
+        -- , blendFuncs =
+        --     Array.map WGLB.allFuncs
         }

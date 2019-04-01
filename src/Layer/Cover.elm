@@ -1,5 +1,6 @@
 module Layer.Cover exposing
-    ( view
+    ( init
+    , view
     )
 
 import Html exposing (..)
@@ -12,7 +13,7 @@ import Model.Product as Product exposing (Product)
 import Model.Product exposing (..)
 
 
--- type alias Model = {}
+type alias Model = {}
 
 
 defaultSize = 110
@@ -25,8 +26,8 @@ scaleFactor : Float
 scaleFactor = 0.1
 
 
--- init : Model
--- init = {}
+init : Model
+init = {}
 
 
 view : AppMode -> Product -> (Int, Int) -> (Int, Int) -> Blend.Blend -> Html a

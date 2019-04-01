@@ -1,5 +1,6 @@
 module Model.Product exposing
     ( Product(..)
+    , allProducts
     , Palette
     , getPalette
     , getName
@@ -45,6 +46,34 @@ type Product
     | MPS
 
 
+allProducts : List Product
+allProducts =
+    [ JetBrains
+    , IntelliJ
+    , PhpStorm
+    , PyCharm
+    , RubyMine
+    , WebStorm
+    , CLion
+    , DataGrip
+    , AppCode
+    , GoLand
+    , ReSharper
+    , ReSharperCpp
+    , DotCover
+    , DotMemory
+    , DotPeek
+    , DotTrace
+    , Rider
+    , TeamCity
+    , YouTrack
+    , UpSource
+    , Hub
+    , Kotlin
+    , MPS
+    ]
+
+
 -- These were the default ones
 
 -- layerOneConfig.lights.ambient = [ '#000000', '#f45b69' ];
@@ -86,7 +115,7 @@ getName : Product -> String
 getName product =
     case product of
         JetBrains -> "JetBrains"
-        IntelliJ -> "Intellij Idea"
+        IntelliJ -> "IntelliJ IDEA"
         PhpStorm -> "PhpStorm"
         PyCharm -> "PyCharm"
         RubyMine -> "RubyMine"
@@ -97,10 +126,10 @@ getName product =
         GoLand -> "GoLand"
         ReSharper -> "ReSharper"
         ReSharperCpp -> "ReSharper C++"
-        DotCover -> "DotCover"
-        DotMemory -> "DotMemory"
-        DotPeek -> "DotPeek"
-        DotTrace -> "DotTrace"
+        DotCover -> "dotCover"
+        DotMemory -> "dotMemory"
+        DotPeek -> "dotPeek"
+        DotTrace -> "dotTrace"
         Rider -> "Rider"
         TeamCity -> "TeamCity"
         YouTrack -> "YouTrack"
@@ -182,6 +211,7 @@ getTextLinePath product =
 getCoverTextSize : Product -> ( Int, Int )
 getCoverTextSize product =
     case product of
+        JetBrains -> ( 90, 90 )
         IntelliJ -> ( 616, 90 )
         PhpStorm -> ( 518, 108 )
         PyCharm ->  ( 479, 108 )
@@ -204,46 +234,46 @@ getCoverTextSize product =
         Hub -> ( 211, 90 )
         Kotlin -> ( 323, 99 )
         MPS -> ( 200, 77 )
-        _ -> ( 90, 90 )
 
 
 getId : Product -> ProductId
 getId product =
-    let
-        labelToId =
-            [ "jetbrains"
-            , "intellij-idea"
-            , "phpstorm"
-            , "pycharm"
-            , "rubymine"
-            , "webstorm"
-            , "clion"
-            , "datagrip"
-            , "appcode"
-            , "goland"
-            , "resharper"
-            , "resharper-cpp"
-            , "dotcover"
-            , "dotmemory"
-            , "dotpeek"
-            , "dottrace"
-            , "rider"
-            , "teamcity"
-            , "youtrack"
-            , "upsource"
-            , "hub"
-            , "kotlin"
-            , "mps"
-            ]
-            |> List.indexedMap
-                (\index label -> ( index, label ))
-    in
-        labelToId
-            |> List.filterMap
-                (\(index, label) ->
-                    if (encode product == label)
-                    then Just index
-                    else Nothing
-                )
-            |> List.head
-            |> Maybe.withDefault -1
+    allProducts
+        |> List.indexedMap Tuple.pair
+        |> List.foldl
+            (\(index, otherProduct) foundAt ->
+                if (foundAt >= 0) then foundAt
+                else
+                    if (product == otherProduct)
+                        then index
+                        else -1
+            )
+            -1
+
+
+twoLetterCode : Product -> String
+twoLetterCode product =
+    case product of
+        JetBrains -> "JETBRAINS_"
+        IntelliJ -> "IJ_"
+        PhpStorm -> "PS_"
+        PyCharm -> "PC_"
+        RubyMine -> "RM_"
+        WebStorm -> "WS_"
+        CLion -> "CL_"
+        DataGrip -> "DG_"
+        AppCode -> "AC_"
+        GoLand -> "GO_"
+        ReSharper -> "R#_"
+        ReSharperCpp -> "R++_"
+        DotCover -> "DC_"
+        DotMemory -> "DM_"
+        DotPeek -> "DP_"
+        DotTrace -> "DT_"
+        Rider -> "RD_"
+        TeamCity -> "TC_"
+        YouTrack -> "YT_"
+        UpSource -> "UP_"
+        Hub -> "HB_"
+        Kotlin -> "KT_"
+        MPS -> "MPS_"

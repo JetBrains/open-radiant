@@ -106,9 +106,19 @@ function start(document, model, constants, funcs) {
     const { mode, layers } = model;
 
     const sizePresetSet = getSizeSet(mode, constants);
+    const products = constants.products;
+    const productToId = {};
+    products.forEach((product) => {
+        productToId[product.label] = product.id;
+    });
+    const productsById = {};
+    products.forEach((product) => {
+      productsById[product.id] = product;
+    });
+
 
     function updateProduct(id) {
-      const product = C.PRODUCTS_BY_ID[id];
+      const product = productsById[id];
       funcs.changeProduct(product.id);
     }
 
@@ -294,13 +304,13 @@ function start(document, model, constants, funcs) {
     const gui = new dat.GUI(/*{ load: JSON }*/);
     const config = new Config(layers, defaults, constants, funcs,
         randomize(funcs.applyRandomizer, model, update(gui)));
-    const product = gui.add(config, 'product', C.PRODUCT_TO_ID);
+    const product = gui.add(config, 'product', productToId);
     const omega = gui.add(config, 'omega').name('vertigo ').min(-1.0).max(1.0).step(0.1);
     const sizePreset = gui.add(config, 'sizePreset', sizePresetSet).name('size');
     // gui.add(config, 'savePng').name('save png');
     if (mode !== 'prod') gui.add(config, 'saveBatch').name('save batch');
     gui.add(config, 'randomize').name('i feel lucky');
-    product.onFinishChange(funcs.changeProduct);
+    product.onFinishChange(updateProduct);
     omega.onFinishChange(funcs.rotate);
     sizePreset.onFinishChange(funcs.resize);
 

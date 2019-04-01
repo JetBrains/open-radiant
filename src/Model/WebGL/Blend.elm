@@ -390,6 +390,15 @@ decodeFunc s =
         _ -> 0 -- B.customAdd f1_ f2_
 
 
+idOfFunc : Int -> String
+idOfFunc n =
+    case n of
+        0 -> "customAdd" -- B.customAdd f1_ f2_
+        1 -> "customSubtract" -- B.customSubtract f1_ f2_
+        2 -> "customReverseSubtract" -- B.customReverseSubtract f1_ f2_
+        _ -> "" -- B.customAdd f1_ f2_
+
+
 decodeFactor : String -> Int
 decodeFactor s =
      case s of
