@@ -1,6 +1,5 @@
 const deepClone = require('./deep-clone.js');
 const {
-    PRODUCTS,
     RENDER_MODES,
     BLEND_FUNCS,
     BLEND_FACTORS,
@@ -13,12 +12,13 @@ const {
 } = require('./constants.js');
 const is = require('./check-layer-type.js');
 
-const randomize = (applyRandomizer, model, updateGui) => (config) => () => {
+const randomize = (applyRandomizer, model, constants, updateGui) => (config) => () => {
     const toSend = deepClone(model);
     const mode = model.mode;
     const omega = Math.random() * 2 - 1;
-    const productIdx = Math.floor(Math.random() * PRODUCTS.length);
-    const product = PRODUCTS[productIdx].id;
+    const products = constants.products;
+    const productIdx = Math.floor(Math.random() * products);
+    const product = products[productIdx].id;
 
     config.product = product;
     config.omega = omega;
@@ -117,7 +117,7 @@ const randomize = (applyRandomizer, model, updateGui) => (config) => () => {
 
             const blendSetIndex = [ Math.floor(Math.random() * Object.values(BLEND_SETS).length) ];
             const blendSet = BLEND_SETS[setsKeys[blendSetIndex]];
-            console.log(config['blendSet' + index], blendSet);
+            //console.log(config['blendSet' + index], blendSet);
             config['blendSet' + index] = blendSet;
             // TODO:
             // layerDef.blend =
