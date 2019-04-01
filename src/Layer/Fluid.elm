@@ -52,9 +52,9 @@ makeEntities viewport model settings mesh =
 
 
 type alias Vertex =
-    { position : Vec3
-    , color : Vec3
-    , coord : Vec2 
+    { a_position : Vec3
+    , a_color : Vec3
+    , a_coord : Vec2 
     }
 
 
@@ -104,12 +104,13 @@ uniforms texture =
     { texture = texture }
 
 
-vertexShader : WebGL.Shader Vertex Uniforms { vcolor : Vec3, vcoord: Vec2 }
+vertexShader : WebGL.Shader Vertex Uniforms { v_color : Vec3, v_coord: Vec2 }
 vertexShader =
     [glsl|
 
-        attribute vec3 position;
-        attribute vec3 color;
+        attribute vec3 a_position;
+        attribute vec3 a_color;
+        attribute vec2 a_coord;
 
         // uniform mat4 cameraTranslate;
         // uniform mat4 cameraRotate;
@@ -117,33 +118,33 @@ vertexShader =
         // uniform mat4 camera;
         // uniform mat4 rotation;
 
-        varying vec3 vcolor;
-        varying vec2 vcoord;
+        varying vec3 v_color;
+        varying vec2 v_coord;
 
         void main () {
             // gl_Position = perspective * camera * rotation * cameraTranslate * cameraRotate * vec4(position, 1.0);
             // gl_Position = perspective * camera * rotation * vec4(position, 1.0);
 //            gl_Position = perspective * camera * rotation * vec4(position, 1.0);
-            gl_Position = vec4(position, 1.0);
-            vcolor = color;
-            vcoord = position.xy;
+            gl_Position = vec4(a_position, 1.0);
+            v_color = a_color;
+            v_coord = a_coord;
         }
 
     |]
 
 
-fragmentShader : WebGL.Shader {} Uniforms { vcolor : Vec3, vcoord: Vec2 }
+fragmentShader : WebGL.Shader {} Uniforms { v_color : Vec3, v_coord: Vec2 }
 fragmentShader =
     [glsl|
 
         precision mediump float;
         uniform sampler2D texture;
-        varying vec3 vcolor;
-        varying vec2 vcoord;
+        varying vec3 v_color;
+        varying vec2 v_coord;
 
         void main () {
             // gl_FragColor = vec4(vcolor, 1.0);
-            gl_FragColor = texture2D(texture, vcoord);
+            gl_FragColor = texture2D(texture, v_coord);
 
         }
 
