@@ -1,5 +1,6 @@
 port module LayersNode exposing (..)
 
+
 import Browser
 import Dict as Dict exposing (Dict)
 import Array as Array exposing (Array)
@@ -9,8 +10,9 @@ import Svg exposing (..)
 import Svg.Attributes as SA exposing (..)
 import Svg.Events as SE exposing (..)
 
-import WebGL.Blend as WGLB
-import Html.Blend as HTMLB
+import Model.WebGL.Blend as WGLB
+import Model.Html.Blend as HTMLB
+
 
 type Blend
     = None

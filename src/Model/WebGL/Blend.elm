@@ -1,4 +1,4 @@
-module WebGL.Blend exposing
+module Model.WebGL.Blend exposing
     ( Blend
     , Color
     , Equation
@@ -388,6 +388,15 @@ decodeFunc s =
         "-" -> 1 -- B.customSubtract f1_ f2_
         "R-" -> 2 -- B.customReverseSubtract f1_ f2_
         _ -> 0 -- B.customAdd f1_ f2_
+
+
+idOfFunc : Int -> String
+idOfFunc n =
+    case n of
+        0 -> "customAdd" -- B.customAdd f1_ f2_
+        1 -> "customSubtract" -- B.customSubtract f1_ f2_
+        2 -> "customReverseSubtract" -- B.customReverseSubtract f1_ f2_
+        _ -> "" -- B.customAdd f1_ f2_
 
 
 decodeFactor : String -> Int

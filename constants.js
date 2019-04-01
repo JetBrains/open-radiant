@@ -1,59 +1,59 @@
-const PRODUCTS = [
-    { label: 'JetBrains', id: 'jetbrains'
-    },  // jetbrains-1
-    { label: 'IntelliJ IDEA', id: 'intellij-idea'
-    },  // idea // IJ_
-    { label: 'PhpStorm', id: 'phpstorm'
-    },  // phpstorm // PS_
-    { label: 'PyCharm', id: 'pycharm'
-    },  // pycharm // PC_
-    { label: 'RubyMine', id: 'rubymine'
-    },  // rubymine // RM_
-    { label: 'WebStorm', id: 'webstorm'
-    },  // webstorm // WS_
-    { label: 'CLion', id: 'clion'
-    },  // clion // CL_
-    { label: 'DataGrip', id: 'datagrip'
-    },  // // DG_
-    { label: 'AppCode', id: 'appcode'
-    },  // appcode // AC_
-    { label: 'GoLand', id: 'goland'
-    },  // goland // GO_
-    { label: 'ReSharper', id: 'resharper'
-    },  // resharper // R#_
-    { label: 'ReSharper C++', id: 'resharper-cpp'
-    },  // // R++_
-    { label: 'dotCover', id: 'dotcover'
-    },  // dotcover // DC_
-    { label: 'dotMemory', id: 'dotmemory'
-    },  // // DM_
-    { label: 'dotPeek', id: 'dotpeek'
-    },  // // DP_
-    { label: 'dotTrace', id: 'dottrace'
-    },  // dottrace // DT_
-    { label: 'Rider', id: 'rider'
-    },  // rider // RD_
-    { label: 'TeamCity', id: 'teamcity'
-    },  // teamcity // TC_
-    { label: 'YouTrack', id: 'youtrack'
-    },  // youtrack // YT_
-    { label: 'Upsource', id: 'upsource'
-    },  // upsource // UP_
-    { label: 'Hub', id: 'hub'
-    },  // hub // HB_
-    { label: 'Kotlin', id: 'kotlin'
-    },   // kotlin // KT_
-    { label: 'MPS', id: 'mps'
-    }  // mps // MPS_
-];
-const PRODUCT_TO_ID = {};
-PRODUCTS.forEach((product) => {
-    PRODUCT_TO_ID[product.label] = product.id;
-});
-const PRODUCTS_BY_ID = {};
-PRODUCTS.forEach((product) => {
-    PRODUCTS_BY_ID[product.id] = product;
-});
+// const PRODUCTS = [
+//     { label: 'JetBrains', id: 'jetbrains'
+//     },  // jetbrains-1
+//     { label: 'IntelliJ IDEA', id: 'intellij-idea'
+//     },  // idea // IJ_
+//     { label: 'PhpStorm', id: 'phpstorm'
+//     },  // phpstorm // PS_
+//     { label: 'PyCharm', id: 'pycharm'
+//     },  // pycharm // PC_
+//     { label: 'RubyMine', id: 'rubymine'
+//     },  // rubymine // RM_
+//     { label: 'WebStorm', id: 'webstorm'
+//     },  // webstorm // WS_
+//     { label: 'CLion', id: 'clion'
+//     },  // clion // CL_
+//     { label: 'DataGrip', id: 'datagrip'
+//     },  // // DG_
+//     { label: 'AppCode', id: 'appcode'
+//     },  // appcode // AC_
+//     { label: 'GoLand', id: 'goland'
+//     },  // goland // GO_
+//     { label: 'ReSharper', id: 'resharper'
+//     },  // resharper // R#_
+//     { label: 'ReSharper C++', id: 'resharper-cpp'
+//     },  // // R++_
+//     { label: 'dotCover', id: 'dotcover'
+//     },  // dotcover // DC_
+//     { label: 'dotMemory', id: 'dotmemory'
+//     },  // // DM_
+//     { label: 'dotPeek', id: 'dotpeek'
+//     },  // // DP_
+//     { label: 'dotTrace', id: 'dottrace'
+//     },  // dottrace // DT_
+//     { label: 'Rider', id: 'rider'
+//     },  // rider // RD_
+//     { label: 'TeamCity', id: 'teamcity'
+//     },  // teamcity // TC_
+//     { label: 'YouTrack', id: 'youtrack'
+//     },  // youtrack // YT_
+//     { label: 'Upsource', id: 'upsource'
+//     },  // upsource // UP_
+//     { label: 'Hub', id: 'hub'
+//     },  // hub // HB_
+//     { label: 'Kotlin', id: 'kotlin'
+//     },   // kotlin // KT_
+//     { label: 'MPS', id: 'mps'
+//     }  // mps // MPS_
+// ];
+// const PRODUCT_TO_ID = {};
+// PRODUCTS.forEach((product) => {
+//     PRODUCT_TO_ID[product.label] = product.id;
+// });
+// const PRODUCTS_BY_ID = {};
+// PRODUCTS.forEach((product) => {
+//     PRODUCTS_BY_ID[product.id] = product;
+// });
 
 
 const BLEND_FUNCS =
@@ -146,9 +146,9 @@ const factorKeys = Object.keys(BLEND_FACTORS);
 const setsKeys = Object.keys(BLEND_SETS);
 
 module.exports = {
-    PRODUCTS,
-    PRODUCT_TO_ID,
-    PRODUCTS_BY_ID,
+    //PRODUCTS,
+    //PRODUCT_TO_ID,
+    //PRODUCTS_BY_ID,
     BLEND_FUNCS,
     BLEND_FUNCS_IDS,
     BLEND_FACTORS,

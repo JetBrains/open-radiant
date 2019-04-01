@@ -3,7 +3,10 @@ module RenderQueue exposing
     , apply
     )
 
-import Model exposing (..)
+import Model.Core exposing (..)
+import Model.Layer exposing (..)
+import Model.SizeRule exposing (..)
+
 import Viewport exposing (Viewport)
 import Viewport
 

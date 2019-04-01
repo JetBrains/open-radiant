@@ -16,7 +16,7 @@ import Html exposing (Html)
 import Svg as S exposing (..)
 import Svg.Attributes as SA exposing (..)
 
-import Product
+import Model.Product as Product
 
 
 -- v = 0.5
@@ -363,14 +363,14 @@ toCircles t (w, h) model =
             ( theGroup.opacity
             , List.indexedMap
                 (\circleIndex (pos, radius) ->
-                    let 
+                    let
                         shiftX = w * sin (t / 2000) * (toFloat circleIndex / 10) * (toFloat groupIndex / 10)
                         shiftY = h * cos (t / 2000) * (toFloat circleIndex / 10) * (toFloat groupIndex / 10)
-                    in     
+                    in
                         circle ( V2.getX pos - shiftX, V2.getY pos - shiftY) radius []
                     -- circle ( (w * sin (t / 2000) * 0.5),(h * cos (t / 2000)) ) radius []
-                        -- [ Translate { from = vec2 0 0, to = vec2 (50 * circleIndex |> toFloat) 100, start = 0, end = 0.5 } 
-                        -- , Translate { from = vec2 0 0, to = vec2 -100 -100, start = 0.5, end = 1.0 } 
+                        -- [ Translate { from = vec2 0 0, to = vec2 (50 * circleIndex |> toFloat) 100, start = 0, end = 0.5 }
+                        -- , Translate { from = vec2 0 0, to = vec2 -100 -100, start = 0.5, end = 1.0 }
                         -- ]
                 )
                 theGroup.circles
@@ -393,10 +393,10 @@ view vp t dt mousePos model =
         groupsCount = List.length model.groups
         ( w, h ) = ( V2.getX vp.size, V2.getY vp.size )
         (Scene groups) = scene t ( w, h ) mousePos <| toCircles t ( w, h ) model
-        drawCircle groupIdx ({ origin, radius, transform }) = 
-                let 
-                    transformTo = V2.add origin transform 
-                in 
+        drawCircle groupIdx ({ origin, radius, transform }) =
+                let
+                    transformTo = V2.add origin transform
+                in
                     S.circle
                         [ SA.cx <| String.fromFloat <| V2.getX transformTo
                         , SA.cy <| String.fromFloat <| V2.getY transformTo
@@ -431,8 +431,8 @@ view vp t dt mousePos model =
                 -- , SA.x1 (V2.getX gradientPos |> String.fromFloat)
                 -- , SA.y1 (V2.getY gradientPos |> String.fromFloat)
                 -- , SA.r (527.5685 * (toFloat (groupIdx + 1)) |> String.fromFloat)
-                , SA.r "527.5685" 
-                , SA.gradientUnits "userSpaceOnUse" 
+                , SA.r "527.5685"
+                , SA.gradientUnits "userSpaceOnUse"
                 ]
                 [ gradientStop 0.0 colorOne opacity
                 , gradientStop 0.5 colorTwo opacity

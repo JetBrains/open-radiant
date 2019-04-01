@@ -1,4 +1,4 @@
-module ImportExport exposing
+module Model.ImportExport exposing
     ( encodeModel
     , decodeModel
     , encodePortModel
@@ -19,14 +19,19 @@ import Json.Decode.Pipeline as D exposing (required, optional, hardcoded)
 import Json.Decode.Extra as D exposing (andMap)
 import Json.Encode as E exposing (encode, Value, string, int, float, bool, list, object)
 
-import WebGL.Blend as WGLBlend
-import Html.Blend as HtmlBlend
+import Model.WebGL.Blend as WGLBlend
+import Model.Html.Blend as HtmlBlend
 
 import Layer.FSS as FSS
 import Layer.Lorenz as Lorenz
-import Product exposing (..)
 
-import Model as M
+import Model.Core as M
+import Model.AppMode as M
+import Model.Layer as M
+import Model.SizeRule as M
+import Model.Error as M
+import Model.Product as Product exposing (Product)
+import Model.Product exposing (..)
 import TronGui as GUI
 
 
@@ -484,7 +489,7 @@ layerModelDecoder kind =
         _ -> D.succeed <| M.initLayerModel kind
 
 
-modelDecoder : M.UiMode -> M.CreateLayer -> M.CreateGui -> D.Decoder M.Model
+modelDecoder : M.AppMode -> M.CreateLayer -> M.CreateGui -> D.Decoder M.Model
 modelDecoder currentMode createLayer createGui =
     let
         createModel
@@ -546,7 +551,7 @@ modelDecoder currentMode createLayer createGui =
             |> D.andThen identity
 
 
-decodeModel : M.UiMode -> M.CreateLayer -> M.CreateGui -> String -> Result String M.Model
+decodeModel : M.AppMode -> M.CreateLayer -> M.CreateGui -> String -> Result String M.Model
 decodeModel currentMode createLayer createGui modelStr =
     D.decodeString (modelDecoder currentMode createLayer createGui) modelStr
         |> Result.mapError D.errorToString
