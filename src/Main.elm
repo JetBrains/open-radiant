@@ -591,7 +591,16 @@ update msg model =
             )
 
         ApplyGradientTextures gradientTextures -> 
-            ( model
+            ( model |> updateLayerWithItsModel 
+                0 
+                (\(layer, layerModel) ->
+                    ( layer
+                    , case layerModel of
+                        FluidModel fluidModel -> 
+                            FluidModel { fluidModel | textures = gradientTextures }
+                        _ -> layerModel
+                    )
+                )
             , Cmd.none
             )
 
@@ -868,12 +877,12 @@ layerToEntities model viewport index layerDef =
                         [ DepthTest.default, WGLBlend.produce blend ]
                         mesh
                     ]
-                ( FluidLayer mesh, _ ) ->
-                    [ Fluid.makeEntity
+                ( FluidLayer mesh, FluidModel fluidModel ) ->
+                    Fluid.makeEntities
                         viewport
+                        fluidModel    
                         [ DepthTest.default, WGLBlend.produce blend ]
                         mesh
-                    ]
                 ( VoronoiLayer mesh, _ ) ->
                     [ Voronoi.makeEntity
                         viewport
