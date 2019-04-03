@@ -879,6 +879,7 @@ layerToEntities model viewport index layerDef =
                     ]
                 ( FluidLayer mesh, FluidModel fluidModel ) ->
                     Fluid.makeEntities
+                        model.now
                         viewport
                         fluidModel    
                         [ DepthTest.default, WGLBlend.produce blend ]

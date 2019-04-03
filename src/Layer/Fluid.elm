@@ -5,13 +5,16 @@ module Layer.Fluid exposing
     , build
     , init
     , loadTextures
+    , generate
+    , generator    
     )
 
 import Array exposing (Array)
+import Random
 import Task
 
-import Math.Vector3 as Vec3 exposing (vec3, Vec3)
-import Math.Vector2 as Vec2 exposing (vec2, Vec2)
+import Math.Vector3 as Vec3 exposing (..)
+import Math.Vector2 as Vec2 exposing (..)
 import WebGL
 import WebGL.Settings exposing (Setting)
 import WebGL.Texture as Texture
@@ -19,23 +22,74 @@ import WebGL.Texture exposing (Texture)
 
 import Viewport exposing (Viewport)
 
+import Model.Product as Product
+
+
+type alias Ball = 
+    { origin : Vec2
+    , radius : Float
+    }
+type alias BallGroup = List Ball
+
 
 type alias Model = 
-    { textures: List Texture 
+    { textures: List Texture
+    , balls: List BallGroup
     }
+
+type alias BallsGenerator = Random.Generator (List BallGroup)
 
 
 type alias Mesh = WebGL.Mesh Vertex
+type alias Time = Float 
 
 
 init : Model
 init = 
     { textures = [] 
+    , balls = []
     }
 
+minGroups = 2
+maxGroups = 3
+minNumberOfBalls = 5
+maxNumberOfBalls = 30
+minRadius = 20
+maxRadius = 200
+-- product = Product.PyCharm
 
-makeEntities : Viewport {} -> Model -> List Setting -> Mesh -> List WebGL.Entity
-makeEntities viewport model settings mesh =
+
+generator : ( Int, Int ) -> BallsGenerator
+generator ( w, h ) =
+    let
+        generatePosition =
+            Random.map2 vec2
+                (Random.float 0 <| toFloat w)
+                (Random.float 0 <| toFloat h)
+        generateRadius = Random.float minRadius maxRadius
+        generateBalls =
+            Random.int minNumberOfBalls maxNumberOfBalls
+                |> Random.andThen
+                    (\numCircles ->
+                        Random.pair generatePosition generateRadius
+                            |> Random.list numCircles
+                    )
+        makeBall (pos, radius) = Ball pos radius
+    in
+        Random.int minGroups maxGroups
+            |> Random.andThen
+                (\numGroups ->
+                    Random.list numGroups generateBalls
+                        |> (Random.map <| List.map <| List.map makeBall)
+                )
+
+
+generate : (Model -> msg) -> Random.Generator Model -> Cmd msg
+generate = Random.generate
+
+
+makeEntities : Time -> Viewport {} -> Model -> List Setting -> Mesh -> List WebGL.Entity
+makeEntities now viewport model settings mesh =
     case List.head model.textures of
         Just firstTexture ->      
             [ WebGL.entityWith
@@ -43,7 +97,7 @@ makeEntities viewport model settings mesh =
                 vertexShader
                 fragmentShader
                 mesh
-                (uniforms firstTexture) ]
+                (uniforms now model.balls firstTexture viewport) ]
         Nothing -> [ ]
 
 
@@ -52,9 +106,7 @@ makeEntities viewport model settings mesh =
 
 
 type alias Vertex =
-    { a_position : Vec3
-    , a_color : Vec3
-    , a_coord : Vec2 
+    { position : Vec3
     }
 
 
@@ -62,16 +114,16 @@ build : Model -> Mesh
 build model =
     let
         topLeft =
-            Vertex (vec3 -1 1 0) (vec3 1 0 0) (vec2 0 1)
+            Vertex (vec3 -1 1 0)
 
         topRight =
-            Vertex (vec3 1 1 0) (vec3 0 1 0) (vec2 1 1)
+            Vertex (vec3 1 1 0)
 
         bottomLeft =
-            Vertex (vec3 -1 -1 0) (vec3 0 0 1) (vec2 0 0)
+            Vertex (vec3 -1 -1 0)
 
         bottomRight =
-            Vertex (vec3 1 -1 0) (vec3 0 0 1) (vec2 1 0)
+            Vertex (vec3 1 -1 0)
     in
         WebGL.triangles 
             [ ( topLeft, topRight, bottomLeft )
@@ -94,58 +146,85 @@ loadTextures gradientUrls success fail =
 -- Shaders
 
 
+ballToVec3 : Ball -> Vec3
+ballToVec3 { radius, origin } =
+    let ( x, y ) = ( Vec2.getX origin, Vec2.getY origin ) 
+    in vec3 x y radius
+
+
 type alias Uniforms =
-   { texture : Texture }
+   { texture : Texture
+   , resolution : Vec2
+   , time : Time
+   , metaballs :  Array Vec3
+   }
 
 
-uniforms : Texture -> Uniforms
-uniforms texture =
-    -- { perspective = Mat4.mul v.perspective v.camera }
-    { texture = texture }
+uniforms : Time -> List BallGroup -> Texture -> Viewport {} -> Uniforms
+uniforms now balls texture v =
+    let
+        width = Vec2.getX v.size
+        height = Vec2.getY v.size
+    in  
+        { texture = texture
+        , resolution = vec2 width height
+        , time = now
+        , metaballs = balls |> List.concatMap (List.map ballToVec3) |> Array.fromList
+        }
 
 
-vertexShader : WebGL.Shader Vertex Uniforms { v_color : Vec3, v_coord: Vec2 }
+vertexShader : WebGL.Shader Vertex Uniforms {}
 vertexShader =
     [glsl|
-
-        attribute vec3 a_position;
-        attribute vec3 a_color;
-        attribute vec2 a_coord;
-
-        // uniform mat4 cameraTranslate;
-        // uniform mat4 cameraRotate;
-        // uniform mat4 perspective;
-        // uniform mat4 camera;
-        // uniform mat4 rotation;
-
-        varying vec3 v_color;
-        varying vec2 v_coord;
-
+        attribute vec3 position;
+ 
         void main () {
-            // gl_Position = perspective * camera * rotation * cameraTranslate * cameraRotate * vec4(position, 1.0);
-            // gl_Position = perspective * camera * rotation * vec4(position, 1.0);
-//            gl_Position = perspective * camera * rotation * vec4(position, 1.0);
-            gl_Position = vec4(a_position, 1.0);
-            v_color = a_color;
-            v_coord = a_coord;
+            gl_Position = vec4(position, 1.0);
+
         }
 
     |]
 
 
-fragmentShader : WebGL.Shader {} Uniforms { v_color : Vec3, v_coord: Vec2 }
+fragmentShader : WebGL.Shader {} Uniforms {}
 fragmentShader =
     [glsl|
 
         precision mediump float;
         uniform sampler2D texture;
-        varying vec3 v_color;
-        varying vec2 v_coord;
+        uniform vec2 resolution;
+        uniform float time;
+        uniform vec3 metaballs[15];
+
+        vec2 vertexOscillators(float t) {
+            return vec2(sin(3.0 * t) * cos(2.0 * t), sin(t + 200.0) * sin(5.0 * t));
+        }   
 
         void main () {
-            // gl_FragColor = vec4(vcolor, 1.0);
-            gl_FragColor = texture2D(texture, v_coord);
-
-        }
+            float v = 0.0;
+            float radius = 2.0;
+            float speed = 1.5;
+            float x = gl_FragCoord.x;
+            float y = gl_FragCoord.y;  
+            vec2 metaball = vec2(800.0, 500.0); 
+            metaball += 350.0 * vertexOscillators( time / 800.0 );
+            float dx =  metaball.x - x;
+            float dy =  metaball.y - y; 
+            float r = 140.6;      
+            v = r*r/(dx*dx + dy*dy);    
+            vec4 color;
+              vec4 textureColor = texture2D(texture, gl_FragCoord.xy / resolution); 
+            if (v > 1.0) {            
+                     
+              float l = length(textureColor);              
+              if(l < 1.05)
+                    {
+                      color = textureColor * 0.7;}
+                      else { color = textureColor * 0.5;}
+                    } else { discard; }
+            gl_FragColor = vec4(textureColor.rgb, 0.8);            
+            }
+         //   gl_FragColor = texture2D(texture, gl_FragCoord.xy / resolution);
+        //}
 
     |]

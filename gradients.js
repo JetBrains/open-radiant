@@ -39,7 +39,7 @@ function generateGradientTextures(model) {
 
         gradientStrings[i] = textureCanvas.toDataURL();
     }
-    console.log(gradientStrings);
+    // console.log(gradientStrings);
 
     return gradientStrings;
 }

@@ -36,12 +36,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/shamansir/lorenz-elm-webgl.git"
+    "url": "git+https://github.com/JetBrains/radiant.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/shamansir/lorenz-elm-webgl/issues"
+    "url": "https://github.com/JetBrains/radiant/issues"
   },
-  "homepage": "https://github.com/shamansir/lorenz-elm-webgl#readme"
+  "homepage": "https://github.com/JetBrains/radiant#readme"
 }
