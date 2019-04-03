@@ -1,7 +1,8 @@
 module Layer.Fluid exposing
     ( Model
     , Mesh
-    , TexturesToLoad
+    , Base64Url(..)
+    , GradientsToLoad
     , Textures
     , makeEntities
     , build
@@ -59,18 +60,17 @@ type alias Textures =
         , data : Texture
         }
 
+type Base64Url = Base64Url String
 
-type alias TexturesToLoad =
-    List
-        { gradient : String
-        , data : String
-        }
+
+type alias GradientsToLoad =
+    List Base64Url
 
 
 init : Model
 init =
     { textures = Nothing
-    , balls = []
+    , balls = [ [ { origin = vec2 50 50, radius = 50.0 } ] ]
     }
 
 
@@ -112,13 +112,21 @@ generate : (Model -> msg) -> Random.Generator Model -> Cmd msg
 generate = Random.generate
 
 
-makeDataTexture : BallGroup -> String
-makeDataTexture _ = encode24 2 2 [1,2,3,4]
+makeDataTexture : BallGroup -> Base64Url
+makeDataTexture _ = Base64Url <| encode24 2 2 [1,2,3,4]
 
 
 packTextures : List Texture -> Textures
 packTextures textures =
-    []
+    let 
+        packTexture items =
+            case items of 
+                a::b::xs -> 
+                    { gradient = a
+                    , data = b 
+                    } :: packTexture xs
+                _ -> []
+    in packTexture textures
 
 
 injectTextures : Textures -> Model -> Model
@@ -185,16 +193,19 @@ build model =
 
 
 loadTextures
-    :  TexturesToLoad
+    :  GradientsToLoad
     -> Model
     -> (List Texture -> msg)
     -> (Texture.Error -> msg)
     -> Cmd msg
-loadTextures texturesToLoad model success fail =
-    texturesToLoad
-        |> List.concatMap
-            (\group ->
-                [ Texture.load group.data, Texture.load group.gradient ])
+loadTextures gradientsToLoad model success fail =
+    gradientsToLoad
+        |> List.map2 Tuple.pair model.balls
+        |> List.foldl 
+            (\( balls, Base64Url gradientUrl ) texturesToLoad -> 
+                let (Base64Url dataUrl) = makeDataTexture balls 
+                in texturesToLoad ++ [ Texture.load gradientUrl, Texture.load dataUrl ]
+            ) []
         |> Task.sequence
         |> Task.attempt
             (\result ->
@@ -275,18 +286,17 @@ fragmentShader =
             float r = 140.6;
             v = r*r/(dx*dx + dy*dy);
             vec4 color;
-              vec4 textureColor = texture2D(texture, gl_FragCoord.xy / resolution);
+            vec4 textureColor = texture2D(gradientTexture, gl_FragCoord.xy / resolution);
             if (v > 1.0) {
-
               float l = length(textureColor);
-              if(l < 1.05)
-                    {
-                      color = textureColor * 0.7;}
-                      else { color = textureColor * 0.5;}
-                    } else { discard; }
+              if (l < 1.05) {
+                color = textureColor * 0.7;
+              } else { 
+                color = textureColor * 0.5;
+              }
+            } else { discard; }
             gl_FragColor = vec4(textureColor.rgb, 0.8);
-            }
-         //   gl_FragColor = texture2D(texture, gl_FragCoord.xy / resolution);
-        //}
+            //gl_FragColor = texture2D(gradientTexture, gl_FragCoord.xy / resolution);
+        }            
 
     |]

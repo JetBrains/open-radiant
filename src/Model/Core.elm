@@ -91,8 +91,8 @@ type Msg
     | ShiftColor LayerIndex FSS.ColorShiftPatch
     | ChangeOpacity LayerIndex FSS.Opacity
     | RebuildMetaballs LayerIndex Metaballs.Model
-    | LoadFluidTextures Fluid.TexturesToLoad
-    | ApplyFluidTextures Fluid.Textures
+    | LoadFluidGradients LayerIndex Fluid.GradientsToLoad
+    | ApplyFluidTextures LayerIndex Fluid.Textures
     | Randomize
     | ApplyRandomizer PortModel
     | SavePng

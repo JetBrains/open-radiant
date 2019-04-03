@@ -582,9 +582,10 @@ update msg model =
             , Cmd.none
             )
 
-        LoadFluidTextures gradientUrls ->
+        LoadFluidGradients layerIndex gradientUrls ->
             ( model
             , model
+                -- FIXME: apply only to the layer by layer index
                 |> getLayerModels (\kind -> if kind == Fluid then False else True)
                 |> List.map (\layerModel ->
                     case layerModel of
@@ -592,22 +593,22 @@ update msg model =
                             Fluid.loadTextures
                                 gradientUrls
                                 fluidModel
-                                (Fluid.packTextures >> ApplyFluidTextures)
+                                (Fluid.packTextures >> ApplyFluidTextures layerIndex)
                                 (\_ -> Debug.log "err" NoOp)
                         _ -> Cmd.none
                    )
                 |> Cmd.batch
             )
 
-        ApplyFluidTextures gradientTextures ->
+        ApplyFluidTextures layerIndex textures ->
             ( model |> updateLayerWithItsModel
-                0
+                0 -- FIXME: update to layerIndex when we will use it
                 (\(layer, layerModel) ->
                     ( layer
                     , case layerModel of
                         FluidModel fluidModel ->
                             fluidModel
-                                |> Fluid.injectTextures gradientTextures
+                                |> Fluid.injectTextures textures
                                 |> FluidModel
                         _ -> layerModel
                     )
@@ -701,8 +702,10 @@ subscriptions model =
         , rebuildFss (\{ layer, value } ->
             RebuildFss layer value
           )
-        , loadFluidTextures (\{ layer, value } ->
-            LoadFluidTextures []
+        , loadFluidGradients (\{ layer, value } ->
+            value 
+                |> List.map Fluid.Base64Url
+                |> LoadFluidGradients layer
           )
         , applyRandomizer ApplyRandomizer
         , import_ Import
@@ -1112,7 +1115,7 @@ port changeProduct : (String -> msg) -> Sub msg
 
 port rebuildFss : ({ value: FSS.SerializedScene, layer: LayerIndex } -> msg) -> Sub msg
 
-port loadFluidTextures : ({ value: List String, layer: LayerIndex } -> msg) -> Sub msg
+port loadFluidGradients : ({ value: List String, layer: LayerIndex } -> msg) -> Sub msg
 
 port turnOn : (LayerIndex -> msg) -> Sub msg
 
