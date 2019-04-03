@@ -269,6 +269,13 @@ fragmentShader =
         uniform vec2 resolution;
         uniform float time;
 
+        float color2float(vec4 color) {
+            return color.z * 255.0
+            + color.y * 256.0 * 255.0
+            + color.x * 256.0 * 256.0 * 255.0
+            ;
+        }
+
         vec2 vertexOscillators(float t) {
             return vec2(sin(3.0 * t) * cos(2.0 * t), sin(t + 200.0) * sin(5.0 * t));
         }
@@ -296,7 +303,10 @@ fragmentShader =
               }
             } else { discard; }
             gl_FragColor = vec4(textureColor.rgb, 0.8);
-            //gl_FragColor = texture2D(gradientTexture, gl_FragCoord.xy / resolution);
+            //float col = color2float(texture2D(dataTexture, gl_FragCoord.xy / resolution));
+            //gl_FragColor = vec4(col / 4.0,0.0,0.0,1.0);  
+              //discard;
+            //gl_FragColor = texture2D(dataTexture, gl_FragCoord.xy / resolution);
         }            
 
     |]
