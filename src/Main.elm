@@ -582,22 +582,33 @@ update msg model =
             , Cmd.none
             )
 
-        LoadGradientTextures gradientUrls -> 
+        LoadFluidTextures gradientUrls ->
             ( model
-            , Fluid.loadTextures 
-                gradientUrls 
-                ApplyGradientTextures
-                (\_ -> Debug.log "err" NoOp)
+            , model
+                |> getLayerModels (\kind -> if kind == Fluid then False else True)
+                |> List.map (\layerModel ->
+                    case layerModel of
+                        FluidModel fluidModel ->
+                            Fluid.loadTextures
+                                gradientUrls
+                                fluidModel
+                                ApplyFluidTextures
+                                (\_ -> Debug.log "err" NoOp)
+                        _ -> Cmd.none
+                   )
+                |> Cmd.batch
             )
 
-        ApplyGradientTextures gradientTextures -> 
-            ( model |> updateLayerWithItsModel 
-                0 
+        ApplyFluidTextures gradientTextures ->
+            ( model |> updateLayerWithItsModel
+                0
                 (\(layer, layerModel) ->
                     ( layer
                     , case layerModel of
-                        FluidModel fluidModel -> 
-                            FluidModel { fluidModel | textures = gradientTextures }
+                        FluidModel fluidModel ->
+                            fluidModel
+                                |> Fluid.injectTextures gradientTextures
+                                |> FluidModel
                         _ -> layerModel
                     )
                 )
@@ -690,7 +701,7 @@ subscriptions model =
         , rebuildFss (\{ layer, value } ->
             RebuildFss layer value
           )
-        , loadGradients (\{ value } -> LoadGradientTextures value)
+        , loadFluidTextures (\{ value } -> LoadFluidTextures value)
         , applyRandomizer ApplyRandomizer
         , import_ Import
         , pause (\_ -> Pause)
@@ -881,7 +892,7 @@ layerToEntities model viewport index layerDef =
                     Fluid.makeEntities
                         model.now
                         viewport
-                        fluidModel    
+                        fluidModel
                         [ DepthTest.default, WGLBlend.produce blend ]
                         mesh
                 ( VoronoiLayer mesh, _ ) ->
@@ -1099,7 +1110,7 @@ port changeProduct : (String -> msg) -> Sub msg
 
 port rebuildFss : ({ value: FSS.SerializedScene, layer: LayerIndex } -> msg) -> Sub msg
 
-port loadGradients : ({ value: List String, layer: LayerIndex } -> msg) -> Sub msg
+port loadFluidTextures : ({ value: List String, layer: LayerIndex } -> msg) -> Sub msg
 
 port turnOn : (LayerIndex -> msg) -> Sub msg
 

@@ -6,14 +6,14 @@ module Model.Core exposing
     , initEmpty
     , getOrigin, adaptSize
     , extractTimeShift, adaptTimeShift
-    , getLayerModel
+    , getLayerModel, getLayerModels
     , updateLayer, updateLayerDef, updateLayerBlend, updateLayerWithItsModel
     , CreateGui
     , hasErrors, addError, addErrors
     , TimeDelta, Pos, Size
     )
 
-import Array 
+import Array
 import Array exposing (Array)
 
 import WebGL.Texture exposing (Texture)
@@ -90,8 +90,8 @@ type Msg
     | ShiftColor LayerIndex FSS.ColorShiftPatch
     | ChangeOpacity LayerIndex FSS.Opacity
     | RebuildMetaballs LayerIndex Metaballs.Model
-    | LoadGradientTextures (List String)
-    | ApplyGradientTextures (List Texture) 
+    | LoadFluidTextures (List String)
+    | ApplyFluidTextures (List Texture)
     | Randomize
     | ApplyRandomizer PortModel
     | SavePng
@@ -276,6 +276,13 @@ getLayerModel index model =
         |> Array.fromList
         |> Array.get index
         |> Maybe.map .model
+
+
+getLayerModels : (LayerKind -> Bool) -> Model -> List LayerModel
+getLayerModels test model =
+    model.layers
+        |> List.filter (\layer -> True)
+        |> List.map .model
 
 
 updateLayer

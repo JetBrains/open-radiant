@@ -376,7 +376,7 @@ setTimeout(() => {
             }
             if (is.fluid(layer)) {
                 const gradients = buildGradients(model, layer.model);
-                app.ports.loadGradients.send({ value: gradients, layer: index });
+                app.ports.loadFluidTextures.send({ value: gradients, layer: index });
             }
 
         });

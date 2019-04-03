@@ -1,12 +1,14 @@
 module Layer.Fluid exposing
     ( Model
     , Mesh
+    , Textures
     , makeEntities
     , build
     , init
     , loadTextures
+    , injectTextures
     , generate
-    , generator    
+    , generator
     )
 
 import Array exposing (Array)
@@ -15,6 +17,8 @@ import Task
 
 import Math.Vector3 as Vec3 exposing (..)
 import Math.Vector2 as Vec2 exposing (..)
+
+import Algorithm.Base64.BMP exposing (encode24)
 import WebGL
 import WebGL.Settings exposing (Setting)
 import WebGL.Texture as Texture
@@ -25,30 +29,40 @@ import Viewport exposing (Viewport)
 import Model.Product as Product
 
 
-type alias Ball = 
+type alias Ball =
     { origin : Vec2
     , radius : Float
     }
+
+
 type alias BallGroup = List Ball
 
 
-type alias Model = 
-    { textures: List Texture
+type alias Model =
+    { textures: Maybe Textures
     , balls: List BallGroup
     }
+
 
 type alias BallsGenerator = Random.Generator (List BallGroup)
 
 
 type alias Mesh = WebGL.Mesh Vertex
-type alias Time = Float 
+type alias Time = Float
+
+
+type alias Textures =
+    { gradients : List Texture
+    , groupData : List Texture
+    }
 
 
 init : Model
-init = 
-    { textures = [] 
+init =
+    { textures = Nothing
     , balls = []
     }
+
 
 minGroups = 2
 maxGroups = 3
@@ -88,18 +102,44 @@ generate : (Model -> msg) -> Random.Generator Model -> Cmd msg
 generate = Random.generate
 
 
+makeDataTexture : BallGroup -> String
+makeDataTexture _ = encode24 2 2 [1,2,3,4]
+
+
+injectTextures : List Texture -> Model -> Model
+injectTextures textures model =
+    model
+
+
+makeEntity
+    :  Time
+    -> Viewport {}
+    -> List Setting
+    -> Mesh
+    -> BallGroup
+    -> Texture
+    -> Texture
+    -> WebGL.Entity
+makeEntity now viewport settings mesh group gradientTexture groupTexture =
+    WebGL.entityWith
+        settings
+        vertexShader
+        fragmentShader
+        mesh
+        (uniforms now group gradientTexture groupTexture viewport)
+
+
+-- TODO: add mouse
 makeEntities : Time -> Viewport {} -> Model -> List Setting -> Mesh -> List WebGL.Entity
 makeEntities now viewport model settings mesh =
-    case List.head model.textures of
-        Just firstTexture ->      
-            [ WebGL.entityWith
-                settings
-                vertexShader
-                fragmentShader
-                mesh
-                (uniforms now model.balls firstTexture viewport) ]
+    case model.textures of
+        Just textures ->
+            List.map3
+                (makeEntity now viewport settings mesh)
+                model.balls
+                textures.gradients
+                textures.groupData
         Nothing -> [ ]
-
 
 
 -- Mesh
@@ -125,15 +165,20 @@ build model =
         bottomRight =
             Vertex (vec3 1 -1 0)
     in
-        WebGL.triangles 
+        WebGL.triangles
             [ ( topLeft, topRight, bottomLeft )
             , ( bottomLeft, topRight, bottomRight )
             ]
 
 
-loadTextures : List String -> (List Texture -> msg) -> (Texture.Error -> msg) -> Cmd msg
-loadTextures gradientUrls success fail = 
-    gradientUrls
+loadTextures
+    :  List String
+    -> Model
+    -> (List Texture -> msg)
+    -> (Texture.Error -> msg)
+    -> Cmd msg
+loadTextures gradientUrls model success fail =
+    (gradientUrls ++ List.map makeDataTexture model.balls)
         |> List.map Texture.load
         |> Task.sequence
         |> Task.attempt
@@ -148,28 +193,32 @@ loadTextures gradientUrls success fail =
 
 ballToVec3 : Ball -> Vec3
 ballToVec3 { radius, origin } =
-    let ( x, y ) = ( Vec2.getX origin, Vec2.getY origin ) 
+    let ( x, y ) = ( Vec2.getX origin, Vec2.getY origin )
     in vec3 x y radius
 
 
 type alias Uniforms =
-   { texture : Texture
+   { gradientTexture : Texture
+   , dataTexture : Texture
    , resolution : Vec2
    , time : Time
    , metaballs :  Array Vec3
    }
 
 
-uniforms : Time -> List BallGroup -> Texture -> Viewport {} -> Uniforms
-uniforms now balls texture v =
+uniforms : Time -> BallGroup -> Texture -> Texture -> Viewport {} -> Uniforms
+uniforms now balls groupTexture dataTexture v =
     let
         width = Vec2.getX v.size
         height = Vec2.getY v.size
-    in  
-        { texture = texture
+    in
+        { gradientTexture = groupTexture
+        , dataTexture = dataTexture
         , resolution = vec2 width height
         , time = now
-        , metaballs = balls |> List.concatMap (List.map ballToVec3) |> Array.fromList
+        , metaballs = balls
+            |> List.map ballToVec3
+            |> Array.fromList
         }
 
 
@@ -177,12 +226,10 @@ vertexShader : WebGL.Shader Vertex Uniforms {}
 vertexShader =
     [glsl|
         attribute vec3 position;
- 
+
         void main () {
             gl_Position = vec4(position, 1.0);
-
         }
-
     |]
 
 
@@ -191,38 +238,38 @@ fragmentShader =
     [glsl|
 
         precision mediump float;
-        uniform sampler2D texture;
+        uniform sampler2D gradientTexture;
+        uniform sampler2D dataTexture;
         uniform vec2 resolution;
         uniform float time;
-        uniform vec3 metaballs[15];
 
         vec2 vertexOscillators(float t) {
             return vec2(sin(3.0 * t) * cos(2.0 * t), sin(t + 200.0) * sin(5.0 * t));
-        }   
+        }
 
         void main () {
             float v = 0.0;
             float radius = 2.0;
             float speed = 1.5;
             float x = gl_FragCoord.x;
-            float y = gl_FragCoord.y;  
-            vec2 metaball = vec2(800.0, 500.0); 
+            float y = gl_FragCoord.y;
+            vec2 metaball = vec2(800.0, 500.0);
             metaball += 350.0 * vertexOscillators( time / 800.0 );
             float dx =  metaball.x - x;
-            float dy =  metaball.y - y; 
-            float r = 140.6;      
-            v = r*r/(dx*dx + dy*dy);    
+            float dy =  metaball.y - y;
+            float r = 140.6;
+            v = r*r/(dx*dx + dy*dy);
             vec4 color;
-              vec4 textureColor = texture2D(texture, gl_FragCoord.xy / resolution); 
-            if (v > 1.0) {            
-                     
-              float l = length(textureColor);              
+              vec4 textureColor = texture2D(texture, gl_FragCoord.xy / resolution);
+            if (v > 1.0) {
+
+              float l = length(textureColor);
               if(l < 1.05)
                     {
                       color = textureColor * 0.7;}
                       else { color = textureColor * 0.5;}
                     } else { discard; }
-            gl_FragColor = vec4(textureColor.rgb, 0.8);            
+            gl_FragColor = vec4(textureColor.rgb, 0.8);
             }
          //   gl_FragColor = texture2D(texture, gl_FragCoord.xy / resolution);
         //}

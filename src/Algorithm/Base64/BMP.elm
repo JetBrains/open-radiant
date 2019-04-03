@@ -60,7 +60,7 @@
 -- https://stackoverflow.com/questions/14963182/how-to-convert-last-4-bytes-in-an-array-to-an-integer
 
 
-module Image.BMP exposing (encode24, encode24With)
+module Algorithm.Base64.BMP exposing (encode24, encode24With)
 
 {-|
 # BMP image creating
