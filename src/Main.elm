@@ -592,7 +592,7 @@ update msg model =
                             Fluid.loadTextures
                                 gradientUrls
                                 fluidModel
-                                ApplyFluidTextures
+                                (Fluid.packTextures >> ApplyFluidTextures)
                                 (\_ -> Debug.log "err" NoOp)
                         _ -> Cmd.none
                    )
@@ -701,7 +701,9 @@ subscriptions model =
         , rebuildFss (\{ layer, value } ->
             RebuildFss layer value
           )
-        , loadFluidTextures (\{ value } -> LoadFluidTextures value)
+        , loadFluidTextures (\{ layer, value } ->
+            LoadFluidTextures []
+          )
         , applyRandomizer ApplyRandomizer
         , import_ Import
         , pause (\_ -> Pause)

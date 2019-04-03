@@ -29,6 +29,7 @@ import Model.Html.Blend as HtmlBlend
 
 import Layer.FSS as FSS
 import Layer.Metaballs as Metaballs
+import Layer.Fluid as Fluid
 
 import Gui.Gui as Gui
 
@@ -90,8 +91,8 @@ type Msg
     | ShiftColor LayerIndex FSS.ColorShiftPatch
     | ChangeOpacity LayerIndex FSS.Opacity
     | RebuildMetaballs LayerIndex Metaballs.Model
-    | LoadFluidTextures (List String)
-    | ApplyFluidTextures (List Texture)
+    | LoadFluidTextures Fluid.TexturesToLoad
+    | ApplyFluidTextures Fluid.Textures
     | Randomize
     | ApplyRandomizer PortModel
     | SavePng

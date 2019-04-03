@@ -1,12 +1,14 @@
 module Layer.Fluid exposing
     ( Model
     , Mesh
+    , TexturesToLoad
     , Textures
     , makeEntities
     , build
     , init
     , loadTextures
     , injectTextures
+    , packTextures
     , generate
     , generator
     )
@@ -52,9 +54,17 @@ type alias Time = Float
 
 
 type alias Textures =
-    { gradients : List Texture
-    , groupData : List Texture
-    }
+    List
+        { gradient : Texture
+        , data : Texture
+        }
+
+
+type alias TexturesToLoad =
+    List
+        { gradient : String
+        , data : String
+        }
 
 
 init : Model
@@ -106,9 +116,14 @@ makeDataTexture : BallGroup -> String
 makeDataTexture _ = encode24 2 2 [1,2,3,4]
 
 
-injectTextures : List Texture -> Model -> Model
+packTextures : List Texture -> Textures
+packTextures textures =
+    []
+
+
+injectTextures : Textures -> Model -> Model
 injectTextures textures model =
-    model
+    { model | textures = Just textures }
 
 
 makeEntity
@@ -117,16 +132,15 @@ makeEntity
     -> List Setting
     -> Mesh
     -> BallGroup
-    -> Texture
-    -> Texture
+    -> { gradient : Texture , data : Texture }
     -> WebGL.Entity
-makeEntity now viewport settings mesh group gradientTexture groupTexture =
+makeEntity now viewport settings mesh group textures  =
     WebGL.entityWith
         settings
         vertexShader
         fragmentShader
         mesh
-        (uniforms now group gradientTexture groupTexture viewport)
+        (uniforms now group textures.gradient textures.data viewport)
 
 
 -- TODO: add mouse
@@ -134,11 +148,10 @@ makeEntities : Time -> Viewport {} -> Model -> List Setting -> Mesh -> List WebG
 makeEntities now viewport model settings mesh =
     case model.textures of
         Just textures ->
-            List.map3
+            List.map2
                 (makeEntity now viewport settings mesh)
                 model.balls
-                textures.gradients
-                textures.groupData
+                textures
         Nothing -> [ ]
 
 
@@ -172,14 +185,16 @@ build model =
 
 
 loadTextures
-    :  List String
+    :  TexturesToLoad
     -> Model
     -> (List Texture -> msg)
     -> (Texture.Error -> msg)
     -> Cmd msg
-loadTextures gradientUrls model success fail =
-    (gradientUrls ++ List.map makeDataTexture model.balls)
-        |> List.map Texture.load
+loadTextures texturesToLoad model success fail =
+    texturesToLoad
+        |> List.concatMap
+            (\group ->
+                [ Texture.load group.data, Texture.load group.gradient ])
         |> Task.sequence
         |> Task.attempt
             (\result ->
