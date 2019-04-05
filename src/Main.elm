@@ -137,6 +137,9 @@ update msg model =
                 , if hasMetaballLayers model
                     then generateAllMetaballs model
                     else Cmd.none
+                , if hasFluidLayers model
+                    then generateAllFluid model
+                    else Cmd.none                    
                 ]
             )
 
@@ -482,6 +485,11 @@ update msg model =
 
         RebuildMetaballs index metaballsModel ->
             ( model |> rebuildMetaballs index metaballsModel
+            , Cmd.none
+            )
+
+        RebuildFluid index fluidModel ->
+            ( model |> rebuildFluid index fluidModel
             , Cmd.none
             )
 
@@ -984,6 +992,11 @@ hasMetaballLayers model
     = True -- FIXME: implement, think that on Bang (where it is called) initialLayers could not exist yet
 
 
+hasFluidLayers : Model -> Bool
+hasFluidLayers model
+    = True -- FIXME: implement, think that on Bang (where it is called) initialLayers could not exist yet
+
+
 rebuildMetaballs : LayerIndex -> Metaballs.Model -> Model -> Model
 rebuildMetaballs index newMetaballsModel model =
     model |> updateLayerWithItsModel
@@ -996,6 +1009,24 @@ rebuildMetaballs index newMetaballsModel model =
                 _ -> layerModel
             )
         )
+
+
+rebuildFluid : LayerIndex -> List Fluid.BallGroup -> Model -> Model
+rebuildFluid index newBalls model =
+    model |> updateLayerWithItsModel
+        index
+        (\(layer, layerModel) ->
+            -- FIXME: why update model in two places??
+            ( layer
+            , case layerModel of
+                FluidModel currentFluidModel -> 
+                    FluidModel 
+                        { currentFluidModel
+                        | balls = newBalls
+                        }
+                _ -> layerModel
+            )
+        )        
 
 
 updateFss : LayerIndex -> (FSS.Model -> FSS.Model) -> Model -> Model
@@ -1084,6 +1115,32 @@ generateMetaballs palette size layerIdx =
     Metaballs.generate
         (RebuildMetaballs layerIdx)
             (Metaballs.generator palette <| getRuleSizeOrZeroes size)
+
+
+-- TODO: combine with generateAllMetaballs
+generateAllFluid : Model -> Cmd Msg
+generateAllFluid model =
+    let
+        isFluidLayer layerDef =
+            case layerDef.model of
+                FluidModel fluidModel -> Just fluidModel
+                _ -> Nothing
+    in
+        model.layers
+          |> List.indexedMap Tuple.pair
+          |> List.filterMap
+                (\(index, layer) ->
+                    isFluidLayer layer |> Maybe.map (Tuple.pair index)
+                )
+          |> List.map (\(index, _) -> generateFluid model.size index)
+          |> Cmd.batch
+
+
+generateFluid : SizeRule -> LayerIndex -> Cmd Msg
+generateFluid size layerIdx =
+    Fluid.generate
+        (RebuildFluid layerIdx)
+            (Fluid.generator <| getRuleSizeOrZeroes size)
 
 
 

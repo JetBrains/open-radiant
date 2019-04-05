@@ -4,6 +4,7 @@ module Layer.Fluid exposing
     , Base64Url(..)
     , GradientsToLoad
     , Textures
+    , BallGroup
     , makeEntities
     , build
     , init
@@ -108,12 +109,12 @@ generator ( w, h ) =
                 )
 
 
-generate : (Model -> msg) -> Random.Generator Model -> Cmd msg
+generate : (List BallGroup -> msg) -> Random.Generator (List BallGroup) -> Cmd msg
 generate = Random.generate
 
 
 makeDataTexture : BallGroup -> Base64Url
-makeDataTexture _ = Base64Url <| encode24 2 2 [1,2,3,4]
+makeDataTexture _ = Base64Url <| encode24 4 4 [102000,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16] 
 
 
 packTextures : List Texture -> Textures
@@ -276,6 +277,7 @@ fragmentShader =
             ;
         }
 
+
         vec2 vertexOscillators(float t) {
             return vec2(sin(3.0 * t) * cos(2.0 * t), sin(t + 200.0) * sin(5.0 * t));
         }
@@ -294,19 +296,22 @@ fragmentShader =
             v = r*r/(dx*dx + dy*dy);
             vec4 color;
             vec4 textureColor = texture2D(gradientTexture, gl_FragCoord.xy / resolution);
-            if (v > 1.0) {
-              float l = length(textureColor);
-              if (l < 1.05) {
-                color = textureColor * 0.7;
-              } else { 
-                color = textureColor * 0.5;
-              }
-            } else { discard; }
-            gl_FragColor = vec4(textureColor.rgb, 0.8);
-            //float col = color2float(texture2D(dataTexture, gl_FragCoord.xy / resolution));
-            //gl_FragColor = vec4(col / 4.0,0.0,0.0,1.0);  
-              //discard;
-            //gl_FragColor = texture2D(dataTexture, gl_FragCoord.xy / resolution);
+         //   if (v > 1.0) {
+         //     float l = length(textureColor);
+         //     if (l < 1.05) {
+         //       color = textureColor * 0.7;
+         //     } else { 
+         //       color = textureColor * 0.5;
+         //     }
+         //   } else { discard; }
+            //gl_FragColor = vec4(textureColor.rgb, 0.8);
+            vec2 coordinate = (vec2(0., 3.)  * 2. + 1.) / (vec2(1., 16.) * 2.);
+            float value = color2float(texture2D(dataTexture, coordinate)); 
+            gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);  
+            if(value == 10200.0) {
+              discard;
+            }
+           // gl_FragColor = texture2D(dataTexture, gl_FragCoord.xy / resolution);
         }            
 
     |]
