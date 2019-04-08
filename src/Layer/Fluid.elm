@@ -22,7 +22,8 @@ import Task
 import Math.Vector3 as Vec3 exposing (..)
 import Math.Vector2 as Vec2 exposing (..)
 
-import Algorithm.Base64.BMP exposing (encode24)
+import Algorithm.Base64.BMP exposing (encode24With)
+import Algorithm.Base64.Image exposing (..)
 import WebGL
 import WebGL.Settings exposing (Setting)
 import WebGL.Texture as Texture
@@ -130,7 +131,7 @@ makeDataTexture group =
         height = maxNumberOfBalls + modBy 4 maxNumberOfBalls 
     --in Base64Url <| encode24 width (Debug.log "heightBy4" <| height + modBy 4 height) (Debug.log "data" data)
     in 
-        ( Base64Url <| encode24 width height (Debug.log "data" data)
+        ( Base64Url <| encode24With  width height (Debug.log "data" data)  {defaultOptions | order = RightUp} 
         , vec2 (toFloat width) (toFloat height)
         ) 
   --  in Base64Url <| encode24  1 20  [1, 2, 3, 4]
@@ -310,11 +311,11 @@ fragmentShader =
         }
 
         vec3 findMetaball(int t) {
-            vec2 coordinateForX = (vec2(t, 0.)  * 2. + 1.) / (dataTextureSize * 2.);
+            vec2 coordinateForX = (vec2(0., t)  * 2. + 1.) / (dataTextureSize * 2.);
             float xValue = color2float( texture2D(dataTexture, coordinateForX));
-            vec2 coordinateForY = (vec2(t, 1.)  * 2. + 1.) / (dataTextureSize * 2.);
+            vec2 coordinateForY = (vec2(1., t)  * 2. + 1.) / (dataTextureSize * 2.);
             float yValue = color2float( texture2D(dataTexture, coordinateForY));
-            vec2 coordinateForR = (vec2(t, 2.)  * 2. + 1.) / (dataTextureSize * 2.);
+            vec2 coordinateForR = (vec2(2., t)  * 2. + 1.) / (dataTextureSize * 2.);
             float rValue = color2float( texture2D(dataTexture, coordinateForR));
             return vec3(xValue, yValue, rValue);
         }
@@ -325,33 +326,37 @@ fragmentShader =
             float speed = 1.5;
             float x = gl_FragCoord.x;
             float y = gl_FragCoord.y;
-            //vec2 metaball = vec2(800.0, 500.0);
-          //  metaball += 350.0 * vertexOscillators( time / 800.0 );
 
-          for (int i = 0; i < 50; i++) {
-            vec3 metaball = findMetaball(i);  
+          for (int i = 0; i < 5; i++) {             
+            vec3 metaball = findMetaball(i);
+            if (metaball.x < resolution.x && metaball.y < resolution.y ){  
             float dx =  metaball.x - x;
             float dy =  metaball.y - y;
             float r = metaball.z;
             v += r*r/(dx*dx + dy*dy);
+            }
           }
             vec4 color;
             vec4 textureColor = texture2D(gradientTexture, gl_FragCoord.xy / resolution);
-         //   if (v > 1.0) {
-         //     float l = length(textureColor);
-         //     if (l < 1.05) {
-         //       color = textureColor * 0.7;
-         //     } else { 
-         //       color = textureColor * 0.5;
-         //     }
-         //   } else { discard; }
-            //gl_FragColor = vec4(textureColor.rgb, 0.8);
-            vec2 coordinate = (vec2(0., 3.)  * 2. + 1.) / (vec2(1., 16.) * 2.);
-            float value = color2float(texture2D(dataTexture, coordinate)); 
-            gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);  
-            if(value == 10200.0) {
-              discard;
-            }
+
+            if (v > 1.0) {
+              float l = length(textureColor);
+              if (l > 1.05) {
+                color = textureColor * 0.7;
+              } else { 
+                color = textureColor * 0.5;
+              }
+            } else { discard; }
+
+            gl_FragColor = vec4(textureColor.rgb, 0.8);
+
+
+           // vec2 coordinate = (vec2(0., 0.)  * 2. + 1.) / (dataTextureSize * 2.);
+           // float value = color2float(texture2D(dataTexture, coordinate)); 
+           // gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);  
+           // if(value == 793.0) {
+            //  discard;
+           // }
            // gl_FragColor = texture2D(dataTexture, gl_FragCoord.xy / resolution);
         }            
 
