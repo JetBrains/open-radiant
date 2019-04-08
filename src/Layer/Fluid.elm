@@ -82,11 +82,11 @@ init =
 
 
 minGroups = 2
-maxGroups = 3
+maxGroups = 5
 minNumberOfBalls = 5
 maxNumberOfBalls = 30
-minRadius = 20
-maxRadius = 200
+minRadius = 10
+maxRadius = 80
 -- product = Product.PyCharm
 
 
@@ -322,18 +322,15 @@ fragmentShader =
 
         void main () {
             float v = 0.0;
-            float radius = 2.0;
             float speed = 1.5;
-            float x = gl_FragCoord.x;
-            float y = gl_FragCoord.y;
 
-          for (int i = 0; i < 5; i++) {             
+          for (int i = 0; i < 50; i++) {             
             vec3 metaball = findMetaball(i);
-            if (metaball.x < resolution.x && metaball.y < resolution.y ){  
-            float dx =  metaball.x - x;
-            float dy =  metaball.y - y;
-            float r = metaball.z;
-            v += r*r/(dx*dx + dy*dy);
+            if (i < ballsQuantity){  
+                float dx =  metaball.x - gl_FragCoord.x;
+                float dy =  metaball.y - gl_FragCoord.y;
+                float r = metaball.z;
+                v += r*r/(dx*dx + dy*dy);
             }
           }
             vec4 color;
