@@ -600,6 +600,7 @@ update msg model =
                         FluidModel fluidModel ->
                             Fluid.loadTextures
                                 gradientUrls
+                                (getRuleSizeOrZeroes model.size)
                                 fluidModel
                                 (Fluid.packTextures >> ApplyFluidTextures layerIndex)
                                 (\_ -> Debug.log "err" NoOp)

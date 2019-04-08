@@ -93,7 +93,7 @@ type Msg
     | RebuildMetaballs LayerIndex Metaballs.Model
     | RebuildFluid LayerIndex (List Fluid.BallGroup)
     | LoadFluidGradients LayerIndex Fluid.GradientsToLoad
-    | ApplyFluidTextures LayerIndex Fluid.Textures
+    | ApplyFluidTextures LayerIndex Fluid.AllTextures
     | Randomize
     | ApplyRandomizer PortModel
     | SavePng
