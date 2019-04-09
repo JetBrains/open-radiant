@@ -14,6 +14,8 @@ import Array
 import Tuple
 import Time
 
+import Math.Vector2 as Vec2
+
 import Json.Decode as D exposing (bool, int, string, float, Decoder, Value)
 import Json.Decode.Pipeline as D exposing (required, optional, hardcoded)
 import Json.Decode.Extra as D exposing (andMap)
@@ -171,8 +173,34 @@ encodeLayerModel layerModel =
                 [ ( "opacity", E.float vignetteModel.opacity )
                 , ( "color", encodeColor vignetteModel.color )
                 ]
-            _ -> []
+            M.FluidModel fluidModel ->
+                let
+                    encodeBall ball = 
+                        E.object 
+                            [ ( "x", E.float <| Vec2.getX ball.origin )
+                            , ( "y", E.float <| Vec2.getY ball.origin )
+                            , ( "r", E.float ball.radius )
+                            ]
+                    encodeStop ( stopPos, stopColor )  = 
+                        E.object 
+                            [ ( "pos", E.float stopPos ) 
+                            , ( "color", E.string stopColor )
+                            ]        
+                    encodeGroup group = 
+                        E.object 
+                            [ ( "balls", E.list encodeBall group.balls )
+                            , ( "gradient"
+                              , group.gradient 
+                                    |> Maybe.map (E.list encodeStop)
+                                    |> Maybe.withDefault E.null
+                              )
+                            ]
 
+                in     
+                    [ ( "groups", E.list encodeGroup fluidModel.groups )
+                    ]  
+            _ -> [] -- FIXME: fail for unknown layer kinds, but don't fail if layer just has empty model
+ 
 
 encodeModel_ : M.Model -> E.Value
 encodeModel_ model =
@@ -484,9 +512,12 @@ layerModelDecoder kind =
                     |> D.andMap (D.field "iris" D.float)
                     |> D.andThen identity
         M.MirroredFss ->
-            layerModelDecoder M.Fss
+            layerModelDecoder M.Fss 
+        -- M.Fluid ->
+        --     D.succeed   ...
         -- TODO: add parsing other models here
-        _ -> D.succeed <| M.initLayerModel kind
+        _ -> D.succeed <| M.initLayerModel kind -- FIXME: Fail to decode if layer is unknown, but don't fail if it just has emprty model
+        -- _ -> D.fail "unknown kind"
 
 
 modelDecoder : M.AppMode -> M.CreateLayer -> M.CreateGui -> D.Decoder M.Model

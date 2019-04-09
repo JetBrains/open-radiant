@@ -1,5 +1,5 @@
 function generateGradientTextures(model, layerModel) {
-    console.log(layerModel);
+    console.log(model, layerModel);
     let colors, vertical, debug;
     const groupCount = 5;
     vertical = Math.random() >= 0.5;
