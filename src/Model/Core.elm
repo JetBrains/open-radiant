@@ -92,8 +92,8 @@ type Msg
     | ChangeOpacity LayerIndex FSS.Opacity
     | RebuildMetaballs LayerIndex Metaballs.Model
     | RebuildFluid LayerIndex (List Fluid.BallGroup)
-    | LoadFluidGradients LayerIndex Fluid.GradientsToLoad
-    | ApplyFluidTextures LayerIndex Fluid.AllTextures
+    | LoadFluidGradients LayerIndex (List Fluid.Base64Url)
+    | ApplyFluidTextures LayerIndex (List { gradient : Fluid.TextureAndSize, data : Fluid.TextureAndSize })
     | Randomize
     | ApplyRandomizer PortModel
     | SavePng

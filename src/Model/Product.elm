@@ -2,6 +2,7 @@ module Model.Product exposing
     ( Product(..)
     , allProducts
     , Palette
+    , Color
     , getPalette
     , getName
     , decode

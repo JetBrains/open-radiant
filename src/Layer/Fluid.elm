@@ -1,10 +1,9 @@
 module Layer.Fluid exposing
     ( Model
     , Mesh
+    , BallGroup    
     , Base64Url(..)
-    , GradientsToLoad
-    , AllTextures
-    , BallGroup
+    , TextureAndSize
     , makeEntities
     , build
     , init
@@ -41,12 +40,19 @@ type alias Ball =
     }
 
 
-type alias BallGroup = List Ball
+type alias BallGroup = 
+    { balls: List Ball
+    , textures: 
+        Maybe 
+            { gradient : TextureAndSize
+            , data : TextureAndSize
+            }
+    , gradient: Maybe Gradient
+    }
 
 
 type alias Model =
-    { textures: Maybe AllTextures
-    , balls: List BallGroup
+    { groups: List BallGroup
     }
 
 
@@ -58,27 +64,25 @@ type alias Time = Float
 
 
 type alias TextureAndSize = ( Texture, Vec2 )
-
-type alias GroupTextures = 
-    { gradient : TextureAndSize
-    , data : TextureAndSize
-    }
-
-type alias AllTextures =
-    List GroupTextures
         
 
 type Base64Url = Base64Url String
 
 
-type alias GradientsToLoad =
-    List Base64Url
+-- type alias GradientsToLoad =
+--     List Base64Url
+
+
+type alias ColorStop = 
+    ( Float, Product.Color )
+
+
+type alias Gradient = List ColorStop
 
 
 init : Model
 init =
-    { textures = Nothing
-    , balls = [ [ { origin = vec2 50 50, radius = 50.0 } ] ]
+    { groups = [ ]
     }
 
 
@@ -91,28 +95,70 @@ maxRadius = 50
 -- product = Product.PyCharm
 
 
-generator : ( Int, Int ) -> BallsGenerator
-generator ( w, h ) =
+generator : ( Int, Int ) -> Product.Palette -> BallsGenerator
+generator ( w, h ) palette =
     let
+        paletteLen = List.length palette
+        loopedPalette = palette ++ (palette |> List.drop 1 |> List.reverse |> List.drop 1)
+        loopedPaletteLen = List.length loopedPalette
+        loopedPaletteArray = Array.fromList loopedPalette
+        addColors shift stops =
+            stops |> 
+                List.indexedMap 
+                    (\index stop -> 
+                        let 
+                            loopedPaletteIndex = modBy loopedPaletteLen <| index + shift
+                        in 
+                            ( stop
+                            , Array.get loopedPaletteIndex loopedPaletteArray 
+                                |> Maybe.withDefault  "" 
+                            )
+                    )
         generatePosition =
             Random.map2 vec2
                 (Random.float 0 <| toFloat w)
                 (Random.float 0 <| toFloat h)
         generateRadius = Random.float minRadius maxRadius
-        generateBalls =
+        generateStopPosition = Random.float 0 1
+        generateStopsWithColors = 
+            Random.int 0 10
+                |> Random.andThen 
+                    (\numStops ->
+                        generateStopPosition |> Random.list numStops
+                    )
+                |> Random.andThen
+                    (\stops -> 
+                        Random.int 0 paletteLen    
+                            |> Random.map (\shift -> addColors shift stops)
+                    )
+        generateGroup =
             Random.int minNumberOfBalls maxNumberOfBalls
                 |> Random.andThen
                     (\numCircles ->
                         Random.pair generatePosition generateRadius
                             |> Random.list numCircles
                     )
+                |> Random.andThen 
+                    (\circles -> 
+                        generateStopsWithColors 
+                            |> Random.map
+                                (\stopsWithColors -> 
+                                    ( circles, stopsWithColors )
+                                )
+                    )
+                |> Random.map     
+                    (\(circles, gradient) -> 
+                        { balls = circles |> List.map makeBall
+                        , textures = Nothing
+                        , gradient = Just gradient
+                        }
+                    )                
         makeBall (pos, radius) = Ball pos radius
     in
         Random.int minGroups maxGroups
             |> Random.andThen
                 (\numGroups ->
-                    Random.list numGroups generateBalls
-                        |> (Random.map <| List.map <| List.map makeBall)
+                    Random.list numGroups generateGroup
                 )
 
 
@@ -120,11 +166,11 @@ generate : (List BallGroup -> msg) -> Random.Generator (List BallGroup) -> Cmd m
 generate = Random.generate
 
 
-makeDataTexture : BallGroup -> ( Base64Url, Vec2 )
-makeDataTexture group = 
+makeDataTexture : List Ball -> ( Base64Url, Vec2 )
+makeDataTexture balls = 
     let addBallData { origin, radius } prevData = 
             prevData ++ [ floor <| Vec2.getX origin, floor <| Vec2.getY origin, floor radius, 0 ]
-        data = group |> List.foldl addBallData [] 
+        data = balls |> List.foldl addBallData [] 
         dataLen =  List.length data
         --width = Debug.log "dataLen" 4
         width = 4
@@ -138,7 +184,7 @@ makeDataTexture group =
   --  in Base64Url <| encode24  1 20  [1, 2, 3, 4]
 
 
-packTextures : List ( Texture, Vec2 ) -> AllTextures
+packTextures : List TextureAndSize -> List { gradient : TextureAndSize, data : TextureAndSize }
 packTextures textures =
     let 
         packTexture items =
@@ -151,9 +197,13 @@ packTextures textures =
     in packTexture textures
 
 
-injectTextures : AllTextures -> Model -> Model
+injectTextures : List { gradient : TextureAndSize, data : TextureAndSize } -> Model -> Model
 injectTextures textures model =
-    { model | textures = Just textures }
+    let
+        addTexture group texturePair =
+            { group | textures = Just texturePair }
+    in     
+        { model | groups = List.map2 addTexture model.groups textures }
 
 
 makeEntity
@@ -161,28 +211,30 @@ makeEntity
     -> Viewport {}
     -> List Setting
     -> Mesh
-    -> BallGroup
+    -> List Ball
     -> { gradient : ( Texture, Vec2 ) , data : ( Texture, Vec2 ) }
     -> WebGL.Entity
-makeEntity now viewport settings mesh group textures  =
+makeEntity now viewport settings mesh balls textures  =
     WebGL.entityWith
         settings
         vertexShader
         fragmentShader
         mesh
-        (uniforms now group textures.gradient textures.data viewport)
+        (uniforms now balls textures.gradient textures.data viewport)
 
 
 -- TODO: add mouse
 makeEntities : Time -> Viewport {} -> Model -> List Setting -> Mesh -> List WebGL.Entity
 makeEntities now viewport model settings mesh =
-    case model.textures of
-        Just textures ->
-            List.map2
-                (makeEntity now viewport settings mesh)
-                model.balls
-                textures
-        Nothing -> [ ]
+    let
+        makeGroupEntity group =
+            group.textures 
+                |> Maybe.map 
+                    (\textures -> 
+                        makeEntity now viewport settings mesh group.balls textures
+                    )
+    in 
+        model.groups |> List.filterMap makeGroupEntity
 
 
 -- Mesh
@@ -215,7 +267,7 @@ build model =
 
 
 loadTextures
-    :  GradientsToLoad
+    :  List Base64Url
     -> (Int, Int)
     -> Model
     -> (List TextureAndSize -> msg)
@@ -225,7 +277,7 @@ loadTextures gradientsToLoad (w, h) model success fail =
     let
         gradientSize = vec2 (toFloat w) (toFloat h)
     in gradientsToLoad
-        |> List.map2 Tuple.pair model.balls
+        |> List.map2 (\group url -> ( group.balls, url )) model.groups
         |> List.foldl 
             (\( balls, Base64Url gradientUrl ) texturesToLoad -> 
                 let ( Base64Url dataUrl, dataTextureSize ) = makeDataTexture balls 
@@ -261,7 +313,7 @@ type alias Uniforms =
    }
 
 
-uniforms : Time -> BallGroup -> TextureAndSize -> TextureAndSize -> Viewport {} -> Uniforms
+uniforms : Time -> List Ball -> TextureAndSize -> TextureAndSize -> Viewport {} -> Uniforms
 uniforms now balls ( groupTexture, _ ) ( dataTexture, dataTextureSize) v =
     let
         width = Vec2.getX v.size

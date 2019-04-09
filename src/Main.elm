@@ -1013,7 +1013,7 @@ rebuildMetaballs index newMetaballsModel model =
 
 
 rebuildFluid : LayerIndex -> List Fluid.BallGroup -> Model -> Model
-rebuildFluid index newBalls model =
+rebuildFluid index newGroups model =
     model |> updateLayerWithItsModel
         index
         (\(layer, layerModel) ->
@@ -1023,7 +1023,7 @@ rebuildFluid index newBalls model =
                 FluidModel currentFluidModel -> 
                     FluidModel 
                         { currentFluidModel
-                        | balls = newBalls
+                        | groups = newGroups
                         }
                 _ -> layerModel
             )
@@ -1122,6 +1122,7 @@ generateMetaballs palette size layerIdx =
 generateAllFluid : Model -> Cmd Msg
 generateAllFluid model =
     let
+        productPalette = Product.getPalette model.product
         isFluidLayer layerDef =
             case layerDef.model of
                 FluidModel fluidModel -> Just fluidModel
@@ -1133,15 +1134,15 @@ generateAllFluid model =
                 (\(index, layer) ->
                     isFluidLayer layer |> Maybe.map (Tuple.pair index)
                 )
-          |> List.map (\(index, _) -> generateFluid model.size index)
+          |> List.map (\(index, _) -> generateFluid model.size productPalette index)
           |> Cmd.batch
 
 
-generateFluid : SizeRule -> LayerIndex -> Cmd Msg
-generateFluid size layerIdx =
+generateFluid : SizeRule -> Product.Palette -> LayerIndex -> Cmd Msg
+generateFluid size palette layerIdx =
     Fluid.generate
         (RebuildFluid layerIdx)
-            (Fluid.generator <| getRuleSizeOrZeroes size)
+            (Fluid.generator (getRuleSizeOrZeroes size) palette)
 
 
 
