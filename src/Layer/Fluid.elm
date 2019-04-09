@@ -56,9 +56,6 @@ type alias Model =
     }
 
 
-type alias BallsGenerator = Random.Generator (List BallGroup)
-
-
 type alias Mesh = WebGL.Mesh Vertex
 type alias Time = Float
 
@@ -95,7 +92,7 @@ maxRadius = 50
 -- product = Product.PyCharm
 
 
-generator : ( Int, Int ) -> Product.Palette -> BallsGenerator
+generator : ( Int, Int ) -> Product.Palette -> Random.Generator Model
 generator ( w, h ) palette =
     let
         paletteLen = List.length palette
@@ -121,7 +118,7 @@ generator ( w, h ) palette =
         generateRadius = Random.float minRadius maxRadius
         generateStopPosition = Random.float 0 1
         generateStopsWithColors = 
-            Random.int 0 10
+            Random.int 2 4
                 |> Random.andThen 
                     (\numStops ->
                         generateStopPosition |> Random.list numStops
@@ -160,9 +157,10 @@ generator ( w, h ) palette =
                 (\numGroups ->
                     Random.list numGroups generateGroup
                 )
+            |> Random.map (\groups -> { groups = groups })
 
 
-generate : (List BallGroup -> msg) -> Random.Generator (List BallGroup) -> Cmd msg
+generate : (Model -> msg) -> Random.Generator Model -> Cmd msg
 generate = Random.generate
 
 
@@ -172,16 +170,12 @@ makeDataTexture balls =
             prevData ++ [ floor <| Vec2.getX origin, floor <| Vec2.getY origin, floor radius, 0 ]
         data = balls |> List.foldl addBallData [] 
         dataLen =  List.length data
-        --width = Debug.log "dataLen" 4
         width = 4
-        --height = Debug.log "height" <| floor <| toFloat dataLen / 4 
         height = maxNumberOfBalls + modBy 4 maxNumberOfBalls 
-    --in Base64Url <| encode24 width (Debug.log "heightBy4" <| height + modBy 4 height) (Debug.log "data" data)
     in 
-        ( Base64Url <| encode24With  width height (Debug.log "data" data)  {defaultOptions | order = RightUp} 
+        ( Base64Url <| encode24With  width height data  {defaultOptions | order = RightUp} 
         , vec2 (toFloat width) (toFloat height)
         ) 
-  --  in Base64Url <| encode24  1 20  [1, 2, 3, 4]
 
 
 packTextures : List TextureAndSize -> List { gradient : TextureAndSize, data : TextureAndSize }
@@ -358,11 +352,6 @@ fragmentShader =
             ;
         }
 
-
-        vec2 vertexOscillators(float t) {
-            return vec2(sin(3.0 * t) * cos(2.0 * t), sin(t + 200.0) * sin(5.0 * t));
-        }
-
         vec3 findMetaball(int t) {
             vec2 coordinateForX = (vec2(0., t)  * 2. + 1.) / (dataTextureSize * 2.);
             float xValue = color2float( texture2D(dataTexture, coordinateForX));
@@ -392,11 +381,10 @@ fragmentShader =
 
             if (v > 1.0) {
               float l = length(textureColor);
-              if (l > 1.05) {
-                color = textureColor * 0.7;
-              } else { 
-                color = textureColor * 0.5;
-              }
+              
+                if (l > 1.05) { color = textureColor * 0.7;
+                    } else { color = textureColor * 0.5;}
+
             } else { discard; }
             gl_FragColor = vec4(textureColor.rgb, 0.8);
         }            

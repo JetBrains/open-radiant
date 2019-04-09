@@ -5,6 +5,7 @@ module Model.ImportExport exposing
     , encodePortLayer
     , decodePortModel
     , encodeFss
+    , encodeLayerModel
     , fromFssPortModel
     , adaptModelDecodeErrors
     )

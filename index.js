@@ -374,11 +374,10 @@ setTimeout(() => {
                 fssScenes[index] = fssScene;
                 app.ports.rebuildFss.send({ value: fssScene, layer: index });
             }
-            if (is.fluid(layer)) {
-                const gradients = buildGradients(model, layer.model);
-                app.ports.loadFluidGradients.send({ value: gradients, layer: index });
-            }
-
+            // if (is.fluid(layer)) {
+            //     const gradients = buildGradients(model, layer.model);
+            //     app.ports.loadFluidGradients.send({ value: gradients, layer: index });
+            // }
         });
 
         app.ports.requestFssRebuild.subscribe(({ layer : index, model, value : fssModel }) => {
@@ -394,6 +393,13 @@ setTimeout(() => {
                 layer.scene = fssScene;
             }
         });
+    });
+
+    app.ports.buildFluidGradients.subscribe(([ index, layerModel ]) => {
+        //if (is.fluid(layer)) {
+            const gradients = buildGradients(layerModel);
+            app.ports.loadFluidGradients.send({ value: gradients, layer: index });
+        //}
     });
 
     app.ports.bang.send(null);

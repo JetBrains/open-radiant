@@ -16,6 +16,7 @@ import Html.Attributes as H
 -- import Html.Events exposing (on, onInput, onMouseUp, onClick)
 import Html.Events as Events exposing (onInput)
 import Json.Decode as D
+import Json.Encode as E
 
 import WebGL exposing (Mesh, Option)
 import WebGL.Settings.Blend as B
@@ -489,8 +490,11 @@ update msg model =
             )
 
         RebuildFluid index fluidModel ->
-            ( model |> rebuildFluid index fluidModel
-            , Cmd.none
+            ( model |> rebuildFluid index fluidModel.groups
+            , buildFluidGradients 
+                ( index
+                , IE.encodeLayerModel <| FluidModel fluidModel 
+                )
             )
 
         ChangeVignette index opacity ->
@@ -1246,6 +1250,8 @@ port requestFssRebuild :
     , model: PortModel
     , value: FSS.PortModel
     } -> Cmd msg
+
+port buildFluidGradients : ( Int, E.Value ) -> Cmd msg    
 
 port sizeChanged : SizeUpdate -> Cmd msg
 
