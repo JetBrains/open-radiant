@@ -85,8 +85,8 @@ minGroups = 2
 maxGroups = 5
 minNumberOfBalls = 5
 maxNumberOfBalls = 30
-minRadius = 10
-maxRadius = 80
+minRadius = 5
+maxRadius = 50
 -- product = Product.PyCharm
 
 
@@ -124,7 +124,7 @@ makeDataTexture group =
     let addBallData { origin, radius } prevData = 
             prevData ++ [ floor <| Vec2.getX origin, floor <| Vec2.getY origin, floor radius, 0 ]
         data = group |> List.foldl addBallData [] 
-        dataLen =  List.length data |> Debug.log "dataLen"
+        dataLen =  List.length data
         --width = Debug.log "dataLen" 4
         width = 4
         --height = Debug.log "height" <| floor <| toFloat dataLen / 4 
@@ -324,15 +324,16 @@ fragmentShader =
             float v = 0.0;
             float speed = 1.5;
 
-          for (int i = 0; i < 50; i++) {             
-            vec3 metaball = findMetaball(i);
-            if (i < ballsQuantity){  
-                float dx =  metaball.x - gl_FragCoord.x;
-                float dy =  metaball.y - gl_FragCoord.y;
-                float r = metaball.z;
-                v += r*r/(dx*dx + dy*dy);
+            for (int i = 0; i < 50; i++) {             
+                if (i < ballsQuantity){  
+                    vec3 metaball = findMetaball(i);
+                    float dx =  metaball.x - gl_FragCoord.x;
+                    float dy =  metaball.y - gl_FragCoord.y;
+                    float r = metaball.z;
+                    v += r*r/(dx*dx + dy*dy);
+                }
             }
-          }
+            
             vec4 color;
             vec4 textureColor = texture2D(gradientTexture, gl_FragCoord.xy / resolution);
 
@@ -344,17 +345,6 @@ fragmentShader =
                 color = textureColor * 0.5;
               }
             } else { discard; }
-
             gl_FragColor = vec4(textureColor.rgb, 0.8);
-
-
-           // vec2 coordinate = (vec2(0., 0.)  * 2. + 1.) / (dataTextureSize * 2.);
-           // float value = color2float(texture2D(dataTexture, coordinate)); 
-           // gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);  
-           // if(value == 793.0) {
-            //  discard;
-           // }
-           // gl_FragColor = texture2D(dataTexture, gl_FragCoord.xy / resolution);
         }            
-
     |]

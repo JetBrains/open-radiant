@@ -6,7 +6,13 @@ function generateGradientTextures(model) {
 
     const gradientStrings = [];
     for (let i = 0; i < groupCount; i++) {
-        colors = colors || [{color: '#000000', stop: 0.0}, {color: '#FFF000', stop: .5}, {color: '#642054', stop: 1.0}];
+        colors = colors ||
+            [
+                {color: '#f38038', stop: Math.random() * 0.3 + 0.2},
+                {color: '#341f49', stop: Math.random() * 0.1 + 0.5},
+                {color: '#ed3d7d', stop: Math.random() * 0.1 + 0.6},
+                {color: '#341f49', stop: Math.random() * 0.7 + 0.3}
+            ];
         vertical = vertical !== undefined ? vertical : false;
     
         const size = 512;
