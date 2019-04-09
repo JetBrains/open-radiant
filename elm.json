@@ -20,11 +20,15 @@
             "elm-community/random-extra": "3.0.0",
             "elm-explorations/linear-algebra": "1.0.3",
             "elm-explorations/webgl": "1.0.1",
-            "newlandsvalley/elm-binary-base64": "1.0.3"
+            "newlandsvalley/elm-binary-base64": "1.0.3",
+            "noahzgordon/elm-color-extra": "1.0.2"
         },
         "indirect": {
+            "avh4/elm-color": "1.0.0",
             "elm/parser": "1.1.0",
+            "elm/regex": "1.0.0",
             "elm/virtual-dom": "1.0.2",
+            "fredcy/elm-parseint": "2.0.1",
             "rtfeldman/elm-iso8601-date-strings": "1.1.2"
         }
     },

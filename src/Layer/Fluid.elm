@@ -24,6 +24,7 @@ import Math.Vector2 as Vec2 exposing (..)
 
 import Algorithm.Base64.BMP exposing (encode24With)
 import Algorithm.Base64.Image exposing (..)
+
 import WebGL
 import WebGL.Settings exposing (Setting)
 import WebGL.Texture as Texture

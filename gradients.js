@@ -1,17 +1,18 @@
-function generateGradientTextures(model) {
-
+function generateGradientTextures(model, layerModel) {
+    console.log(layerModel);
     let colors, vertical, debug;
-
     const groupCount = 5;
+    vertical = Math.random() >= 0.5;
+    
 
     const gradientStrings = [];
     for (let i = 0; i < groupCount; i++) {
-        colors = colors ||
+        colors = 
             [
-                {color: '#f38038', stop: Math.random() * 0.3 + 0.2},
-                {color: '#341f49', stop: Math.random() * 0.1 + 0.5},
-                {color: '#ed3d7d', stop: Math.random() * 0.1 + 0.6},
-                {color: '#341f49', stop: Math.random() * 0.7 + 0.3}
+                {color: model.palette[2], stop: Math.random() * 0.3},
+                {color: model.palette[0], stop: Math.random() * 0.2 + 0.3},
+                {color: model.palette[1], stop: Math.random() * 0.2 + 0.5},
+                {color: model.palette[0], stop: Math.random() * 0.3 + 0.7}
             ];
         vertical = vertical !== undefined ? vertical : false;
     
