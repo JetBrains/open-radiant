@@ -386,6 +386,6 @@ fragmentShader =
                     } else { color = textureColor * 0.5;}
 
             } else { discard; }
-            gl_FragColor = vec4(textureColor.rgb, 0.8);
+            gl_FragColor = vec4(textureColor.rgb, 0.4);
         }            
     |]
