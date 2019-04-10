@@ -404,5 +404,8 @@ fragmentShader =
             //-// #ifdef GL_OES_standard_derivatives
             //-//    gl_FragColor.r = 1.0;
             //-// #endif
-        }
+        
+            
+            gl_FragColor = vec4(textureColor.rgb, 0.4);
+        }            
     |]

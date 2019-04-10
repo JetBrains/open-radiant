@@ -16,9 +16,6 @@ function generateGradientTextures(layerModel) {
                 })
             });
 
-
-
-        console.log(colors);
         vertical = vertical !== undefined ? vertical : false;
     
         const size = 512;
