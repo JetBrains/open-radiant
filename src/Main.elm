@@ -140,7 +140,7 @@ update msg model =
                     else Cmd.none
                 , if hasFluidLayers model
                     then generateAllFluid model
-                    else Cmd.none                    
+                    else Cmd.none
                 ]
             )
 
@@ -491,9 +491,9 @@ update msg model =
 
         RebuildFluid index fluidModel ->
             ( model |> rebuildFluid index fluidModel.groups
-            , buildFluidGradients 
+            , buildFluidGradients
                 ( index
-                , IE.encodeLayerModel <| FluidModel fluidModel 
+                , IE.encodeLayerModel <| FluidModel fluidModel
                 )
             )
 
@@ -716,7 +716,7 @@ subscriptions model =
             RebuildFss layer value
           )
         , loadFluidGradients (\{ layer, value } ->
-            value 
+            value
                 |> List.map Fluid.Base64Url
                 |> LoadFluidGradients layer
           )
@@ -747,13 +747,14 @@ view model =
                 ]
         wrapEntities =
             WebGL.toHtmlWith
-                [ WebGL.antialias
-                , WebGL.alpha True
+                --[ WebGL.antialias
+                [ WebGL.alpha True
                 , WebGL.clearColor 0.0 0.0 0.0 1.0
-                -- , WebGL.depth 0.5
+                --, WebGL.depth 0.5
                 ]
                 [ H.class "webgl-layers", H.class "layers"
                 , width w, height h
+                --, style "transform" "scale(0.5)"
                 , style "display" (if visible then "block" else "none")
                 , Events.onClick TriggerPause
                 ]
@@ -1024,14 +1025,14 @@ rebuildFluid index newGroups model =
             -- FIXME: why update model in two places??
             ( layer
             , case layerModel of
-                FluidModel currentFluidModel -> 
-                    FluidModel 
+                FluidModel currentFluidModel ->
+                    FluidModel
                         { currentFluidModel
                         | groups = newGroups
                         }
                 _ -> layerModel
             )
-        )        
+        )
 
 
 updateFss : LayerIndex -> (FSS.Model -> FSS.Model) -> Model -> Model
@@ -1251,7 +1252,7 @@ port requestFssRebuild :
     , value: FSS.PortModel
     } -> Cmd msg
 
-port buildFluidGradients : ( Int, E.Value ) -> Cmd msg    
+port buildFluidGradients : ( Int, E.Value ) -> Cmd msg
 
 port sizeChanged : SizeUpdate -> Cmd msg
 

@@ -1,3 +1,5 @@
+const ReplaceInFileWebpackPlugin = require('replace-in-file-webpack-plugin');
+
 // webpack.config.js
 module.exports = {
     entry: {
@@ -27,6 +29,19 @@ module.exports = {
         }
       ]
     },
+
+    plugins: [
+      new ReplaceInFileWebpackPlugin([{
+          files: ['app.js'],
+          rules: [
+            {
+              search: /\/\/-\/\//ig,
+              // search: '//-//',
+              replace: ''
+            }
+          ]
+      }])
+    ],
 
     devServer: {
       inline: true,

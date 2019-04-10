@@ -1,7 +1,7 @@
 module Layer.Fluid exposing
     ( Model
     , Mesh
-    , BallGroup    
+    , BallGroup
     , Base64Url(..)
     , TextureAndSize
     , makeEntities
@@ -40,10 +40,10 @@ type alias Ball =
     }
 
 
-type alias BallGroup = 
+type alias BallGroup =
     { balls: List Ball
-    , textures: 
-        Maybe 
+    , textures:
+        Maybe
             { gradient : TextureAndSize
             , data : TextureAndSize
             }
@@ -61,7 +61,7 @@ type alias Time = Float
 
 
 type alias TextureAndSize = ( Texture, Vec2 )
-        
+
 
 type Base64Url = Base64Url String
 
@@ -70,7 +70,7 @@ type Base64Url = Base64Url String
 --     List Base64Url
 
 
-type alias ColorStop = 
+type alias ColorStop =
     ( Float, Product.Color )
 
 
@@ -100,15 +100,15 @@ generator ( w, h ) palette =
         loopedPaletteLen = List.length loopedPalette
         loopedPaletteArray = Array.fromList loopedPalette
         addColors shift stops =
-            stops |> 
-                List.indexedMap 
-                    (\index stop -> 
-                        let 
+            stops |>
+                List.indexedMap
+                    (\index stop ->
+                        let
                             loopedPaletteIndex = modBy loopedPaletteLen <| index + shift
-                        in 
+                        in
                             ( stop
-                            , Array.get loopedPaletteIndex loopedPaletteArray 
-                                |> Maybe.withDefault  "" 
+                            , Array.get loopedPaletteIndex loopedPaletteArray
+                                |> Maybe.withDefault  ""
                             )
                     )
         generatePosition =
@@ -117,15 +117,15 @@ generator ( w, h ) palette =
                 (Random.float 0 <| toFloat h)
         generateRadius = Random.float minRadius maxRadius
         generateStopPosition = Random.float 0 1
-        generateStopsWithColors = 
+        generateStopsWithColors =
             Random.int 2 4
-                |> Random.andThen 
+                |> Random.andThen
                     (\numStops ->
                         generateStopPosition |> Random.list numStops
                     )
                 |> Random.andThen
-                    (\stops -> 
-                        Random.int 0 paletteLen    
+                    (\stops ->
+                        Random.int 0 paletteLen
                             |> Random.map (\shift -> addColors shift stops)
                     )
         generateGroup =
@@ -135,21 +135,21 @@ generator ( w, h ) palette =
                         Random.pair generatePosition generateRadius
                             |> Random.list numCircles
                     )
-                |> Random.andThen 
-                    (\circles -> 
-                        generateStopsWithColors 
+                |> Random.andThen
+                    (\circles ->
+                        generateStopsWithColors
                             |> Random.map
-                                (\stopsWithColors -> 
+                                (\stopsWithColors ->
                                     ( circles, stopsWithColors )
                                 )
                     )
-                |> Random.map     
-                    (\(circles, gradient) -> 
+                |> Random.map
+                    (\(circles, gradient) ->
                         { balls = circles |> List.map makeBall
                         , textures = Nothing
                         , gradient = Just gradient
                         }
-                    )                
+                    )
         makeBall (pos, radius) = Ball pos radius
     in
         Random.int minGroups maxGroups
@@ -165,27 +165,27 @@ generate = Random.generate
 
 
 makeDataTexture : List Ball -> ( Base64Url, Vec2 )
-makeDataTexture balls = 
-    let addBallData { origin, radius } prevData = 
+makeDataTexture balls =
+    let addBallData { origin, radius } prevData =
             prevData ++ [ floor <| Vec2.getX origin, floor <| Vec2.getY origin, floor radius, 0 ]
-        data = balls |> List.foldl addBallData [] 
+        data = balls |> List.foldl addBallData []
         dataLen =  List.length data
         width = 4
-        height = maxNumberOfBalls + modBy 4 maxNumberOfBalls 
-    in 
-        ( Base64Url <| encode24With  width height data  {defaultOptions | order = RightUp} 
+        height = maxNumberOfBalls + modBy 4 maxNumberOfBalls
+    in
+        ( Base64Url <| encode24With  width height data  {defaultOptions | order = RightUp}
         , vec2 (toFloat width) (toFloat height)
-        ) 
+        )
 
 
 packTextures : List TextureAndSize -> List { gradient : TextureAndSize, data : TextureAndSize }
 packTextures textures =
-    let 
+    let
         packTexture items =
-            case items of 
-                a::b::xs -> 
+            case items of
+                a::b::xs ->
                     { gradient = a
-                    , data = b 
+                    , data = b
                     } :: packTexture xs
                 _ -> []
     in packTexture textures
@@ -196,7 +196,7 @@ injectTextures textures model =
     let
         addTexture group texturePair =
             { group | textures = Just texturePair }
-    in     
+    in
         { model | groups = List.map2 addTexture model.groups textures }
 
 
@@ -222,12 +222,12 @@ makeEntities : Time -> Viewport {} -> Model -> List Setting -> Mesh -> List WebG
 makeEntities now viewport model settings mesh =
     let
         makeGroupEntity group =
-            group.textures 
-                |> Maybe.map 
-                    (\textures -> 
+            group.textures
+                |> Maybe.map
+                    (\textures ->
                         makeEntity now viewport settings mesh group.balls textures
                     )
-    in 
+    in
         model.groups |> List.filterMap makeGroupEntity
 
 
@@ -272,12 +272,12 @@ loadTextures gradientsToLoad (w, h) model success fail =
         gradientSize = vec2 (toFloat w) (toFloat h)
     in gradientsToLoad
         |> List.map2 (\group url -> ( group.balls, url )) model.groups
-        |> List.foldl 
-            (\( balls, Base64Url gradientUrl ) texturesToLoad -> 
-                let ( Base64Url dataUrl, dataTextureSize ) = makeDataTexture balls 
-                in texturesToLoad ++ 
+        |> List.foldl
+            (\( balls, Base64Url gradientUrl ) texturesToLoad ->
+                let ( Base64Url dataUrl, dataTextureSize ) = makeDataTexture balls
+                in texturesToLoad ++
                     [ Texture.load gradientUrl |> Task.map (\t -> (t, gradientSize))
-                    , Texture.load dataUrl |> Task.map (\t -> (t, dataTextureSize)) 
+                    , Texture.load dataUrl |> Task.map (\t -> (t, dataTextureSize))
                     ]
             ) []
         |> Task.sequence
@@ -285,7 +285,7 @@ loadTextures gradientsToLoad (w, h) model success fail =
             (\result ->
                 case result of
                     Err error -> fail error
-                    Ok textures -> success textures 
+                    Ok textures -> success textures
             )
 
 -- Shaders
@@ -336,6 +336,9 @@ vertexShader =
 fragmentShader : WebGL.Shader {} Uniforms {}
 fragmentShader =
     [glsl|
+        //-// #ifdef GL_OES_standard_derivatives
+        //-// #extension GL_OES_standard_derivatives : enable
+        //-// #endif
 
         precision mediump float;
         uniform sampler2D gradientTexture;
@@ -343,7 +346,7 @@ fragmentShader =
         uniform vec2 resolution;
         uniform float time;
         uniform int ballsQuantity;
-        uniform vec2 dataTextureSize; 
+        uniform vec2 dataTextureSize;
 
         float color2float(vec4 color) {
             return color.z * 255.0
@@ -366,8 +369,18 @@ fragmentShader =
             float v = 0.0;
             float speed = 1.5;
 
-            for (int i = 0; i < 50; i++) {             
-                if (i < ballsQuantity){  
+            float alpha = 1.0;
+
+            //-// float r;
+            //-// vec2 cxy = 2.0 * gl_PointCoord - 1.0;
+            //-// r = dot(cxy, cxy);
+            //-// #ifdef GL_OES_standard_derivatives
+            //-//    delta = fwidth(r);
+            //-//    alpha = 1.0 - smoothstep(1.0 - delta, 1.0 + delta, r);
+            //-// #endif
+
+            for (int i = 0; i < 50; i++) {
+                if (i < ballsQuantity){
                     vec3 metaball = findMetaball(i);
                     float dx =  metaball.x - gl_FragCoord.x;
                     float dy =  metaball.y - gl_FragCoord.y;
@@ -375,17 +388,17 @@ fragmentShader =
                     v += r*r/(dx*dx + dy*dy);
                 }
             }
-            
+
             vec4 color;
             vec4 textureColor = texture2D(gradientTexture, gl_FragCoord.xy / resolution);
 
             if (v > 1.0) {
               float l = length(textureColor);
-              
+
                 if (l > 1.05) { color = textureColor * 0.7;
                     } else { color = textureColor * 0.5;}
 
             } else { discard; }
-            gl_FragColor = vec4(textureColor.rgb, 0.4);
-        }            
+            gl_FragColor = textureColor * alpha;
+        }
     |]
