@@ -607,7 +607,7 @@ update msg model =
                                 (getRuleSizeOrZeroes model.size)
                                 fluidModel
                                 (Fluid.packTextures >> ApplyFluidTextures layerIndex)
-                                (\_ -> Debug.log "err" NoOp)
+                                (\_ -> NoOp)
                         _ -> Cmd.none
                    )
                 |> Cmd.batch

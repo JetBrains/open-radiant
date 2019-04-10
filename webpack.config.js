@@ -19,7 +19,7 @@ module.exports = {
           exclude: [/elm-stuff/, /node_modules/, /build/],
           use: [
             {
-              loader: "elm-webpack-loader?verbose=true"
+              loader: "elm-webpack-loader?optimize=true"
             }
           ]
         },
@@ -38,6 +38,10 @@ module.exports = {
               search: /\/\/-\/\//ig,
               // search: '//-//',
               replace: ''
+            },
+            {
+              search: 'e.contextAttributes));',
+              replace: 'e.contextAttributes));r.getExtension(\'OES_standard_derivatives\');'
             }
           ]
       }])

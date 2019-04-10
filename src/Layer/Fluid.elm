@@ -371,7 +371,7 @@ fragmentShader =
 
             float alpha = 1.0;
 
-            //-// float r;
+            //-// float r, delta;
             //-// vec2 cxy = 2.0 * gl_PointCoord - 1.0;
             //-// r = dot(cxy, cxy);
             //-// #ifdef GL_OES_standard_derivatives
@@ -400,5 +400,9 @@ fragmentShader =
 
             } else { discard; }
             gl_FragColor = textureColor * alpha;
+
+            //-// #ifdef GL_OES_standard_derivatives
+            //-//    gl_FragColor.r = 1.0;
+            //-// #endif
         }
     |]
