@@ -348,11 +348,21 @@ fragmentShader =
         uniform int ballsQuantity;
         uniform vec2 dataTextureSize;
 
+        float v = 0.0;  
+
+        float noise(vec2 seed, float time) {
+              float x = (seed.x / 3.14159 + 4.0) * (seed.y / 13.0 + 4.0) * ((fract(time) + 1.0) * 10.0);
+              return mod((mod(x, 13.0) + 1.0) * (mod(x, 123.0) + 1.0), 0.01) - 0.005;
+        }  
+          
+        float brightness(vec3 color) {
+              return (0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b);
+        }
+
         float color2float(vec4 color) {
             return color.z * 255.0
             + color.y * 256.0 * 255.0
-            + color.x * 256.0 * 256.0 * 255.0
-            ;
+            + color.x * 256.0 * 256.0 * 255.0;
         }
 
         vec3 findMetaball(int t) {
@@ -366,46 +376,31 @@ fragmentShader =
         }
 
         void main () {
-            float v = 0.0;
-            float speed = 1.5;
-
-            float alpha = 1.0;
-
-            //-// float r, delta;
-            //-// vec2 cxy = 2.0 * gl_PointCoord - 1.0;
-            //-// r = dot(cxy, cxy);
-            //-// #ifdef GL_OES_standard_derivatives
-            //-//    delta = fwidth(r);
-            //-//    alpha = 1.0 - smoothstep(1.0 - delta, 1.0 + delta, r);
-            //-// #endif
+            vec2 cpos = gl_FragCoord.xy;
 
             for (int i = 0; i < 50; i++) {
                 if (i < ballsQuantity){
                     vec3 metaball = findMetaball(i);
-                    float dx =  metaball.x - gl_FragCoord.x;
-                    float dy =  metaball.y - gl_FragCoord.y;
+                    vec2 deltaPos = metaball.xy - cpos;   
                     float r = metaball.z;
-                    v += r*r/(dx*dx + dy*dy);
+                    v += r*r/dot( deltaPos, deltaPos );
                 }
             }
 
-            vec4 color;
-            vec4 textureColor = texture2D(gradientTexture, gl_FragCoord.xy / resolution);
 
-            if (v > 1.0) {
-              float l = length(textureColor);
+            float delta = 0.0;
+            float alpha = 1.0;
+            vec4 color = texture2D(gradientTexture, gl_FragCoord.xy / resolution);
 
-                if (l > 1.05) { color = textureColor * 0.7;
-                    } else { color = textureColor * 0.5;}
+            //-// #ifdef GL_OES_standard_derivatives            
+            //-// delta = fwidth(v);                         
+            //-// if ( v > delta) {
+            //-//   alpha = smoothstep( 1.0 - delta, 1.0 + delta, v );
+            //-// } 
+            //-//  #endif 
 
-            } else { discard; }
-            gl_FragColor = textureColor * alpha;
-
-            //-// #ifdef GL_OES_standard_derivatives
-            //-//    gl_FragColor.r = 1.0;
-            //-// #endif
-
-
-            gl_FragColor = vec4(textureColor.rgb, 0.4);
+            vec2 st = gl_FragCoord.xy / resolution;
+            color.rgb = mix(color.rgb, vec3(noise(st * 1000.0, 1.0) * 100.0), 0.03 / pow(brightness(color.rgb), 0.3));
+            gl_FragColor = color * alpha * 0.8;
         }
     |]
