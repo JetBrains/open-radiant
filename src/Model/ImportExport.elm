@@ -519,16 +519,21 @@ layerModelDecoder kind =
             layerModelDecoder M.Fss
         M.Fluid ->
             let
-                createFluidModel groups =
-                    M.FluidModel
-                        { groups = []
-                        }
                 makeBall =
-                    D.succeed
-                        { origin = Vec2.vec2 1.0 1.0, radius = 10 }
+                    D.map3
+                        (\x y r ->
+                            { origin = Vec2.vec2 x y
+                            , radius = r
+                            }
+                        )
+                        (D.field "x" D.float)
+                        (D.field "y" D.float)
+                        (D.field "r" D.float)
                 makeGradientStop =
-                    D.succeed
-                        ( 1.0, "" )
+                    D.map2
+                        Tuple.pair
+                        (D.field "pos" <| D.float)
+                        (D.field "color" <| D.string)
                 makeGroup =
                     D.map3
                         (\balls textures gradient ->
@@ -539,10 +544,12 @@ layerModelDecoder kind =
                         )
                         (D.field "balls" <| D.list makeBall)
                         (D.field "textures" <| D.succeed Nothing)
-                        (D.field "gradient" <| D.list makeGradientStop)
+                        (D.field "gradient" <| D.maybe <| D.list makeGradientStop)
             in
-                D.map createFluidModel
-                    (D.field "groups" <| D.list makeGroup)
+                D.list makeGroup
+                    |> D.field "groups"
+                    |> D.map (\groups -> { groups = groups })
+                    |> D.map M.FluidModel
         -- TODO: add parsing other models here
         _ -> D.succeed <| M.initLayerModel kind -- FIXME: Fail to decode if layer is unknown, but don't fail if it just has empty model
         -- _ -> D.fail "unknown kind"
