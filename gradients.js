@@ -7,10 +7,9 @@ function generateGradientTextures(layerModel) {
         const colors = [];
         vertical = Math.random() >= 0.5;
 
-        layerModel.groups.forEach(function(group) {
-            group.gradient.forEach(function(stop) {
-                colors.push({color: stop.color, stop: stop.pos})
-            });
+        group = layerModel.groups[i];
+        group.gradient.forEach(function(stop) {
+            colors.push({color: stop.color, stop: stop.pos})
         });
 
         vertical = vertical !== undefined ? vertical : false;
