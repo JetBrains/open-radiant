@@ -38,6 +38,9 @@ import Model.Product exposing (..)
 import TronGui as GUI
 
 
+-- FIXME: Move all the decoding/encoding to the corresponding layers
+
+
 type ModelDecodeError
     = LayerDecodeErrors (List LayerDecodeError)
     | SizeRuleDecodeError String
@@ -176,32 +179,32 @@ encodeLayerModel layerModel =
                 ]
             M.FluidModel fluidModel ->
                 let
-                    encodeBall ball = 
-                        E.object 
+                    encodeBall ball =
+                        E.object
                             [ ( "x", E.float <| Vec2.getX ball.origin )
                             , ( "y", E.float <| Vec2.getY ball.origin )
                             , ( "r", E.float ball.radius )
                             ]
-                    encodeStop ( stopPos, stopColor )  = 
-                        E.object 
-                            [ ( "pos", E.float stopPos ) 
+                    encodeStop ( stopPos, stopColor )  =
+                        E.object
+                            [ ( "pos", E.float stopPos )
                             , ( "color", E.string stopColor )
-                            ]        
-                    encodeGroup group = 
-                        E.object 
+                            ]
+                    encodeGroup group =
+                        E.object
                             [ ( "balls", E.list encodeBall group.balls )
                             , ( "gradient"
-                              , group.gradient 
+                              , group.gradient
                                     |> Maybe.map (E.list encodeStop)
                                     |> Maybe.withDefault E.null
                               )
                             ]
 
-                in     
+                in
                     [ ( "groups", E.list encodeGroup fluidModel.groups )
-                    ]  
+                    ]
             _ -> [] -- FIXME: fail for unknown layer kinds, but don't fail if layer just has empty model
- 
+
 
 encodeModel_ : M.Model -> E.Value
 encodeModel_ model =
@@ -513,11 +516,35 @@ layerModelDecoder kind =
                     |> D.andMap (D.field "iris" D.float)
                     |> D.andThen identity
         M.MirroredFss ->
-            layerModelDecoder M.Fss 
-        -- M.Fluid ->
-        --     D.succeed   ...
+            layerModelDecoder M.Fss
+        M.Fluid ->
+            let
+                createFluidModel groups =
+                    M.FluidModel
+                        { groups = []
+                        }
+                makeBall =
+                    D.succeed
+                        { origin = Vec2.vec2 1.0 1.0, radius = 10 }
+                makeGradientStop =
+                    D.succeed
+                        ( 1.0, "" )
+                makeGroup =
+                    D.map3
+                        (\balls textures gradient ->
+                            { balls = balls
+                            , textures = textures
+                            , gradient = gradient
+                            }
+                        )
+                        (D.field "balls" <| D.list makeBall)
+                        (D.field "textures" <| D.succeed Nothing)
+                        (D.field "gradient" <| D.list makeGradientStop)
+            in
+                D.map createFluidModel
+                    (D.field "groups" <| D.list makeGroup)
         -- TODO: add parsing other models here
-        _ -> D.succeed <| M.initLayerModel kind -- FIXME: Fail to decode if layer is unknown, but don't fail if it just has emprty model
+        _ -> D.succeed <| M.initLayerModel kind -- FIXME: Fail to decode if layer is unknown, but don't fail if it just has empty model
         -- _ -> D.fail "unknown kind"
 
 
