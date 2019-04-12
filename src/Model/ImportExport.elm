@@ -532,18 +532,17 @@ layerModelDecoder kind =
                 makeGradientStop =
                     D.map2
                         Tuple.pair
-                        (D.field "pos" <| D.float)
-                        (D.field "color" <| D.string)
+                        (D.field "pos" D.float)
+                        (D.field "color" D.string)
                 makeGroup =
-                    D.map3
-                        (\balls textures gradient ->
+                    D.map2
+                        (\balls gradient ->
                             { balls = balls
-                            , textures = textures
+                            , textures = Nothing
                             , gradient = gradient
                             }
                         )
                         (D.field "balls" <| D.list makeBall)
-                        (D.field "textures" <| D.succeed Nothing)
                         (D.field "gradient" <| D.maybe <| D.list makeGradientStop)
             in
                 D.list makeGroup
