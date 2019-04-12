@@ -229,7 +229,23 @@ update msg model =
                     |> IE.decodeModel model.mode createLayer Gui.gui) of
                 Ok decodedModel ->
                     ( decodedModel
-                    , rebuildAllFssLayersWith decodedModel
+                    , Cmd.batch
+                        [ rebuildAllFssLayersWith decodedModel
+                        , decodedModel
+                            -- FIXME: apply only to the layer by layer index
+                            |> getLayerModels (\kind -> if kind == Fluid then False else True)
+                            |> List.indexedMap (\layerIndex layerModel ->
+                                case layerModel of
+                                    FluidModel fluidModel ->
+                                        buildFluidGradients
+                                            (Debug.log "reqest"
+                                                ( layerIndex
+                                                , IE.encodeLayerModel <| FluidModel fluidModel
+                                                ))
+                                    _ -> Cmd.none
+                            )
+                            |> Cmd.batch
+                        ]
                     )
                 Err importError ->
                     ( model |> addError importError

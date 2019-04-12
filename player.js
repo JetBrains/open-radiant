@@ -1,4 +1,5 @@
 const buildFSS = require('./fss.js');
+const buildGradients = require('./gradients.js');
 const is = require('./check-layer-type.js');
 const deepClone = require('./deep-clone.js')
 const App = require('./src/Main.elm');
@@ -19,6 +20,13 @@ const import_ = (app, importedState) => {
 
         app.ports.hideControls.send(null);
        // app.ports.pause.send(null); TODO: control by url parameter
+    });
+
+    app.ports.buildFluidGradients.subscribe(([ index, layerModel ]) => {
+        //if (is.fluid(layer)) {
+            const gradients = buildGradients(layerModel);
+            app.ports.loadFluidGradients.send({ value: gradients, layer: index });
+        //}
     });
 
     const toSend = deepClone(parsedState);
