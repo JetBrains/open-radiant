@@ -41,8 +41,13 @@ const config = {
           files: ['player.bundle.js'],
           rules: [
             {
-              search: /var e=n\.fragment/,
-              replace: 'var e=n?n.fragment:{}'
+              search: /var .=.\.fragment/,
+              //replace: 'var e=n?n.fragment:{}'
+              replace: function(match) {
+                const varLetter = match[4];
+                const fragmentLetter = match[6];
+                return 'var ' + varLetter + '=' + fragmentLetter + '?' + fragmentLetter + '.fragment:{}';
+              }
             },
             {
               search: 'case 1:throw new Error("Browser.application programs cannot handle URLs like this:\\n\\n    "+document.location.href+"\\n\\nWhat is the root? The root of your file system? Try looking at this program with `elm reactor` or some other server.");case 2:',

@@ -41,8 +41,12 @@ module.exports = {
               replace: ''
             },
             {
-              search: 't.contextAttributes));',
-              replace: 't.contextAttributes));r.getExtension(\'OES_standard_derivatives\');'
+              search: /.\.contextAttributes\)\);return ./,
+              replace: function(match) {
+                const firstLetter = match[0];
+                const lastLetter = match[match.length - 1];
+                return firstLetter + '.contextAttributes));' + lastLetter + '.getExtension(\'OES_standard_derivatives\');return ' + lastLetter;
+              }
             }
           ]
       }])
