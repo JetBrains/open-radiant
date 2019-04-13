@@ -238,9 +238,9 @@ update msg model =
                                 case layerModel of
                                     FluidModel fluidModel ->
                                         buildFluidGradients
-                                            (Debug.log "reqest"
+                                            (Debug.log "request" <|
                                                 ( layerIndex
-                                                , IE.encodeLayerModel <| FluidModel fluidModel
+                                                , IE.encodeLayerModel <| FluidModel <| Debug.log "fluidModel" fluidModel
                                                 ))
                                     _ -> Cmd.none
                             )
@@ -380,7 +380,18 @@ update msg model =
 
         ChangeProduct product ->
             let modelWithProduct = { model | product = product }
-            in ( modelWithProduct, rebuildAllFssLayersWith modelWithProduct )
+            in
+                ( modelWithProduct
+                , Cmd.batch
+                    [ rebuildAllFssLayersWith modelWithProduct
+                    , if hasMetaballLayers modelWithProduct
+                        then generateAllMetaballs modelWithProduct
+                        else Cmd.none
+                    , if hasFluidLayers model
+                        then generateAllFluid modelWithProduct
+                        else Cmd.none
+                    ]
+                )
 
         Configure index _ ->
             ( model |> updateLayer index
