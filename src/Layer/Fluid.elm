@@ -4,6 +4,8 @@ module Layer.Fluid exposing
     , BallGroup
     , Base64Url(..)
     , TextureAndSize
+    , GradientStops
+    , GradientOrientation(..)
     , makeEntities
     , build
     , init
@@ -47,7 +49,10 @@ type alias BallGroup =
             { gradient : TextureAndSize
             , data : TextureAndSize
             }
-    , gradient: Maybe Gradient
+    , gradient: Maybe
+        { stops: GradientStops
+        , orientation: GradientOrientation
+        }
     }
 
 
@@ -74,7 +79,12 @@ type alias ColorStop =
     ( Float, Product.Color )
 
 
-type alias Gradient = List ColorStop
+type alias GradientStops = List ColorStop
+
+
+type GradientOrientation
+    = Horizontal
+    | Vertical
 
 
 init : Model
@@ -143,11 +153,19 @@ generator ( w, h ) palette =
                                     ( circles, stopsWithColors )
                                 )
                     )
+                |> Random.andThen
+                    (\(circles, stops) ->
+                        Random.float 0 1
+                            |> Random.map
+                                (\v -> if v >= 0.5 then Horizontal else Vertical)
+                            |> Random.map
+                                (\orientation -> (circles, stops, orientation))
+                    )
                 |> Random.map
-                    (\(circles, gradient) ->
+                    (\(circles, stops, orientation) ->
                         { balls = circles |> List.map makeBall
                         , textures = Nothing
-                        , gradient = Just gradient
+                        , gradient = Just { stops = stops, orientation = orientation }
                         }
                     )
         makeBall (pos, radius) = Ball pos radius
@@ -348,13 +366,13 @@ fragmentShader =
         uniform int ballsQuantity;
         uniform vec2 dataTextureSize;
 
-        float v = 0.0;  
+        float v = 0.0;
 
         float noise(vec2 seed, float time) {
               float x = (seed.x / 3.14159 + 4.0) * (seed.y / 13.0 + 4.0) * ((fract(time) + 1.0) * 10.0);
               return mod((mod(x, 13.0) + 1.0) * (mod(x, 123.0) + 1.0), 0.01) - 0.005;
-        }  
-          
+        }
+
         float brightness(vec3 color) {
               return (0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b);
         }
@@ -381,7 +399,7 @@ fragmentShader =
             for (int i = 0; i < 50; i++) {
                 if (i < ballsQuantity){
                     vec3 metaball = findMetaball(i);
-                    vec2 deltaPos = metaball.xy - cpos;   
+                    vec2 deltaPos = metaball.xy - cpos;
                     float r = metaball.z;
                     v += r*r/dot( deltaPos, deltaPos );
                 }
@@ -392,12 +410,12 @@ fragmentShader =
             float alpha = 1.0;
             vec4 color = texture2D(gradientTexture, gl_FragCoord.xy / resolution);
 
-            //-// #ifdef GL_OES_standard_derivatives            
-            //-// delta = fwidth(v);                         
+            //-// #ifdef GL_OES_standard_derivatives
+            //-// delta = fwidth(v);
             //-// if ( v > delta) {
             //-//   alpha = smoothstep( 1.0 - delta, 1.0 + delta, v );
-            //-// } 
-            //-//  #endif 
+            //-// }
+            //-//  #endif
 
             vec2 st = gl_FragCoord.xy / resolution;
             color.rgb = mix(color.rgb, vec3(noise(st * 1000.0, 1.0) * 100.0), 0.03 / pow(brightness(color.rgb), 0.3));

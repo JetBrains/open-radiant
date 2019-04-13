@@ -27,6 +27,7 @@ import Model.Html.Blend as HtmlBlend
 
 import Layer.FSS as FSS
 import Layer.Lorenz as Lorenz
+import Layer.Fluid as Fluid
 
 import Model.Core as M
 import Model.AppMode as M
@@ -190,12 +191,21 @@ encodeLayerModel layerModel =
                             [ ( "pos", E.float stopPos )
                             , ( "color", E.string stopColor )
                             ]
+                    encodeGradient { stops, orientation } =
+                        E.object
+                            [ ( "stops", E.list encodeStop stops )
+                            , ( "orientation",
+                                case orientation of
+                                    Fluid.Horizontal -> E.string "horizontal"
+                                    Fluid.Vertical -> E.string "vertical"
+                                )
+                            ]
                     encodeGroup group =
                         E.object
                             [ ( "balls", E.list encodeBall group.balls )
                             , ( "gradient"
                               , group.gradient
-                                    |> Maybe.map (E.list encodeStop)
+                                    |> Maybe.map encodeGradient
                                     |> Maybe.withDefault E.null
                               )
                             ]
@@ -534,6 +544,19 @@ layerModelDecoder kind =
                         Tuple.pair
                         (D.field "pos" D.float)
                         (D.field "color" D.string)
+                makeGradient =
+                    D.map2
+                        (\stops orientationStr ->
+                            { stops = stops
+                            , orientation =
+                                case orientationStr of
+                                    "horizontal" -> Fluid.Horizontal
+                                    "vertical" -> Fluid.Vertical
+                                    _ -> Fluid.Vertical
+                            }
+                        )
+                        (D.field "stops" <| D.list makeGradientStop)
+                        (D.field "orientation" <| D.string)
                 makeGroup =
                     D.map2
                         (\balls gradient ->
@@ -543,7 +566,7 @@ layerModelDecoder kind =
                             }
                         )
                         (D.field "balls" <| D.list makeBall)
-                        (D.field "gradient" <| D.maybe <| D.list makeGradientStop)
+                        (D.field "gradient" <| D.maybe <| makeGradient)
             in
                 D.list makeGroup
                     |> D.field "groups"

@@ -5,14 +5,12 @@ function generateGradientTextures(layerModel) {
 
     for (let i = 0; i < layerModel.groups.length; i++) {
         const colors = [];
-        vertical = Math.random() >= 0.5;
 
         group = layerModel.groups[i];
-        group.gradient.forEach(function(stop) {
+        group.gradient.stops.forEach(function(stop) {
             colors.push({color: stop.color, stop: stop.pos})
         });
-
-        vertical = vertical !== undefined ? vertical : false;
+        vertical = group.gradient.orientation == 'vertical';
 
         const size = 512;
 
