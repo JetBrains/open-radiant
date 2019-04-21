@@ -20,6 +20,9 @@ import Array exposing (Array)
 import Random
 import Task
 
+import Animation exposing (..)
+import Ease exposing (..)
+
 import Math.Vector3 as Vec3 exposing (..)
 import Math.Vector2 as Vec2 exposing (..)
 
@@ -322,7 +325,29 @@ type alias Uniforms =
    , time : Time
    , ballsQuantity : Int
    , dataTextureSize : Vec2
+   , translate : Vec2
    }
+
+
+animateGroupPosition : List Ball -> Float -> Vec2
+animateGroupPosition balls =
+    let
+        translateX =
+            animation 0
+                |> from 100
+                |> to 300
+                |> duration 3000
+                |> delay 0
+                |> ease inOutBack
+        translateY =
+            animation 300
+                |> from 20
+                |> to 400
+                |> duration 3000
+                |> delay 0
+                |> ease inOutBack
+    in
+        \now -> vec2 (animate now translateX) (animate now translateY)
 
 
 uniforms : Time -> List Ball -> TextureAndSize -> TextureAndSize -> Viewport {} -> Uniforms
@@ -337,6 +362,7 @@ uniforms now balls ( groupTexture, _ ) ( dataTexture, dataTextureSize) v =
         , time = now
         , ballsQuantity = List.length balls
         , dataTextureSize = dataTextureSize
+        , translate = animateGroupPosition balls now
         }
 
 
@@ -365,6 +391,7 @@ fragmentShader =
         uniform float time;
         uniform int ballsQuantity;
         uniform vec2 dataTextureSize;
+        uniform vec2 translate;
 
         float v = 0.0;
 
@@ -394,17 +421,14 @@ fragmentShader =
         }
 
         void main () {
-            vec2 cpos = gl_FragCoord.xy / resolution;
+            vec2 curPosition = gl_FragCoord.xy - translate.xy;
 
             for (int i = 0; i < 50; i++) {
                 if (i < ballsQuantity){
                     vec3 metaball = findMetaball(i);
-                    float dx =  metaball.x - gl_FragCoord.x;
-                    float dy =  metaball.y - gl_FragCoord.y;
-                    //vec2 deltaPos = metaball.xy - cpos;
+                    vec2 deltaPos = metaball.xy - curPosition;
                     float r = metaball.z;
-                    v += r*r/(dx*dx + dy*dy);
-                    //v += r*r/dot( deltaPos, deltaPos );
+                    v += r*r/dot( deltaPos, deltaPos );
                 }
             }
 
