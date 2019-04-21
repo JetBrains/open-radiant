@@ -188,11 +188,15 @@ generate = Random.generate
 makeDataTexture : List Ball -> ( Base64Url, Vec2 )
 makeDataTexture balls =
     let addBallData { origin, radius } prevData =
-            prevData ++ [ floor <| Vec2.getX origin, floor <| Vec2.getY origin, floor radius, 0 ]
+            prevData ++
+                [ floor <| Vec2.getX origin, floor <| Vec2.getY origin, floor radius, 0
+                , 0, 0, 0, 0
+                ]
         data = balls |> List.foldl addBallData []
         dataLen =  List.length data
         width = 4
-        height = maxNumberOfBalls + modBy 4 maxNumberOfBalls
+        -- FIXME: could be not enough height for all the data
+        height = (maxNumberOfBalls + modBy 4 maxNumberOfBalls) * 2
     in
         ( Base64Url <| encode24With  width height data  {defaultOptions | order = RightUp}
         , vec2 (toFloat width) (toFloat height)
@@ -411,11 +415,11 @@ fragmentShader =
         }
 
         vec3 findMetaball(int t) {
-            vec2 coordinateForX = (vec2(0., t)  * 2. + 1.) / (dataTextureSize * 2.);
+            vec2 coordinateForX = (vec2(0., t * 2)  * 2. + 1.) / (dataTextureSize * 2.);
             float xValue = color2float( texture2D(dataTexture, coordinateForX));
-            vec2 coordinateForY = (vec2(1., t)  * 2. + 1.) / (dataTextureSize * 2.);
+            vec2 coordinateForY = (vec2(1., t * 2)  * 2. + 1.) / (dataTextureSize * 2.);
             float yValue = color2float( texture2D(dataTexture, coordinateForY));
-            vec2 coordinateForR = (vec2(2., t)  * 2. + 1.) / (dataTextureSize * 2.);
+            vec2 coordinateForR = (vec2(2., t * 2)  * 2. + 1.) / (dataTextureSize * 2.);
             float rValue = color2float( texture2D(dataTexture, coordinateForR));
             return vec3(xValue, yValue, rValue);
         }
