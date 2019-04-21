@@ -108,6 +108,10 @@ multArcX       = fRange -0.25 0.75
 multArcY       = fRange -0.25 0.25
 originOffset   = vec2 0.65 0.45
 
+speedTextureMultiplier = 500
+multArcTextureMultiplier = 500
+tTextureMultiplier = 4
+
 
 generator : ( Int, Int ) -> Product.Palette -> Random.Generator Model
 generator ( w, h ) palette =
@@ -203,10 +207,16 @@ generate = Random.generate
 
 makeDataTexture : List Ball -> ( Base64Url, Vec2 )
 makeDataTexture balls =
-    let addBallData { origin, radius } prevData =
+    let addBallData ball prevData =
             prevData ++
-                [ floor <| Vec2.getX origin, floor <| Vec2.getY origin, floor radius, 0
-                , 0, 0, 0, 0
+                [ floor <| Vec2.getX ball.origin -- 0.
+                , floor <| Vec2.getY ball.origin -- 1.
+                , floor ball.radius              -- 2.
+                , 0                              -- 3.
+                , floor <| speedTextureMultiplier * ball.speed               -- 4.
+                , floor <| tTextureMultiplier * ball.t                       -- 5.
+                , floor <| multArcTextureMultiplier * Vec2.getX ball.arcMult -- 6.
+                , floor <| multArcTextureMultiplier * Vec2.getY ball.arcMult -- 7.
                 ]
         data = balls |> List.foldl addBallData []
         dataLen =  List.length data
@@ -439,6 +449,18 @@ fragmentShader =
             vec2 coordinateForR = (vec2(2., t * 2)  * 2. + 1.) / (dataTextureSize * 2.);
             float rValue = color2float( texture2D(dataTexture, coordinateForR));
             return vec3(xValue, yValue, rValue);
+        }
+
+        vec4 findAnimation(int t) {
+            vec2 coordinateForSpeed    = (vec2(0., t * 2 + 1)  * 2. + 1.) / (dataTextureSize * 2.);
+            float speedValue = color2float( texture2D(dataTexture, coordinateForSpeed));
+            vec2 coordinateForT        = (vec2(1., t * 2 + 1)  * 2. + 1.) / (dataTextureSize * 2.);
+            float tValue = color2float( texture2D(dataTexture, coordinateForT));
+            vec2 coordinateForArcMultX = (vec2(2., t * 2 + 1)  * 2. + 1.) / (dataTextureSize * 2.);
+            float arcMultXValue = color2float( texture2D(dataTexture, coordinateForArcMultX));
+            vec2 coordinateForArcMultY = (vec2(3., t * 2 + 1)  * 2. + 1.) / (dataTextureSize * 2.);
+            float arcMultYValue = color2float( texture2D(dataTexture, coordinateForArcMultY));
+            return vec4(speedValue, tValue, arcMultXValue, arcMultYValue);
         }
 
         void main () {
