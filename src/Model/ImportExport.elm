@@ -36,6 +36,8 @@ import Model.SizeRule as M
 import Model.Error as M
 import Model.Product as Product exposing (Product)
 import Model.Product exposing (..)
+import Model.Range exposing (..)
+
 import TronGui as GUI
 
 
@@ -185,6 +187,10 @@ encodeLayerModel layerModel =
                             [ ( "x", E.float <| Vec2.getX ball.origin )
                             , ( "y", E.float <| Vec2.getY ball.origin )
                             , ( "r", E.float ball.radius )
+                            , ( "speed", E.float ball.speed )
+                            , ( "t", E.float ball.t )
+                            , ( "ax", E.float <| Vec2.getX ball.arcMult )
+                            , ( "ay", E.float <| Vec2.getY ball.arcMult )
                             ]
                     encodeStop ( stopPos, stopColor )  =
                         E.object
@@ -530,15 +536,22 @@ layerModelDecoder kind =
         M.Fluid ->
             let
                 makeBall =
-                    D.map3
-                        (\x y r ->
+                    D.map7
+                        (\x y r speed t ax ay ->
                             { origin = Vec2.vec2 x y
                             , radius = r
+                            , speed = speed
+                            , t = t
+                            , arcMult = Vec2.vec2 ax ay
                             }
                         )
                         (D.field "x" D.float)
                         (D.field "y" D.float)
                         (D.field "r" D.float)
+                        (D.field "speed" D.float |> D.withDefault (getFloatMin Fluid.speedRange))
+                        (D.field "t" D.float |> D.withDefault 0)
+                        (D.field "ax" D.float |> D.withDefault (getFloatMin Fluid.multArcX))
+                        (D.field "ay" D.float |> D.withDefault (getFloatMin Fluid.multArcY))
                 makeGradientStop =
                     D.map2
                         Tuple.pair

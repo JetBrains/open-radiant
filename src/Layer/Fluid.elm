@@ -4,16 +4,16 @@ module Layer.Fluid exposing
     , BallGroup
     , Base64Url(..)
     , TextureAndSize
-    , GradientStops
-    , GradientOrientation(..)
+    , GradientStops, GradientOrientation(..)
     , makeEntities
     , build
     , init
-    , loadTextures
-    , injectTextures
-    , packTextures
-    , generate
-    , generator
+    , loadTextures, injectTextures, packTextures
+    , generate, generator
+    , numberOfGroups, numberOfBalls
+    , radiusRange, speedRange
+    , multArcX, multArcY
+    , originOffset
     )
 
 import Array exposing (Array)
@@ -37,11 +37,15 @@ import WebGL.Texture exposing (Texture)
 import Viewport exposing (Viewport)
 
 import Model.Product as Product
+import Model.Range exposing (..)
 
 
 type alias Ball =
     { origin : Vec2
     , radius : Float
+    , speed : Float
+    , t : Float
+    , arcMult : Vec2
     }
 
 
@@ -96,13 +100,13 @@ init =
     }
 
 
-minGroups = 2
-maxGroups = 5
-minNumberOfBalls = 5
-maxNumberOfBalls = 30
-minRadius = 5
-maxRadius = 50
--- product = Product.PyCharm
+numberOfGroups = iRange 2 5
+numberOfBalls  = iRange 5 30
+radiusRange    = fRange 5 50
+speedRange     = fRange 0.2 2.0
+multArcX       = fRange -0.25 0.75
+multArcY       = fRange -0.25 0.25
+originOffset   = vec2 0.65 0.45
 
 
 generator : ( Int, Int ) -> Product.Palette -> Random.Generator Model
@@ -128,7 +132,13 @@ generator ( w, h ) palette =
             Random.map2 vec2
                 (Random.float 0 <| toFloat w)
                 (Random.float 0 <| toFloat h)
-        generateRadius = Random.float minRadius maxRadius
+        generateRadius = randomFloatInRange radiusRange
+        generateSpeed = randomFloatInRange speedRange
+        generateT = Random.float 0 200
+        generateMultArc =
+            Random.map2 vec2
+                (randomFloatInRange multArcX)
+                (randomFloatInRange multArcY)
         generateStopPosition = Random.float 0 1
         generateStopsWithColors =
             Random.int 2 4
@@ -142,38 +152,44 @@ generator ( w, h ) palette =
                             |> Random.map (\shift -> addColors shift stops)
                     )
         generateGroup =
-            Random.int minNumberOfBalls maxNumberOfBalls
+            randomIntInRange numberOfBalls
                 |> Random.andThen
                     (\numCircles ->
-                        Random.pair generatePosition generateRadius
+                        Random.map5
+                            Ball
+                            generatePosition
+                            generateRadius
+                            generateSpeed
+                            generateT
+                            generateMultArc
                             |> Random.list numCircles
                     )
                 |> Random.andThen
-                    (\circles ->
+                    (\balls ->
                         generateStopsWithColors
                             |> Random.map
                                 (\stopsWithColors ->
-                                    ( circles, stopsWithColors )
+                                    ( balls, stopsWithColors )
                                 )
                     )
                 |> Random.andThen
-                    (\(circles, stops) ->
+                    (\(balls, stops) ->
                         Random.float 0 1
                             |> Random.map
                                 (\v -> if v >= 0.5 then Horizontal else Vertical)
                             |> Random.map
-                                (\orientation -> (circles, stops, orientation))
+                                (\orientation -> (balls, stops, orientation))
                     )
                 |> Random.map
-                    (\(circles, stops, orientation) ->
-                        { balls = circles |> List.map makeBall
+                    (\(balls, stops, orientation) ->
+                        { balls = balls
                         , textures = Nothing
                         , gradient = Just { stops = stops, orientation = orientation }
                         }
                     )
-        makeBall (pos, radius) = Ball pos radius
+        makeBall { center, radius } = Ball center radius
     in
-        Random.int minGroups maxGroups
+        randomIntInRange numberOfGroups
             |> Random.andThen
                 (\numGroups ->
                     Random.list numGroups generateGroup
@@ -196,6 +212,7 @@ makeDataTexture balls =
         dataLen =  List.length data
         width = 4
         -- FIXME: could be not enough height for all the data
+        maxNumberOfBalls = getIntMax numberOfBalls
         height = (maxNumberOfBalls + modBy 4 maxNumberOfBalls) * 2
     in
         ( Base64Url <| encode24With  width height data  {defaultOptions | order = RightUp}
