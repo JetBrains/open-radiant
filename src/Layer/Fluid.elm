@@ -108,6 +108,7 @@ multArcX       = fRange -0.25 0.75
 multArcY       = fRange -0.25 0.25
 originOffset   = vec2 0.65 0.45
 
+
 speedTextureMultiplier = 500
 multArcTextureMultiplier = 500
 tTextureMultiplier = 4
@@ -373,8 +374,8 @@ animateGroupPosition balls =
         translateY =
             animation 300
                 |> from 20
-                |> to 400
-                |> duration 3000
+                |> to 100
+                |> duration 5000
                 |> delay 0
                 |> ease inOutBack
     in
@@ -425,6 +426,38 @@ fragmentShader =
         uniform vec2 translate;
 
         float v = 0.0;
+        float scale = .65;
+        float positionMultiplier = 1.0;
+        float radiusMultiplier = 1.0;
+
+        vec2 originOffset = vec2(.65, .45);
+        vec2 screenCenter = vec2(500., 300.); // FIXME: use width & height
+
+        vec2 animate(float time, vec2 curPos, float radius, vec4 animation) {
+            float speed = animation.s / 500.; // FIXME: why speed needs to be even slower?
+            float t = animation.t;
+            vec2 arcMult = animation.pq;
+
+            vec2 origin = screenCenter * originOffset;
+
+            float targX = origin.x + (curPos.x * scale + (sin((t + time) * speed) * radius * arcMult.x) + (sin((t + time) * speed) * radius * arcMult.x)) * positionMultiplier;
+            float targY = origin.y + (curPos.y * scale + (sin((t + time) * speed) * radius * arcMult.y) + (sin((t + time) * speed) * radius * arcMult.y)) * positionMultiplier;
+
+            return vec2(targX, targY);
+
+            // return curPos;
+
+            // targX = centerX + (mb.center.x * scale + (Math.sin((mb.t + time) * mb.speed) * radius * mb.arcMult.x) + (Math.sin((mb.t + time) * mb.speed) * radius * mb.arcMult.x)) * animationProperties.positionMultiplier;
+            // targY = centerY + (mb.center.y * scale + (Math.cos((mb.t + time) * mb.speed) * radius * mb.arcMult.y) + (Math.cos((mb.t + time) * mb.speed) * radius * mb.arcMult.y)) * animationProperties.positionMultiplier;
+
+            // t = Math.atan2(mb.x - mousePosition.x, mb.y - mousePosition.y);
+            // d = 500 / Math.sqrt(Math.pow(mousePosition.x - mb.x, 2) + Math.pow(mousePosition.y - mb.y, 2));
+
+
+
+            // mb.x += d * Math.sin(t) + (targX - mb.x) * 0.1;
+            // mb.y += d * Math.cos(t) + (targY - mb.y) * 0.1;
+        }
 
         float noise(vec2 seed, float time) {
               float x = (seed.x / 3.14159 + 4.0) * (seed.y / 13.0 + 4.0) * ((fract(time) + 1.0) * 10.0);
@@ -460,17 +493,25 @@ fragmentShader =
             float arcMultXValue = color2float( texture2D(dataTexture, coordinateForArcMultX));
             vec2 coordinateForArcMultY = (vec2(3., t * 2 + 1)  * 2. + 1.) / (dataTextureSize * 2.);
             float arcMultYValue = color2float( texture2D(dataTexture, coordinateForArcMultY));
-            return vec4(speedValue, tValue, arcMultXValue, arcMultYValue);
+            return vec4(speedValue / 500., tValue / 4., arcMultXValue / 500., arcMultYValue / 500.);
         }
 
         void main () {
             vec2 curPosition = gl_FragCoord.xy - translate.xy;
+            vec3 metaball;
+            vec4 animation;
+            float r;
+            vec2 deltaPos, animatedPos;
 
             for (int i = 0; i < 50; i++) {
                 if (i < ballsQuantity){
-                    vec3 metaball = findMetaball(i);
-                    vec2 deltaPos = metaball.xy - curPosition;
-                    float r = metaball.z;
+                    metaball = findMetaball(i);
+
+                    animation = findAnimation(i);
+
+                    r = metaball.z;
+                    animatedPos = animate(time, metaball.xy, r, animation);
+                    deltaPos = animatedPos - curPosition;
                     v += r*r/dot( deltaPos, deltaPos );
                 }
             }
