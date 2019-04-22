@@ -423,10 +423,13 @@ fragmentShader =
         float scale = .65;
         float positionMultiplier = 1.0;
         float radiusMultiplier = 1.0;
-        float speedMultiplier = 0.001;
-        float tm, dm;
+        float speedMultiplier = 0.001; // 0.002;
 
         vec2 originOffset = vec2(.65, .45);
+
+        float tm, dm;
+        float speed, t, targX, targY;
+        vec2 arcMult, origin, toReturn;
 
         float atan2(float y, float x) {
             bool s = (abs(x) > abs(y));
@@ -434,25 +437,24 @@ fragmentShader =
         }
 
         vec2 animate(float time, vec2 curPos, float radius, vec4 animation) {
-            float speed = animation.s * speedMultiplier; // FIXME: why speed needs to be even slower?
-            float t = animation.t;
-            vec2 arcMult = animation.pq;
+            speed = animation.s * speedMultiplier; // FIXME: why speed needs to be even slower?
+            t = animation.t;
+            arcMult = animation.pq;
 
-            vec2 origin = (resolution / 2.) - (resolution / 2. * originOffset);
+            origin = (resolution / 2.) - (resolution / 2. * originOffset);
 
-            float targX = origin.x + (curPos.x * scale + (sin((t + time) * speed) * radius * arcMult.x) + (sin((t + time) * speed) * radius * arcMult.x)) * positionMultiplier;
-            float targY = origin.y + (curPos.y * scale + (sin((t + time) * speed) * radius * arcMult.y) + (sin((t + time) * speed) * radius * arcMult.y)) * positionMultiplier;
+            targX = origin.x + (curPos.x * scale + (sin((t + time) * speed) * radius * arcMult.x) + (sin((t + time) * speed) * radius * arcMult.x)) * positionMultiplier;
+            targY = origin.y + (curPos.y * scale + (sin((t + time) * speed) * radius * arcMult.y) + (sin((t + time) * speed) * radius * arcMult.y)) * positionMultiplier;
 
-            //return vec2(targX, targY);
-
-            // return curPos;
-            vec2 toReturn = vec2(curPos.x, curPos.y);
+            toReturn = vec2(curPos.x, curPos.y);
 
             tm = atan2(curPos.x - mousePosition.x, curPos.y - mousePosition.y);
             dm = 500. / sqrt(pow(mousePosition.x - curPos.x, 2.0) + pow(mousePosition.y - curPos.y, 2.0));
 
             toReturn.x += dm * sin(tm) + (targX - curPos.x) * 0.1;
             toReturn.y += dm * cos(tm) + (targY - curPos.y) * 0.1;
+
+            toReturn = vec2(targX, targY);
 
             return toReturn;
         }
