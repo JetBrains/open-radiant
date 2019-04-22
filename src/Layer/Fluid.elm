@@ -357,29 +357,7 @@ type alias Uniforms =
    , time : Time
    , ballsQuantity : Int
    , dataTextureSize : Vec2
-   , translate : Vec2
    }
-
-
-animateGroupPosition : List Ball -> Float -> Vec2
-animateGroupPosition balls =
-    let
-        translateX =
-            animation 0
-                |> from 100
-                |> to 300
-                |> duration 3000
-                |> delay 0
-                |> ease inOutBack
-        translateY =
-            animation 300
-                |> from 20
-                |> to 100
-                |> duration 5000
-                |> delay 0
-                |> ease inOutBack
-    in
-        \now -> vec2 (animate now translateX) (animate now translateY)
 
 
 uniforms : Time -> List Ball -> TextureAndSize -> TextureAndSize -> Viewport {} -> Uniforms
@@ -394,7 +372,6 @@ uniforms now balls ( groupTexture, _ ) ( dataTexture, dataTextureSize) v =
         , time = now
         , ballsQuantity = List.length balls
         , dataTextureSize = dataTextureSize
-        , translate = animateGroupPosition balls now
         }
 
 
@@ -423,22 +400,22 @@ fragmentShader =
         uniform float time;
         uniform int ballsQuantity;
         uniform vec2 dataTextureSize;
-        uniform vec2 translate;
+        //uniform vec2 translate;
 
         float v = 0.0;
         float scale = .65;
         float positionMultiplier = 1.0;
         float radiusMultiplier = 1.0;
+        float speedMultiplier = 0.001;
 
         vec2 originOffset = vec2(.65, .45);
-        vec2 screenCenter = vec2(500., 300.); // FIXME: use width & height
 
         vec2 animate(float time, vec2 curPos, float radius, vec4 animation) {
-            float speed = animation.s / 500.; // FIXME: why speed needs to be even slower?
+            float speed = animation.s * speedMultiplier; // FIXME: why speed needs to be even slower?
             float t = animation.t;
             vec2 arcMult = animation.pq;
 
-            vec2 origin = screenCenter * originOffset;
+            vec2 origin = (resolution / 2.) - (resolution / 2. * originOffset);
 
             float targX = origin.x + (curPos.x * scale + (sin((t + time) * speed) * radius * arcMult.x) + (sin((t + time) * speed) * radius * arcMult.x)) * positionMultiplier;
             float targY = origin.y + (curPos.y * scale + (sin((t + time) * speed) * radius * arcMult.y) + (sin((t + time) * speed) * radius * arcMult.y)) * positionMultiplier;
@@ -497,7 +474,7 @@ fragmentShader =
         }
 
         void main () {
-            vec2 curPosition = gl_FragCoord.xy - translate.xy;
+            vec2 curPosition = gl_FragCoord.xy; // - translate.xy;
             vec3 metaball;
             vec4 animation;
             float r;
