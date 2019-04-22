@@ -255,30 +255,38 @@ injectTextures textures model =
 
 makeEntity
     :  Time
+    -> ( Int, Int )
     -> Viewport {}
     -> List Setting
     -> Mesh
     -> List Ball
     -> { gradient : ( Texture, Vec2 ) , data : ( Texture, Vec2 ) }
     -> WebGL.Entity
-makeEntity now viewport settings mesh balls textures  =
+makeEntity now mousePos viewport settings mesh balls textures  =
     WebGL.entityWith
         settings
         vertexShader
         fragmentShader
         mesh
-        (uniforms now balls textures.gradient textures.data viewport)
+        (uniforms now mousePos balls textures.gradient textures.data viewport)
 
 
 -- TODO: add mouse
-makeEntities : Time -> Viewport {} -> Model -> List Setting -> Mesh -> List WebGL.Entity
-makeEntities now viewport model settings mesh =
+makeEntities
+     : Time
+    -> ( Int, Int )
+    -> Viewport {}
+    -> Model
+    -> List Setting
+    -> Mesh
+    -> List WebGL.Entity
+makeEntities now mousePos viewport model settings mesh =
     let
         makeGroupEntity group =
             group.textures
                 |> Maybe.map
                     (\textures ->
-                        makeEntity now viewport settings mesh group.balls textures
+                        makeEntity now mousePos viewport settings mesh group.balls textures
                     )
     in
         model.groups |> List.filterMap makeGroupEntity
@@ -357,11 +365,19 @@ type alias Uniforms =
    , time : Time
    , ballsQuantity : Int
    , dataTextureSize : Vec2
+   , mousePosition : Vec2
    }
 
 
-uniforms : Time -> List Ball -> TextureAndSize -> TextureAndSize -> Viewport {} -> Uniforms
-uniforms now balls ( groupTexture, _ ) ( dataTexture, dataTextureSize) v =
+uniforms
+    :  Time
+    -> ( Int, Int )
+    -> List Ball
+    -> TextureAndSize
+    -> TextureAndSize
+    -> Viewport {}
+    -> Uniforms
+uniforms now ( mouseX, mouseY ) balls ( groupTexture, _ ) ( dataTexture, dataTextureSize) v =
     let
         width = Vec2.getX v.size
         height = Vec2.getY v.size
@@ -372,6 +388,7 @@ uniforms now balls ( groupTexture, _ ) ( dataTexture, dataTextureSize) v =
         , time = now
         , ballsQuantity = List.length balls
         , dataTextureSize = dataTextureSize
+        , mousePosition = vec2 (toFloat mouseX) (toFloat mouseY)
         }
 
 
@@ -400,15 +417,21 @@ fragmentShader =
         uniform float time;
         uniform int ballsQuantity;
         uniform vec2 dataTextureSize;
-        //uniform vec2 translate;
+        uniform vec2 mousePosition;
 
         float v = 0.0;
         float scale = .65;
         float positionMultiplier = 1.0;
         float radiusMultiplier = 1.0;
         float speedMultiplier = 0.001;
+        float tm, dm;
 
         vec2 originOffset = vec2(.65, .45);
+
+        float atan2(float y, float x) {
+            bool s = (abs(x) > abs(y));
+            return mix(3.14/2.0 - atan(x,y), atan(y,x), s ? 1.0 : 0.0);
+        }
 
         vec2 animate(float time, vec2 curPos, float radius, vec4 animation) {
             float speed = animation.s * speedMultiplier; // FIXME: why speed needs to be even slower?
@@ -420,20 +443,18 @@ fragmentShader =
             float targX = origin.x + (curPos.x * scale + (sin((t + time) * speed) * radius * arcMult.x) + (sin((t + time) * speed) * radius * arcMult.x)) * positionMultiplier;
             float targY = origin.y + (curPos.y * scale + (sin((t + time) * speed) * radius * arcMult.y) + (sin((t + time) * speed) * radius * arcMult.y)) * positionMultiplier;
 
-            return vec2(targX, targY);
+            //return vec2(targX, targY);
 
             // return curPos;
+            vec2 toReturn = vec2(curPos.x, curPos.y);
 
-            // targX = centerX + (mb.center.x * scale + (Math.sin((mb.t + time) * mb.speed) * radius * mb.arcMult.x) + (Math.sin((mb.t + time) * mb.speed) * radius * mb.arcMult.x)) * animationProperties.positionMultiplier;
-            // targY = centerY + (mb.center.y * scale + (Math.cos((mb.t + time) * mb.speed) * radius * mb.arcMult.y) + (Math.cos((mb.t + time) * mb.speed) * radius * mb.arcMult.y)) * animationProperties.positionMultiplier;
+            tm = atan2(curPos.x - mousePosition.x, curPos.y - mousePosition.y);
+            dm = 500. / sqrt(pow(mousePosition.x - curPos.x, 2.0) + pow(mousePosition.y - curPos.y, 2.0));
 
-            // t = Math.atan2(mb.x - mousePosition.x, mb.y - mousePosition.y);
-            // d = 500 / Math.sqrt(Math.pow(mousePosition.x - mb.x, 2) + Math.pow(mousePosition.y - mb.y, 2));
+            toReturn.x += dm * sin(tm) + (targX - curPos.x) * 0.1;
+            toReturn.y += dm * cos(tm) + (targY - curPos.y) * 0.1;
 
-
-
-            // mb.x += d * Math.sin(t) + (targX - mb.x) * 0.1;
-            // mb.y += d * Math.cos(t) + (targY - mb.y) * 0.1;
+            return toReturn;
         }
 
         float noise(vec2 seed, float time) {
