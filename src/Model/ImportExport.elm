@@ -189,8 +189,8 @@ encodeLayerModel layerModel =
                             , ( "r", E.float ball.radius )
                             , ( "speed", E.float ball.speed )
                             , ( "t", E.float ball.t )
-                            , ( "ax", E.float <| Vec2.getX ball.arcMult )
-                            , ( "ay", E.float <| Vec2.getY ball.arcMult )
+                            , ( "ax", E.float <| Vec2.getX ball.amplitude )
+                            , ( "ay", E.float <| Vec2.getY ball.amplitude )
                             ]
                     encodeStop ( stopPos, stopColor )  =
                         E.object
@@ -542,7 +542,7 @@ layerModelDecoder kind =
                             , radius = r
                             , speed = speed
                             , t = t
-                            , arcMult = Vec2.vec2 ax ay
+                            , amplitude = Vec2.vec2 ax ay
                             }
                         )
                         (D.field "x" D.float)
@@ -550,8 +550,8 @@ layerModelDecoder kind =
                         (D.field "r" D.float)
                         (D.field "speed" D.float |> D.withDefault (getFloatMin Fluid.speedRange))
                         (D.field "t" D.float |> D.withDefault 0)
-                        (D.field "ax" D.float |> D.withDefault (getFloatMin Fluid.multArcX))
-                        (D.field "ay" D.float |> D.withDefault (getFloatMin Fluid.multArcY))
+                        (D.field "ax" D.float |> D.withDefault (getFloatMin Fluid.amplitudeX))
+                        (D.field "ay" D.float |> D.withDefault (getFloatMin Fluid.amplitudeY))
                 makeGradientStop =
                     D.map2
                         Tuple.pair

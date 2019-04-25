@@ -12,7 +12,7 @@ module Layer.Fluid exposing
     , generate, generator
     , numberOfGroups, numberOfBalls
     , radiusRange, speedRange
-    , multArcX, multArcY
+    , amplitudeX, amplitudeY
     )
 
 import Array exposing (Array)
@@ -44,7 +44,7 @@ type alias Ball =
     , radius : Float
     , speed : Float
     , t : Float
-    , arcMult : Vec2
+    , amplitude : Vec2
     }
 
 
@@ -99,16 +99,16 @@ init =
     }
 
 
-numberOfGroups = iRange 3 6
+numberOfGroups = iRange 3 5
 numberOfBalls  = iRange 5 30
-radiusRange    = fRange 10 90
+radiusRange    = fRange 10 100
 speedRange     = fRange 0.2 2.0
-multArcX       = fRange -0.25 1.0
-multArcY       = fRange -0.25 5.0
+amplitudeX       = fRange -1.0 1.0
+amplitudeY       = fRange -0.25 1.0
 
 
 speedTextureMultiplier = 500
-multArcTextureMultiplier = 500
+amplitudeTextureMultiplier = 500
 tTextureMultiplier = 4
 
 
@@ -140,20 +140,20 @@ generator ( w, h ) palette =
         generateT = Random.float 0 200
         generateMultArc =
             Random.map2 vec2
-                (randomFloatInRange multArcX)
-                (randomFloatInRange multArcY)
-        generateStopPosition = Random.float 0 1
+                (randomFloatInRange amplitudeX)
+                (randomFloatInRange amplitudeY)
         generateStopsWithColors =
-            Random.int 2 4
-                |> Random.andThen
-                    (\numStops ->
-                        generateStopPosition |> Random.list numStops
-                    )
-                |> Random.andThen
-                    (\stops ->
-                        Random.int 0 paletteLen
-                            |> Random.map (\shift -> addColors shift stops)
-                    )
+                Random.map4
+                    (\stop1 stop2 stop3 stop4 -> [ stop1, stop2, stop3, stop4 ])
+                    (Random.float 0 0.2)
+                    (Random.float 0.4 0.6)
+                    (Random.float 0.7 0.8)
+                    (Random.float 0.9 1.0)
+                    |> Random.andThen
+                        (\stops ->
+                            Random.int 0 paletteLen
+                                |> Random.map (\shift -> addColors shift stops)
+                        )
         generateGroup =
             randomIntInRange numberOfBalls
                 |> Random.andThen
@@ -195,7 +195,7 @@ generator ( w, h ) palette =
         randomIntInRange numberOfGroups
             |> Random.andThen
                 (\numGroups ->
-                    Random.list numGroups generateGroup
+                    Random.list numGroups generateGroup 
                 )
             |> Random.map (\groups -> { groups = groups })
 
@@ -214,8 +214,8 @@ makeDataTexture balls =
                 , 0                              -- 3.
                 , floor <| speedTextureMultiplier * ball.speed               -- 4.
                 , floor <| tTextureMultiplier * ball.t                       -- 5.
-                , floor <| multArcTextureMultiplier * Vec2.getX ball.arcMult -- 6.
-                , floor <| multArcTextureMultiplier * Vec2.getY ball.arcMult -- 7.
+                , floor <| amplitudeTextureMultiplier * Vec2.getX ball.amplitude -- 6.
+                , floor <| amplitudeTextureMultiplier * Vec2.getY ball.amplitude -- 7.
                 ]
         data = balls |> List.foldl addBallData []
         dataLen =  List.length data
@@ -427,7 +427,7 @@ fragmentShader =
 
         float tm, dm;
         float speed, t, targX, targY;
-        vec2 arcMult, origin, toReturn;
+        vec2 amplitude, origin, toReturn;
 
         float atan2(float y, float x) {
             bool s = (abs(x) > abs(y));
@@ -437,12 +437,12 @@ fragmentShader =
         vec2 animate(float time, vec2 curPos, float radius, vec4 animation) {
             speed = animation.s * speedMultiplier; // FIXME: why speed needs to be even slower?
             t = animation.t;
-            arcMult = animation.pq;
+            amplitude = animation.pq;
 
             origin = (resolution / 2.) - (resolution / 2. * originOffset);
 
-            targX = origin.x + (curPos.x * scale + (sin((t + time) * speed) * radius * arcMult.x) + (sin((t + time) * speed) * radius * arcMult.x)) * positionMultiplier;
-            targY = origin.y + (curPos.y * scale + (sin((t + time) * speed) * radius * arcMult.y) + (sin((t + time) * speed) * radius * arcMult.y)) * positionMultiplier;
+            targX = origin.x + (curPos.x * scale + (sin((t + time) * speed) * radius * amplitude.x) + (sin((t + time) * speed) * radius * amplitude.x)) * positionMultiplier;
+            targY = origin.y + (curPos.y * scale + (sin((t + time) * speed) * radius * amplitude.y) + (sin((t + time) * speed) * radius * amplitude.y)) * positionMultiplier;
 
             toReturn = vec2(curPos.x, curPos.y);
 
@@ -487,11 +487,11 @@ fragmentShader =
             float speedValue = color2float( texture2D(dataTexture, coordinateForSpeed));
             vec2 coordinateForT        = (vec2(1., t * 2 + 1)  * 2. + 1.) / (dataTextureSize * 2.);
             float tValue = color2float( texture2D(dataTexture, coordinateForT));
-            vec2 coordinateForArcMultX = (vec2(2., t * 2 + 1)  * 2. + 1.) / (dataTextureSize * 2.);
-            float arcMultXValue = color2float( texture2D(dataTexture, coordinateForArcMultX));
-            vec2 coordinateForArcMultY = (vec2(3., t * 2 + 1)  * 2. + 1.) / (dataTextureSize * 2.);
-            float arcMultYValue = color2float( texture2D(dataTexture, coordinateForArcMultY));
-            return vec4(speedValue / 500., tValue / 4., arcMultXValue / 500., arcMultYValue / 500.);
+            vec2 coordinateForAmplitudeX = (vec2(2., t * 2 + 1)  * 2. + 1.) / (dataTextureSize * 2.);
+            float amplitudeXValue = color2float( texture2D(dataTexture, coordinateForAmplitudeX));
+            vec2 coordinateForAmplitudeY = (vec2(3., t * 2 + 1)  * 2. + 1.) / (dataTextureSize * 2.);
+            float amplitudeYValue = color2float( texture2D(dataTexture, coordinateForAmplitudeY));
+            return vec4(speedValue / 500., tValue / 4., amplitudeXValue / 500., amplitudeYValue / 500.);
         }
 
         void main () {
