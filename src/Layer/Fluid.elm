@@ -13,11 +13,10 @@ module Layer.Fluid exposing
     , numberOfGroups, numberOfBalls
     , radiusRange, speedRange
     , multArcX, multArcY
-    , originOffset
     )
 
 import Array exposing (Array)
-import Random
+import Random exposing (..)
 import Task
 
 import Animation exposing (..)
@@ -100,13 +99,12 @@ init =
     }
 
 
-numberOfGroups = iRange 2 5
+numberOfGroups = iRange 3 6
 numberOfBalls  = iRange 5 30
-radiusRange    = fRange 5 50
+radiusRange    = fRange 10 90
 speedRange     = fRange 0.2 2.0
-multArcX       = fRange -0.25 0.75
-multArcY       = fRange -0.25 0.25
-originOffset   = vec2 0.65 0.45
+multArcX       = fRange -0.25 1.0
+multArcY       = fRange -0.25 5.0
 
 
 speedTextureMultiplier = 500
@@ -423,7 +421,7 @@ fragmentShader =
         float scale = .65;
         float positionMultiplier = 1.0;
         float radiusMultiplier = 1.0;
-        float speedMultiplier = 0.001; // 0.002;
+        float speedMultiplier = 0.0002;
 
         vec2 originOffset = vec2(.65, .45);
 
