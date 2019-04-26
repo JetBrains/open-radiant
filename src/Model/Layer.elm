@@ -215,8 +215,8 @@ createLayer kind layerModel =
                 WebGLLayer
                 ( Fluid.build fluidModel |> FluidLayer )
                 (WGLBlend.build
-                    (B.customAdd, B.srcAlpha, B.oneMinusSrcAlpha)
-                    (B.customAdd, B.one, B.oneMinusSrcAlpha) )
+                    (B.customAdd, B.srcColor, B.oneMinusSrcColor)
+                    (B.customAdd, B.srcColor, B.oneMinusSrcColor) )
         ( Vignette, _ ) ->
             Just <|
                 WebGLLayer

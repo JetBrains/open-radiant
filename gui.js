@@ -38,7 +38,6 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
     layers.forEach((layer, index) => {
       if (layer.webglOrHtml == 'webgl') {
         if (mode !== 'prod') {
-
           if (layer.blend[0]) {
             const blend = layer.blend[0];
             this['blendColor' + index] = blend.color || [ 1, 0, 0, 0 ]; // FIXME: get RGBA components
@@ -59,7 +58,7 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
           }
 
         } else { // mode == 'prod'
-          this['blendSet' + index] = C.BLEND_SETS['normal'];
+          this['blendSet' + index] = C.BLEND_SETS['soft'];
           this['blendColor' + index] =
               layer.blend[0].color || [ 1, 0, 0, 0 ]; // FIXME: get RGBA components
         }
