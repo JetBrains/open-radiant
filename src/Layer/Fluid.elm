@@ -143,12 +143,25 @@ generator ( w, h ) palette =
                 (randomFloatInRange amplitudeX)
                 (randomFloatInRange amplitudeY)
         generateStopsWithColors =
-                Random.map4
-                    (\stop1 stop2 stop3 stop4 -> [ stop1, stop2, stop3, stop4 ])
-                    (Random.float 0 0.2)
-                    (Random.float 0.4 0.6)
-                    (Random.float 0.7 0.8)
-                    (Random.float 0.9 1.0)
+                   let
+                    count = 4
+                    step = 1 / count
+                    generateNext prevValues index min max =
+                        if index < count then
+                            Random.float min max
+                                |> Random.andThen
+                                    (\val ->
+                                        generateNext
+                                            (prevValues ++ [ val ])
+                                            (index + 1)
+                                            (min + step)
+                                            (max + step)
+                                    )
+                        else
+                            Random.constant prevValues
+                    in
+                        generateNext [] 0 0 step
+
                     |> Random.andThen
                         (\stops ->
                             Random.int 0 paletteLen
