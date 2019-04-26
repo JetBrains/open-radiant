@@ -100,11 +100,11 @@ init =
 
 
 numberOfGroups = iRange 3 5
-numberOfBalls  = iRange 5 30
-radiusRange    = fRange 10 100
-speedRange     = fRange 0.2 2.0
-amplitudeX       = fRange -1.0 1.0
-amplitudeY       = fRange -0.25 1.0
+numberOfBalls = iRange 5 30
+radiusRange = fRange 10 100
+speedRange = fRange 10 1000
+amplitudeX = fRange -1.0 1.0
+amplitudeY = fRange -0.25 1.0
 
 
 speedTextureMultiplier = 500
@@ -157,7 +157,6 @@ generator ( w, h ) palette =
                                             (min + step)
                                             (max + step)
                                     )
-
                         else
                             Random.constant prevValues
                     in
@@ -224,9 +223,9 @@ makeDataTexture balls =
             prevData ++
                 [ floor <| Vec2.getX ball.origin -- 0.
                 , floor <| Vec2.getY ball.origin -- 1.
-                , floor ball.radius              -- 2.
+                , floor  ball.radius              -- 2.
                 , 0                              -- 3.
-                , floor <| speedTextureMultiplier * ball.speed               -- 4.
+                , floor <| ball.speed -- 4.
                 , floor <| tTextureMultiplier * ball.t                       -- 5.
                 , floor <| amplitudeTextureMultiplier * Vec2.getX ball.amplitude -- 6.
                 , floor <| amplitudeTextureMultiplier * Vec2.getY ball.amplitude -- 7.
