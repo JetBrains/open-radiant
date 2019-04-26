@@ -31,7 +31,7 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
 
     const mode = defaults.mode;
     this.product = defaults.product;
-    this.omega = defaults.omega;
+
 
     const sizePresetSet = getSizeSet(mode, constants);
 
@@ -303,13 +303,12 @@ function start(document, model, constants, funcs) {
     const config = new Config(layers, defaults, constants, funcs,
         randomize(funcs.applyRandomizer, model, update(gui)));
     const product = gui.add(config, 'product', productToId);
-    const omega = gui.add(config, 'omega').name('vertigo ').min(-1.0).max(1.0).step(0.1);
+
     const sizePreset = gui.add(config, 'sizePreset', sizePresetSet).name('size');
     // gui.add(config, 'savePng').name('save png');
     if (mode !== 'prod') gui.add(config, 'saveBatch').name('save batch');
     gui.add(config, 'randomize').name('i feel lucky');
     product.onFinishChange(updateProduct);
-    omega.onFinishChange(funcs.rotate);
     sizePreset.onFinishChange(funcs.resize);
 
     layers.concat([]).reverse().forEach((layer, revIndex) => {
