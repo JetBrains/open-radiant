@@ -138,7 +138,7 @@ generator ( w, h ) palette =
         generateRadius = randomFloatInRange radiusRange
         generateSpeed = randomFloatInRange speedRange
         generateT = Random.float 0 200
-        generateMultArc =
+        generateAmplitude =
             Random.map2 vec2
                 (randomFloatInRange amplitudeX)
                 (randomFloatInRange amplitudeY)
@@ -157,6 +157,7 @@ generator ( w, h ) palette =
                                             (min + step)
                                             (max + step)
                                     )
+
                         else
                             Random.constant prevValues
                     in
@@ -177,7 +178,7 @@ generator ( w, h ) palette =
                             generateRadius
                             generateSpeed
                             generateT
-                            generateMultArc
+                            generateAmplitude
                             |> Random.list numCircles
                     )
                 |> Random.andThen
