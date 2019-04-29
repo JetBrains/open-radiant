@@ -526,6 +526,13 @@ update msg model =
                 )
             )
 
+        RequestNewFluid index ->
+            ( model
+            , if hasFluidLayers model
+                then generateAllFluid model -- FIXME: use actual index
+                else Cmd.none
+            )
+
         ChangeVignette index opacity ->
             ( model
                 |> updateFss index
@@ -749,6 +756,7 @@ subscriptions model =
                 |> List.map Fluid.Base64Url
                 |> LoadFluidGradients layer
           )
+        , refreshFluid (\{ layer } -> RequestNewFluid layer)
         , applyRandomizer ApplyRandomizer
         , import_ Import
         , pause (\_ -> Pause)
@@ -1273,6 +1281,10 @@ port changeHtmlBlend :
     ( { layer : Int
       , value : String
       }
+    -> msg) -> Sub msg
+
+port refreshFluid :
+    ( { layer : Int }
     -> msg) -> Sub msg
 
 

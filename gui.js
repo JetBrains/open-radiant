@@ -84,6 +84,10 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
         this['saturation' + index] = layer.model.colorShift[1];
         this['brightness' + index] = layer.model.colorShift[2];
       }
+
+      if (is.fluid(layer)) {
+        this['bang' + index] = () => funcs.refreshFluid(index); // FIXME: send layer index as well
+      }
     });
 
     //this.customSize = sizePresetSet['browser'];
@@ -296,6 +300,9 @@ function start(document, model, constants, funcs) {
         brightness.onFinishChange(value => {
           funcs.shiftColor(index)(null, null, value);
         });
+      }
+      if (is.fluid(layer)) {
+        folder.add(config, 'bang' + index).name('bang');
       }
     }
 

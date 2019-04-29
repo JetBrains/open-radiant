@@ -356,6 +356,8 @@ setTimeout(() => {
                     { app.ports.rotate.send(value); }
                 , applyRandomizer : value =>
                     { app.ports.applyRandomizer.send(prepareModelForImport(value)); }
+                , refreshFluid : (index) =>
+                    { app.ports.refreshFluid.send({ layer: index }); }
                 });
 
             // app.ports.pushUpdate.subscribe((data) => {
