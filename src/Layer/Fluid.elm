@@ -5,6 +5,7 @@ module Layer.Fluid exposing
     , Base64Url(..)
     , TextureAndSize
     , GradientStops, GradientOrientation(..)
+    , applyProductToGradients
     , makeEntities
     , build
     , init
@@ -116,6 +117,7 @@ generator : ( Int, Int ) -> Product.Palette -> Random.Generator Model
 generator ( w, h ) palette =
     let
         paletteLen = List.length palette
+        -- loopedPalette = [ 0, 1, 2, 3, 2, 1 ] -- just remember indices?
         loopedPalette = palette ++ (palette |> List.drop 1 |> List.reverse |> List.drop 1)
         loopedPaletteLen = List.length loopedPalette
         loopedPaletteArray = Array.fromList loopedPalette
@@ -128,7 +130,7 @@ generator ( w, h ) palette =
                         in
                             ( stop
                             , Array.get loopedPaletteIndex loopedPaletteArray
-                                |> Maybe.withDefault  ""
+                                |> Maybe.withDefault ""
                             )
                     )
         generatePosition =
@@ -208,7 +210,7 @@ generator ( w, h ) palette =
         randomIntInRange numberOfGroups
             |> Random.andThen
                 (\numGroups ->
-                    Random.list numGroups generateGroup 
+                    Random.list numGroups generateGroup
                 )
             |> Random.map (\groups -> { groups = groups })
 
@@ -262,6 +264,32 @@ injectTextures textures model =
             { group | textures = Just texturePair }
     in
         { model | groups = List.map2 addTexture model.groups textures }
+
+
+applyProductToGradients : Product.Product -> Model -> Model
+applyProductToGradients product model =
+    let
+        newProductPalette = Product.getPalette product |> Array.fromList
+        updateStop index stop =
+            let
+                paletteIndex = modBy (Array.length newProductPalette) index
+            in
+                Array.get paletteIndex newProductPalette
+                    |> Maybe.map (\color -> Tuple.mapSecond (always color) stop)
+                    |> Maybe.withDefault stop
+        updateGroupGradient group =
+            { group
+            | gradient =
+                Maybe.map
+                    (\gradient ->
+                        { gradient
+                        | stops = List.indexedMap updateStop gradient.stops
+                        }
+                    )
+                    group.gradient
+            }
+    in
+        { model | groups = List.map updateGroupGradient model.groups }
 
 
 makeEntity

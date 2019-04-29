@@ -231,20 +231,14 @@ update msg model =
                     ( decodedModel
                     , Cmd.batch
                         [ rebuildAllFssLayersWith decodedModel
-                        , decodedModel
-                            -- FIXME: apply only to the layer by layer index
-                            |> getLayerModels (\kind -> if kind == Fluid then False else True)
-                            |> List.indexedMap (\layerIndex layerModel ->
-                                case layerModel of
-                                    FluidModel fluidModel ->
-                                        buildFluidGradients
-                                            (Debug.log "request" <|
-                                                ( layerIndex
-                                                , IE.encodeLayerModel <| FluidModel <| Debug.log "fluidModel" fluidModel
-                                                ))
-                                    _ -> Cmd.none
+                        , forAllFluidLayers
+                            (\layerIndex fluidModel ->
+                                buildFluidGradients
+                                    ( layerIndex
+                                    , IE.encodeLayerModel <| FluidModel fluidModel
+                                    )
                             )
-                            |> Cmd.batch
+                            decodedModel
                         ]
                     )
                 Err importError ->
@@ -388,7 +382,15 @@ update msg model =
                         then generateAllMetaballs modelWithProduct
                         else Cmd.none
                     , if hasFluidLayers model
-                        then generateAllFluid modelWithProduct
+                        then modelWithProduct
+                            |> forAllFluidLayers
+                                (\layerIndex fluidModel ->
+                                    buildFluidGradients
+                                        ( layerIndex
+                                        , Fluid.applyProductToGradients product fluidModel
+                                            |> FluidModel |> IE.encodeLayerModel
+                                        )
+                                )
                         else Cmd.none
                     ]
                 )
@@ -1119,6 +1121,20 @@ rebuildAllFssLayersWith model =
                 )
           |> List.map rebuildPotentialFss
           |> Cmd.batch
+
+
+forAllFluidLayers : (Int -> Fluid.Model -> Cmd Msg) -> Model -> Cmd Msg
+forAllFluidLayers makeCommandForModel model =
+    model
+        -- FIXME: apply only to the layer by layer index
+        |> getLayerModels (\kind -> if kind == Fluid then False else True)
+        |> List.indexedMap (\layerIndex layerModel ->
+            case layerModel of
+                FluidModel fluidModel ->
+                    makeCommandForModel layerIndex fluidModel
+                _ -> Cmd.none
+        )
+        |> Cmd.batch
 
 
 -- extractFssBuildOptions : Model -> FssBuildOptions
