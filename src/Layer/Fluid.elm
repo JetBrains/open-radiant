@@ -223,8 +223,33 @@ generate = Random.generate
 
 
 remapTo : ( Int, Int ) -> Model -> Model
-remapTo newSize model =
-    model
+remapTo ( newWidth, newHeight ) model =
+    let
+        ( factorW, factorH ) =
+            model.forSize
+                |> Maybe.map
+                    (\curSize ->
+                        case curSize of
+                            ( width, height ) ->
+                                ( toFloat newWidth / toFloat width
+                                , toFloat newHeight / toFloat height
+                                )
+                    )
+                |> Maybe.withDefault ( 1.0, 1.0 )
+        remapGroup group =
+            { group
+            | balls = List.map remapBall group.balls
+            }
+        remapBall ball =
+            { ball
+            | origin =
+                Vec2.vec2 (Vec2.getX ball.origin * factorW) (Vec2.getY ball.origin * factorH)
+            }
+    in
+        { model
+        | groups = List.map remapGroup model.groups
+        , forSize = Just ( newWidth, newHeight )
+        }
 
 
 makeDataTexture : List Ball -> ( Base64Url, Vec2 )
