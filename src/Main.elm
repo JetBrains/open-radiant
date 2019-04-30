@@ -95,7 +95,9 @@ init flags url _ =
             Dimensionless ->
                 resizeToViewport
             _ ->
-                rebuildAllFssLayersWith model
+                if hasFssLayers model
+                    then rebuildAllFssLayersWith model
+                    else Cmd.none
         )
 
 
@@ -169,9 +171,12 @@ update msg model =
                 ( newModelWithSize
                 , Cmd.batch
                     [ newModelWithSize |> getSizeUpdate |> sizeChanged
-                    , if rule /= Dimensionless
+                    , if rule /= Dimensionless && hasFssLayers model
                         then rebuildAllFssLayersWith newModelWithSize
-                        else resizeToViewport
+                        else Cmd.none
+                    , if rule /= Dimensionless && hasFluidLayers model
+                        then resizeAllFluidLayers newModelWithSize
+                        else Cmd.none
                     ]
                 )
 
@@ -230,15 +235,20 @@ update msg model =
                 Ok decodedModel ->
                     ( decodedModel
                     , Cmd.batch
-                        [ rebuildAllFssLayersWith decodedModel
-                        , forAllFluidLayers
-                            (\layerIndex fluidModel ->
-                                buildFluidGradients
-                                    ( layerIndex
-                                    , IE.encodeLayerModel <| FluidModel fluidModel
-                                    )
-                            )
-                            decodedModel
+                        [ if hasFssLayers decodedModel
+                            then rebuildAllFssLayersWith decodedModel
+                            else Cmd.none
+                        , if hasFluidLayers decodedModel
+                            then
+                                forAllFluidLayers
+                                (\layerIndex fluidModel ->
+                                    buildFluidGradients
+                                        ( layerIndex
+                                        , IE.encodeLayerModel <| FluidModel fluidModel
+                                        )
+                                )
+                                decodedModel
+                            else Cmd.none
                         ]
                     )
                 Err importError ->
@@ -298,7 +308,12 @@ update msg model =
                 ( newModelWithSize
                 , Cmd.batch
                     [ newModelWithSize |> getSizeUpdate |> sizeChanged
-                    , rebuildAllFssLayersWith newModelWithSize
+                    , if hasFssLayers newModelWithSize
+                        then rebuildAllFssLayersWith newModelWithSize
+                        else Cmd.none
+                    , if rule /= Dimensionless && hasFluidLayers model
+                        then resizeAllFluidLayers newModelWithSize
+                        else Cmd.none
                     ]
                 )
 
@@ -377,7 +392,9 @@ update msg model =
             in
                 ( modelWithProduct
                 , Cmd.batch
-                    [ rebuildAllFssLayersWith modelWithProduct
+                    [ if hasFssLayers modelWithProduct
+                        then rebuildAllFssLayersWith modelWithProduct
+                        else Cmd.none
                     , if hasMetaballLayers modelWithProduct
                         then generateAllMetaballs modelWithProduct
                         else Cmd.none
@@ -613,7 +630,9 @@ update msg model =
             case IE.decodePortModel createLayer portModel of
                 Ok decodedPortModel ->
                     ( decodedPortModel
-                    , rebuildAllFssLayersWith decodedPortModel
+                    , if hasFssLayers decodedPortModel
+                        then rebuildAllFssLayersWith decodedPortModel
+                        else Cmd.none
                     )
                 Err decodingErrors ->
                     ( model |> addErrors (IE.adaptModelDecodeErrors decodingErrors)
@@ -1030,6 +1049,8 @@ resizeToViewport =
                 <| ViewportSize (floor viewport.width) (floor viewport.height))
         Browser.getViewport
 
+-- TODO: The functions below belong to the specific layers. move them to `Model/Layer?`
+
 
 hasMetaballLayers : Model -> Bool
 hasMetaballLayers model
@@ -1038,6 +1059,11 @@ hasMetaballLayers model
 
 hasFluidLayers : Model -> Bool
 hasFluidLayers model
+    = True -- FIXME: implement, think that on Bang (where it is called) initialLayers could not exist yet
+
+
+hasFssLayers : Model -> Bool
+hasFssLayers model
     = True -- FIXME: implement, think that on Bang (where it is called) initialLayers could not exist yet
 
 
@@ -1201,6 +1227,10 @@ generateFluid size palette layerIdx =
         (RebuildFluid layerIdx)
             (Fluid.generator (getRuleSizeOrZeroes size) palette)
 
+
+resizeAllFluidLayers : Model -> Cmd Msg
+resizeAllFluidLayers model =
+    Cmd.none
 
 
 -- INCOMING PORTS
