@@ -7,7 +7,7 @@ module Model.Core exposing
     , getOrigin, adaptSize
     , extractTimeShift, adaptTimeShift
     , getLayerModel, getLayerModels
-    , updateLayer, updateLayerDef, updateLayerBlend, updateLayerWithItsModel
+    , updateLayer, updateLayerDef, updateLayerBlend, updateLayerWithItsModel, updateAllLayerModels
     , CreateGui
     , hasErrors, addError, addErrors
     , TimeDelta, Pos, Size
@@ -336,8 +336,23 @@ updateLayerWithItsModel index f model =
                     })
 
 
+updateAllLayerModels
+    :  (Int -> LayerKind -> LayerModel -> LayerModel)
+    -> Model
+    -> Model
+updateAllLayerModels f model =
+    model.layers
+        |> List.indexedMap
+            (\layerIndex layerDef ->
+                { layerDef
+                | model = f layerIndex layerDef.kind layerDef.model
+                }
+            )
+        |> (\layers -> { model | layers = layers }) -- .layers?
+
+
 updateLayerBlend
-    : Int
+    :  Int
     -> (WGLBlend.Blend -> Maybe WGLBlend.Blend)
     -> (HtmlBlend.Blend -> Maybe HtmlBlend.Blend)
     -> Model

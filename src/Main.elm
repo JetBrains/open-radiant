@@ -166,16 +166,20 @@ update msg model =
                     { newModel
                     | size = rule
                     , origin = getOrigin ( width, height )
-                    }
+                    } |>
+                        (\modelWithSize ->
+                            if rule /= Dimensionless && hasFluidLayers modelWithSize
+                            then remapAllFluidLayersToNewSize modelWithSize
+                            else modelWithSize
+                        )
+                informSizeUpdate = newModelWithSize |> getSizeUpdate |> sizeChanged
+
             in
                 ( newModelWithSize
                 , Cmd.batch
-                    [ newModelWithSize |> getSizeUpdate |> sizeChanged
+                    [ informSizeUpdate
                     , if rule /= Dimensionless && hasFssLayers model
                         then rebuildAllFssLayersWith newModelWithSize
-                        else Cmd.none
-                    , if rule /= Dimensionless && hasFluidLayers model
-                        then resizeAllFluidLayers newModelWithSize
                         else Cmd.none
                     ]
                 )
@@ -240,14 +244,14 @@ update msg model =
                             else Cmd.none
                         , if hasFluidLayers decodedModel
                             then
-                                forAllFluidLayers
-                                (\layerIndex fluidModel ->
-                                    buildFluidGradients
-                                        ( layerIndex
-                                        , IE.encodeLayerModel <| FluidModel fluidModel
-                                        )
-                                )
-                                decodedModel
+                                commandForAllFluidLayers
+                                    (\layerIndex fluidModel ->
+                                        buildFluidGradients
+                                            ( layerIndex
+                                            , IE.encodeLayerModel <| FluidModel fluidModel
+                                            )
+                                    )
+                                    decodedModel
                             else Cmd.none
                         ]
                     )
@@ -304,15 +308,17 @@ update msg model =
                     | size = rule
                     , origin = getOrigin ( width, height )
                     }
+                    |> (\modelWithSize ->
+                            if rule /= Dimensionless && hasFluidLayers modelWithSize
+                            then remapAllFluidLayersToNewSize modelWithSize
+                            else modelWithSize
+                        )
             in
                 ( newModelWithSize
                 , Cmd.batch
                     [ newModelWithSize |> getSizeUpdate |> sizeChanged
                     , if hasFssLayers newModelWithSize
                         then rebuildAllFssLayersWith newModelWithSize
-                        else Cmd.none
-                    , if rule /= Dimensionless && hasFluidLayers model
-                        then resizeAllFluidLayers newModelWithSize
                         else Cmd.none
                     ]
                 )
@@ -400,7 +406,7 @@ update msg model =
                         else Cmd.none
                     , if hasFluidLayers model
                         then modelWithProduct
-                            |> forAllFluidLayers
+                            |> commandForAllFluidLayers
                                 (\layerIndex fluidModel ->
                                     buildFluidGradients
                                         ( layerIndex
@@ -1157,18 +1163,30 @@ rebuildAllFssLayersWith model =
           |> Cmd.batch
 
 
-forAllFluidLayers : (Int -> Fluid.Model -> Cmd Msg) -> Model -> Cmd Msg
-forAllFluidLayers makeCommandForModel model =
+forAllFluidLayers : (Int -> Fluid.Model -> a) -> a -> (List (LayerIndex, a) -> b) -> Model -> b
+forAllFluidLayers modifyFluidModel default composeList model =
     model
         -- FIXME: apply only to the layer by layer index
         |> getLayerModels (\kind -> if kind == Fluid then False else True)
         |> List.indexedMap (\layerIndex layerModel ->
-            case layerModel of
+            ( layerIndex
+            , case layerModel of
                 FluidModel fluidModel ->
-                    makeCommandForModel layerIndex fluidModel
-                _ -> Cmd.none
+                    modifyFluidModel layerIndex fluidModel
+                _ -> default
+            )
         )
-        |> Cmd.batch
+        |> composeList
+
+
+
+commandForAllFluidLayers : (Int -> Fluid.Model -> Cmd Msg) -> Model -> Cmd Msg
+commandForAllFluidLayers modifyFluidModel model =
+    forAllFluidLayers
+        modifyFluidModel
+        Cmd.none
+        (List.map Tuple.second >> Cmd.batch)
+        model
 
 
 -- extractFssBuildOptions : Model -> FssBuildOptions
@@ -1228,9 +1246,17 @@ generateFluid size palette layerIdx =
             (Fluid.generator (getRuleSizeOrZeroes size) palette)
 
 
-resizeAllFluidLayers : Model -> Cmd Msg
-resizeAllFluidLayers model =
-    Cmd.none
+remapAllFluidLayersToNewSize : Model -> Model
+remapAllFluidLayersToNewSize model =
+    let newSize = getRuleSizeOrZeroes model.size
+    in
+        model
+            |> updateAllLayerModels
+                (\layerIndex layerKind layerModel ->
+                    case layerModel of
+                        FluidModel fluidModel -> FluidModel <| Fluid.remapTo newSize <| fluidModel
+                        _ -> layerModel
+                )
 
 
 -- INCOMING PORTS

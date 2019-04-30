@@ -197,6 +197,11 @@ encodeLayerModel layerModel =
                             [ ( "pos", E.float stopPos )
                             , ( "color", E.string stopColor )
                             ]
+                    encodeSize ( width, height )  =
+                        E.object
+                            [ ( "width", E.int width )
+                            , ( "height", E.int height )
+                            ]
                     encodeGradient { stops, orientation } =
                         E.object
                             [ ( "stops", E.list encodeStop stops )
@@ -218,6 +223,10 @@ encodeLayerModel layerModel =
 
                 in
                     [ ( "groups", E.list encodeGroup fluidModel.groups )
+                    , ( "size",
+                            fluidModel.forSize
+                                |> Maybe.map encodeSize
+                                |> Maybe.withDefault E.null)
                     ]
             _ -> [] -- FIXME: fail for unknown layer kinds, but don't fail if layer just has empty model
 
@@ -580,10 +589,15 @@ layerModelDecoder kind =
                         )
                         (D.field "balls" <| D.list makeBall)
                         (D.field "gradient" <| D.maybe <| makeGradient)
+                makeSize =
+                    D.map2 Tuple.pair
+                        (D.field "width" D.int)
+                        (D.field "height" D.int)
             in
-                D.list makeGroup
-                    |> D.field "groups"
-                    |> D.map (\groups -> { groups = groups })
+                D.map2
+                    (\groups forSize -> { groups = groups, forSize = forSize })
+                    (D.field "groups" <| D.list makeGroup)
+                    (D.field "forSize" <| D.maybe makeSize)
                     |> D.map M.FluidModel
         -- TODO: add parsing other models here
         _ -> D.succeed <| M.initLayerModel kind -- FIXME: Fail to decode if layer is unknown, but don't fail if it just has empty model

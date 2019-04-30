@@ -6,6 +6,7 @@ module Layer.Fluid exposing
     , TextureAndSize
     , GradientStops, GradientOrientation(..)
     , applyProductToGradients
+    , remapTo
     , makeEntities
     , build
     , init
@@ -65,6 +66,7 @@ type alias BallGroup =
 
 type alias Model =
     { groups: List BallGroup
+    , forSize : Maybe ( Int, Int ) -- FIXME: if we always use the main window size for generating model, then it's the duplication
     }
 
 
@@ -97,6 +99,7 @@ type GradientOrientation
 init : Model
 init =
     { groups = [ ]
+    , forSize = Nothing
     }
 
 
@@ -212,11 +215,16 @@ generator ( w, h ) palette =
                 (\numGroups ->
                     Random.list numGroups generateGroup
                 )
-            |> Random.map (\groups -> { groups = groups })
+            |> Random.map (\groups -> { groups = groups, forSize = Just ( w, h ) })
 
 
 generate : (Model -> msg) -> Random.Generator Model -> Cmd msg
 generate = Random.generate
+
+
+remapTo : ( Int, Int ) -> Model -> Model
+remapTo newSize model =
+    model
 
 
 makeDataTexture : List Ball -> ( Base64Url, Vec2 )
