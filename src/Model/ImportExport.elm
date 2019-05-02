@@ -188,7 +188,7 @@ encodeLayerModel layerModel =
                             , ( "y", E.float <| Vec2.getY ball.origin )
                             , ( "r", E.float ball.radius )
                             , ( "speed", E.float ball.speed )
-                            , ( "t", E.float ball.t )
+                            , ( "phase", E.float ball.phase )
                             , ( "ax", E.float <| Vec2.getX ball.amplitude )
                             , ( "ay", E.float <| Vec2.getY ball.amplitude )
                             ]
@@ -546,11 +546,11 @@ layerModelDecoder kind =
             let
                 makeBall =
                     D.map7
-                        (\x y r speed t ax ay ->
+                        (\x y r speed phase ax ay ->
                             { origin = Vec2.vec2 x y
                             , radius = r
                             , speed = speed
-                            , t = t
+                            , phase = phase
                             , amplitude = Vec2.vec2 ax ay
                             }
                         )
@@ -558,7 +558,7 @@ layerModelDecoder kind =
                         (D.field "y" D.float)
                         (D.field "r" D.float)
                         (D.field "speed" D.float |> D.withDefault (getFloatMin Fluid.speedRange))
-                        (D.field "t" D.float |> D.withDefault 0)
+                        (D.field "phase" D.float |> D.withDefault 0)
                         (D.field "ax" D.float |> D.withDefault (getFloatMin Fluid.amplitudeX))
                         (D.field "ay" D.float |> D.withDefault (getFloatMin Fluid.amplitudeY))
                 makeGradientStop =
