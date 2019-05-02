@@ -302,6 +302,7 @@ update msg model =
 
         Resize rule ->
             let
+                _ = Debug.log "Resize: rule" rule
                 ( width, height ) = getRuleSizeOrZeroes rule
                 newModelWithSize =
                     { model
@@ -320,6 +321,7 @@ update msg model =
                     , if hasFssLayers newModelWithSize
                         then rebuildAllFssLayersWith newModelWithSize
                         else Cmd.none
+                    , requestWindowResize ( width, height )
                     ]
                 )
 
@@ -1381,5 +1383,7 @@ port triggerSavePng : SizeUpdate -> Cmd msg -- FIXME: Remove, use Browser.DOM ta
 port requestRandomize : PortModel -> Cmd msg
 
 port requestFitToWindow : () -> Cmd msg
+
+port requestWindowResize : ( Int, Int ) -> Cmd msg
 
 -- port rebuildOnClient : (FSS.SerializedScene, Int) -> Cmd msg

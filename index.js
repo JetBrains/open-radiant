@@ -244,6 +244,12 @@ setTimeout(() => {
         );
     });
 
+    app.ports.requestWindowResize.subscribe((size) => {
+        const [ width, height ] = size;
+        console.log(width, height);
+        window.resizeTo(width, height);
+    });
+
     // app.ports.nextBatchStep.subscribe((update) => {
     //     if (savingBatch) {
     //         // console.log('saving ', size);
@@ -358,6 +364,11 @@ setTimeout(() => {
                     { app.ports.applyRandomizer.send(prepareModelForImport(value)); }
                 , refreshFluid : (index) =>
                     { app.ports.refreshFluid.send({ layer: index }); }
+                , resize: (presetCode) =>
+                    { app.ports.resize.send({
+                        presetCode, viewport: [ window.innerWidth, window.innerHeight ]
+                      });
+                    }
                 });
 
             // app.ports.pushUpdate.subscribe((data) => {

@@ -236,6 +236,7 @@ remapTo ( newWidth, newHeight ) model =
                                 )
                     )
                 |> Maybe.withDefault ( 1.0, 1.0 )
+        _ = Debug.log "factor" ( factorW, factorH )
         remapGroup group =
             { group
             | balls = List.map remapBall group.balls
