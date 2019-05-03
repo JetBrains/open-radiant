@@ -314,7 +314,7 @@ decodePortModel createLayer portModel =
                     , size = decodedSize
                     , origin = portModel.origin
                     , mouse = portModel.mouse
-                    , product = decodedProduct
+                    , product = Debug.log "decoded product" decodedProduct
                     }
             in
                 { decodedModel
@@ -597,7 +597,7 @@ layerModelDecoder kind =
                 D.map2
                     (\groups forSize -> { groups = groups, forSize = forSize })
                     (D.field "groups" <| D.list makeGroup)
-                    (D.field "forSize" <| D.maybe makeSize)
+                    (D.maybe <| D.field "forSize" makeSize)
                     |> D.map M.FluidModel
         -- TODO: add parsing other models here
         _ -> D.succeed <| M.initLayerModel kind -- FIXME: Fail to decode if layer is unknown, but don't fail if it just has empty model
@@ -640,7 +640,7 @@ modelDecoder currentMode createLayer createGui =
                             , origin = origin
                             , mouse = mouse
                             , now = now
-                            , product = product
+                            , product = Debug.log "product decoded" product
                             --, palette = Product.getPalette product
                             }
                         )

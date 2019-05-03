@@ -248,7 +248,10 @@ update msg model =
                                     (\layerIndex fluidModel ->
                                         buildFluidGradients
                                             ( layerIndex
-                                            , IE.encodeLayerModel <| FluidModel fluidModel
+                                            , fluidModel
+                                                |> Fluid.applyProductToGradients
+                                                                    decodedModel.product
+                                                |> FluidModel |> IE.encodeLayerModel
                                             )
                                     )
                                     decodedModel
@@ -1225,6 +1228,7 @@ generateMetaballs palette size layerIdx =
 generateAllFluid : Model -> Cmd Msg
 generateAllFluid model =
     let
+        _ = Debug.log "product for palette" model.product
         productPalette = Product.getPalette model.product
         isFluidLayer layerDef =
             case layerDef.model of
