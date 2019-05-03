@@ -117,6 +117,7 @@ tTextureMultiplier = 4
 generator : ( Int, Int ) -> Product.Palette -> Random.Generator Model
 generator ( w, h ) palette =
     let
+        _ = Debug.log "palette" palette
         paletteLen = List.length palette
         -- loopedPalette = [ 0, 1, 2, 3, 2, 1 ] -- just remember indices?
         loopedPalette = palette ++ (palette |> List.drop 1 |> List.reverse |> List.drop 1)
@@ -492,7 +493,7 @@ fragmentShader =
 
         float v = 0.0;
         float scale = .65;
- 
+
         vec2 originOffset = vec2(.65, .45);
 
         float tm, dm;
