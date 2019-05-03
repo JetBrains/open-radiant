@@ -107,11 +107,9 @@ numberOfGroups = iRange 3 5
 numberOfBalls = iRange 5 30
 radiusRange = fRange 10 100
 speedRange = fRange 10 1000
-amplitudeX = fRange -1.0 1.0
-amplitudeY = fRange -0.25 1.0
-
-amplitudeTextureMultiplier = 500
-tTextureMultiplier = 4
+phaseRange = fRange 0 360 -- Maybe useless 
+amplitudeX = fRange -50 50
+amplitudeY = fRange -10 10
 
 
 generator : ( Int, Int ) -> Product.Palette -> Random.Generator Model
@@ -140,7 +138,7 @@ generator ( w, h ) palette =
                 (Random.float 0 <| toFloat h)
         generateRadius = randomFloatInRange radiusRange
         generateSpeed = randomFloatInRange speedRange
-        generatePhase = Random.float 0 200
+        generatePhase = randomFloatInRange phaseRange
         generateAmplitude =
             Random.map2 vec2
                 (randomFloatInRange amplitudeX)
@@ -259,10 +257,10 @@ makeDataTexture balls =
                 , floor <| Vec2.getY ball.origin -- 1.
                 , floor  ball.radius             -- 2.
                 , 0                              -- 3.
-                , floor <| ball.speed -- 4.
-                , floor <| tTextureMultiplier * ball.phase -- 5.
-                , floor <| amplitudeTextureMultiplier * Vec2.getX ball.amplitude -- 6.
-                , floor <| amplitudeTextureMultiplier * Vec2.getY ball.amplitude -- 7.
+                , Debug.log "speed" <| floor <| ball.speed -- 4.
+                , floor <| ball.phase -- 5.
+                , floor <| Vec2.getX ball.amplitude -- 6.
+                , floor <| Vec2.getY ball.amplitude -- 7.
                 ]
         data = balls |> List.foldl addBallData []
         dataLen =  List.length data
@@ -491,13 +489,12 @@ fragmentShader =
         uniform vec2 mousePosition;
 
         float v = 0.0;
-        float scale = .65;
  
-        vec2 originOffset = vec2(.65, .45);
-
+        // vec2 originOffset = vec2(.65, .45);
+        // vec2 originOffset = vec2(.0, .0);
         float tm, dm;
         float speed, phase, targX, targY;
-        vec2 amplitude, origin, toReturn;
+        vec2 amplitude, origin, newPos, toReturn;
 
         float atan2(float y, float x) {
             bool s = (abs(x) > abs(y));
@@ -507,14 +504,13 @@ fragmentShader =
         vec2 animate(float time, vec2 curPos, float radius, vec4 animation) {
             speed = animation.s;
             phase = animation.t;
-            amplitude = animation.pq;
+            amplitude = animation.pq * resolution * 2.0;
 
-            origin = (resolution / 2.) - (resolution / 2. * originOffset);
+           // origin = (resolution / 2.) - (resolution / 2. * originOffset);
 
-            targX = origin.x + (curPos.x * scale + (sin((phase + time) * speed) * radius * amplitude.x) + (sin((phase + time) * speed) * radius * amplitude.x));
-            targY = origin.y + (curPos.y * scale + (sin((phase + time) * speed) * radius * amplitude.y) + (sin((phase + time) * speed) * radius * amplitude.y));
+            newPos = amplitude * sin(time * speed / 500000.0 + phase);
 
-           // toReturn = vec2(curPos.x, curPos.y);
+          //  toReturn = vec2(curPos.x, curPos.y);
 
            // tm = atan2(curPos.x - mousePosition.x, curPos.y - mousePosition.y);
            // dm = 500. / sqrt(pow(mousePosition.x - curPos.x, 2.0) + pow(mousePosition.y - curPos.y, 2.0));
@@ -522,7 +518,7 @@ fragmentShader =
            // toReturn.x += dm * sin(tm) + (targX - curPos.x) * 0.1;
           //  toReturn.y += dm * cos(tm) + (targY - curPos.y) * 0.1;
 
-            toReturn = vec2(targX, targY);
+            toReturn = curPos + newPos;
 
             return toReturn;
         }
