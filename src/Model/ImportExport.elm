@@ -219,6 +219,12 @@ encodeLayerModel layerModel =
                                     |> Maybe.map encodeGradient
                                     |> Maybe.withDefault E.null
                               )
+                            , ( "origin"
+                              , E.object
+                                [ ( "x", E.float <| Vec2.getX group.origin )
+                                , ( "y", E.float <| Vec2.getY group.origin )
+                                ]
+                              )                              
                             ]
 
                 in
@@ -579,16 +585,23 @@ layerModelDecoder kind =
                         )
                         (D.field "stops" <| D.list makeGradientStop)
                         (D.field "orientation" <| D.string)
-                makeGroup =
+                makeOrigin =
                     D.map2
-                        (\balls gradient ->
+                        Vec2.vec2
+                        (D.field "x" D.float)
+                        (D.field "y" D.float)                        
+                makeGroup =
+                    D.map3
+                        (\balls gradient origin ->
                             { balls = balls
                             , textures = Nothing
                             , gradient = gradient
+                            , origin = origin |> Maybe.withDefault (Vec2.vec2 0 0)
                             }
                         )
                         (D.field "balls" <| D.list makeBall)
                         (D.field "gradient" <| D.maybe <| makeGradient)
+                        (D.field "origin" <| D.maybe <| makeOrigin)
                 makeSize =
                     D.map2 Tuple.pair
                         (D.field "width" D.int)

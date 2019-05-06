@@ -61,6 +61,7 @@ type alias BallGroup =
         { stops: GradientStops
         , orientation: GradientOrientation
         }
+    , origin: Vec2    
     }
 
 
@@ -106,7 +107,7 @@ init =
 numberOfGroups = iRange 3 5
 numberOfBalls = iRange 5 30
 radiusRange = fRange 10 100
-speedRange = fRange 10 1000
+speedRange = fRange 100 200
 phaseRange = fRange 0 360 -- Maybe useless 
 amplitudeX = fRange -50 50
 amplitudeY = fRange -10 10
@@ -135,8 +136,8 @@ generator ( w, h ) palette =
                     )
         generatePosition =
             Random.map2 vec2
-                (Random.float 0 <| toFloat w)
-                (Random.float 0 <| toFloat h)
+                (Random.float 0 <| toFloat w * 0)
+                (Random.float 0 <| toFloat h * 0)
         generateRadius = randomFloatInRange radiusRange
         generateSpeed = randomFloatInRange speedRange
         generatePhase = randomFloatInRange phaseRange
@@ -187,23 +188,39 @@ generator ( w, h ) palette =
                         generateStopsWithColors
                             |> Random.map
                                 (\stopsWithColors ->
-                                    ( balls, stopsWithColors )
+                                    { balls = balls
+                                    , stops = stopsWithColors 
+                                    }
                                 )
                     )
                 |> Random.andThen
-                    (\(balls, stops) ->
+                    (\{ balls, stops } ->
                         Random.float 0 1
                             |> Random.map
                                 (\v -> if v >= 0.5 then Horizontal else Vertical)
                             |> Random.map
-                                (\orientation -> (balls, stops, orientation))
+                                (\orientation -> 
+                                    { balls = balls
+                                    , gradient = Just 
+                                        { stops = stops
+                                        , orientation = orientation 
+                                        }
+                                    }
+                                )
                     )
-                |> Random.map
-                    (\(balls, stops, orientation) ->
-                        { balls = balls
-                        , textures = Nothing
-                        , gradient = Just { stops = stops, orientation = orientation }
-                        }
+                |> Random.andThen
+                    (\{ balls, gradient } ->
+                        Random.map2 vec2
+                            (Random.float 0 1)
+                            (Random.float 0 1)
+                        |> Random.map 
+                            (\origin -> 
+                                { balls = balls
+                                , gradient = gradient
+                                , textures = Nothing
+                                , origin = origin
+                                }
+                            )
                     )
         makeBall { center, radius } = Ball center radius
     in
@@ -258,7 +275,7 @@ makeDataTexture balls =
                 , floor <| Vec2.getY ball.origin -- 1.
                 , floor  ball.radius             -- 2.
                 , 0                              -- 3.
-                , Debug.log "speed" <| floor <| ball.speed -- 4.
+                , floor <| ball.speed -- 4.
                 , floor <| ball.phase -- 5.
                 , floor <| Vec2.getX ball.amplitude -- 6.
                 , floor <| Vec2.getY ball.amplitude -- 7.
@@ -329,16 +346,17 @@ makeEntity
     -> Viewport {}
     -> List Setting
     -> Mesh
+    -> Vec2    
     -> List Ball
     -> { gradient : ( Texture, Vec2 ) , data : ( Texture, Vec2 ) }
     -> WebGL.Entity
-makeEntity now mousePos viewport settings mesh balls textures  =
+makeEntity now mousePos viewport settings mesh groupOrigin balls textures  =
     WebGL.entityWith
         settings
         vertexShader
         fragmentShader
         mesh
-        (uniforms now mousePos balls textures.gradient textures.data viewport)
+        (uniforms now mousePos groupOrigin balls textures.gradient textures.data viewport)
 
 
 -- TODO: add mouse
@@ -356,7 +374,7 @@ makeEntities now mousePos viewport model settings mesh =
             group.textures
                 |> Maybe.map
                     (\textures ->
-                        makeEntity now mousePos viewport settings mesh group.balls textures
+                        makeEntity now mousePos viewport settings mesh group.origin group.balls textures
                     )
     in
         model.groups |> List.filterMap makeGroupEntity
@@ -436,18 +454,20 @@ type alias Uniforms =
    , ballsQuantity : Int
    , dataTextureSize : Vec2
    , mousePosition : Vec2
+   , groupOrigin : Vec2
    }
 
 
 uniforms
     :  Time
     -> ( Int, Int )
+    -> Vec2    
     -> List Ball
     -> TextureAndSize
     -> TextureAndSize
     -> Viewport {}
     -> Uniforms
-uniforms now ( mouseX, mouseY ) balls ( groupTexture, _ ) ( dataTexture, dataTextureSize) v =
+uniforms now ( mouseX, mouseY ) groupOrigin balls ( groupTexture, _ ) ( dataTexture, dataTextureSize) v =
     let
         width = Vec2.getX v.size
         height = Vec2.getY v.size
@@ -459,6 +479,7 @@ uniforms now ( mouseX, mouseY ) balls ( groupTexture, _ ) ( dataTexture, dataTex
         , ballsQuantity = List.length balls
         , dataTextureSize = dataTextureSize
         , mousePosition = vec2 (toFloat mouseX) (toFloat mouseY)
+        , groupOrigin = groupOrigin
         }
 
 
@@ -466,7 +487,6 @@ vertexShader : WebGL.Shader Vertex Uniforms {}
 vertexShader =
     [glsl|
         attribute vec3 position;
-
         void main () {
             gl_Position = vec4(position, 1.0);
         }
@@ -491,7 +511,7 @@ fragmentShader =
 
         float v = 0.0;
  
-        // vec2 originOffset = vec2(.65, .45);
+        //vec2 originOffset = vec2(.65, .45);
         // vec2 originOffset = vec2(.0, .0);
         float tm, dm;
         float speed, phase, targX, targY;
@@ -505,9 +525,9 @@ fragmentShader =
         vec2 animate(float time, vec2 curPos, float radius, vec4 animation) {
             speed = animation.s;
             phase = animation.t;
-            amplitude = animation.pq * resolution * 2.0;
+            amplitude = animation.pq;
 
-           // origin = (resolution / 2.) - (resolution / 2. * originOffset);
+            origin = (resolution / 2.);
 
             newPos = amplitude * sin(time * speed / 500000.0 + phase);
 
@@ -519,7 +539,7 @@ fragmentShader =
            // toReturn.x += dm * sin(tm) + (targX - curPos.x) * 0.1;
           //  toReturn.y += dm * cos(tm) + (targY - curPos.y) * 0.1;
 
-            toReturn = curPos + newPos;
+            toReturn = curPos + newPos + origin ;
 
             return toReturn;
         }
@@ -562,7 +582,7 @@ fragmentShader =
         }
 
         void main () {
-            vec2 curPosition = gl_FragCoord.xy; // - translate.xy;
+            vec2 curFragCoord = gl_FragCoord.xy; // - translate.xy;
             vec3 metaball;
             vec4 animation;
             float r;
@@ -576,7 +596,7 @@ fragmentShader =
 
                     r = metaball.z;
                     animatedPos = animate(time, metaball.xy, r, animation);
-                    deltaPos = animatedPos - curPosition;
+                    deltaPos = animatedPos - curFragCoord;
                     v += r*r/dot( deltaPos, deltaPos );
                 }
             }
@@ -585,7 +605,7 @@ fragmentShader =
             float delta = 0.0;
             float alpha = 1.0;
             vec4 color;
-            vec4 textureColor = texture2D(gradientTexture, gl_FragCoord.xy / resolution);
+            vec4 textureColor = texture2D(gradientTexture, curFragCoord / resolution);
 
             //-// #ifndef GL_OES_standard_derivatives
             if (v > 1.0) {
@@ -608,6 +628,6 @@ fragmentShader =
 
             vec2 st = gl_FragCoord.xy / resolution;
             color.rgb = mix(color.rgb, vec3(noise(st * 1000.0, 1.0) * 100.0), 0.03 / pow(brightness(color.rgb), 0.3));
-            gl_FragColor = color * alpha * 0.8;
+            gl_FragColor = color * alpha * 0.8;           
         }
     |]
