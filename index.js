@@ -364,6 +364,8 @@ setTimeout(() => {
                     { app.ports.applyRandomizer.send(prepareModelForImport(value)); }
                 , refreshFluid : (index) =>
                     { app.ports.refreshFluid.send({ layer: index }); }
+                , rebuildFluidGradients : (index) =>
+                    { app.ports.requestRegenerateFluidGradients.send({ layer: index }); }
                 , resize: (presetCode) =>
                     { app.ports.resize.send({
                         presetCode, viewport: [ window.innerWidth, window.innerHeight ]

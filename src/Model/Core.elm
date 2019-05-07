@@ -92,6 +92,7 @@ type Msg
     | ChangeOpacity LayerIndex FSS.Opacity
     | RebuildMetaballs LayerIndex Metaballs.Model
     | RebuildFluid LayerIndex Fluid.Model
+    | RegenerateFluidGradients LayerIndex
     | RequestNewFluid LayerIndex
     | LoadFluidGradientTextures LayerIndex (List Fluid.Base64Url)
     | ApplyFluidTextures

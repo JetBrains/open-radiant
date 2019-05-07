@@ -87,6 +87,7 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
 
       if (is.fluid(layer)) {
         this['bang' + index] = () => funcs.refreshFluid(index); // FIXME: send layer index as well
+        this['rebuildGradients' + index] = () => funcs.rebuildFluidGradients(index);
       }
     });
 
@@ -303,6 +304,7 @@ function start(document, model, constants, funcs) {
       }
       if (is.fluid(layer)) {
         folder.add(config, 'bang' + index).name('bang');
+        folder.add(config, 'rebuildGradients' + index).name('regenerate gradients');
       }
     }
 

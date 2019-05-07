@@ -679,6 +679,11 @@ update msg model =
                 |> Cmd.batch
             )
 
+        RegenerateFluidGradients layerIndex ->
+            ( model
+            , regenerateFluidGradients model
+            )
+
         ApplyFluidTextures layerIndex textures ->
             ( model |> updateLayerWithItsModel
                 0 -- FIXME: update to layerIndex when we will use it
@@ -786,6 +791,7 @@ subscriptions model =
                 |> List.map Fluid.Base64Url
                 |> LoadFluidGradientTextures layer
           )
+        , requestRegenerateFluidGradients (\{ layer } -> RegenerateFluidGradients layer)
         , refreshFluid (\{ layer } -> RequestNewFluid layer)
         , applyRandomizer ApplyRandomizer
         , import_ Import
@@ -1326,6 +1332,8 @@ port changeProduct : (String -> msg) -> Sub msg
 port rebuildFss : ({ value: FSS.SerializedScene, layer: LayerIndex } -> msg) -> Sub msg
 
 port loadFluidGradientTextures : ({ value: List String, layer: LayerIndex } -> msg) -> Sub msg
+
+port requestRegenerateFluidGradients : ({ layer: LayerIndex } -> msg) -> Sub msg
 
 port turnOn : (LayerIndex -> msg) -> Sub msg
 
