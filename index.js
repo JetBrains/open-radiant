@@ -410,10 +410,10 @@ setTimeout(() => {
         });
     });
 
-    app.ports.buildFluidGradients.subscribe(([ index, layerModel ]) => {
+    app.ports.buildFluidGradientTextures.subscribe(([ index, layerModel ]) => {
         //if (is.fluid(layer)) {
             const gradients = buildGradients(layerModel);
-            app.ports.loadFluidGradients.send({ value: gradients, layer: index });
+            app.ports.loadFluidGradientTextures.send({ value: gradients, layer: index });
         //}
     });
 

@@ -791,7 +791,8 @@ subscriptions model =
                 |> List.map Fluid.Base64Url
                 |> LoadFluidGradientTextures layer
           )
-        , requestRegenerateFluidGradients (\{ layer } -> RegenerateFluidGradients layer)
+        , requestRegenerateFluidGradients
+            (\{ layer } -> RegenerateFluidGradients layer)
         , refreshFluid (\{ layer } -> RequestNewFluid layer)
         , applyRandomizer ApplyRandomizer
         , import_ Import
@@ -836,7 +837,8 @@ view model =
             case model.mode of
                 Player -> True
                 _ -> False
-    in div [ H.class <| "mode-" ++ encodeMode model.mode ]
+    in div
+        [ H.class <| "mode-" ++ encodeMode model.mode ]
         [ if not isInPlayerMode then canvas [ H.id "js-save-buffer" ] [ ] else div [] []
         , if hasErrors model
             then
