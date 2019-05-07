@@ -12,11 +12,12 @@ module Layer.Fluid exposing
     , init
     , loadTextures, injectTextures, packTextures
     , generator, gradientGenerator
-    , generate, generateGradient -- TODO: not needed, remove
+    , generate, generateGradient, generateGradientsFor
     , numberOfGroups, numberOfBalls
     , radiusRange, speedRange
     , amplitudeX, amplitudeY
     )
+
 
 import Array exposing (Array)
 import Random exposing (..)
@@ -247,6 +248,29 @@ gradientGenerator palette =
 
 generateGradient : (Gradient -> msg) -> Random.Generator Gradient -> Cmd msg
 generateGradient = Random.generate
+
+
+generateGradientsFor : (Model -> msg) -> Product.Palette -> Model -> Cmd msg
+generateGradientsFor putIntoMsg palette model =
+    let
+        groupsCount = List.length model.groups
+    in
+        Random.generate
+            (\gradients ->
+                putIntoMsg
+                    { model
+                    | groups =
+                        List.map2
+                            (\group gradient ->
+                                { group
+                                | gradient = Just gradient
+                                }
+                            )
+                            model.groups
+                            gradients
+                    }
+            )
+            (Random.list groupsCount <| gradientGenerator palette)
 
 
 remapTo : ( Int, Int ) -> Model -> Model
