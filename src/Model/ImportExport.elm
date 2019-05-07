@@ -224,7 +224,7 @@ encodeLayerModel layerModel =
                                 [ ( "x", E.float <| Vec2.getX group.origin )
                                 , ( "y", E.float <| Vec2.getY group.origin )
                                 ]
-                              )                              
+                              )
                             ]
 
                 in
@@ -589,7 +589,7 @@ layerModelDecoder kind =
                     D.map2
                         Vec2.vec2
                         (D.field "x" D.float)
-                        (D.field "y" D.float)                        
+                        (D.field "y" D.float)
                 makeGroup =
                     D.map3
                         (\balls gradient origin ->
