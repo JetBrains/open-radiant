@@ -364,6 +364,8 @@ setTimeout(() => {
                     { app.ports.applyRandomizer.send(prepareModelForImport(value)); }
                 , refreshFluid : (index) =>
                     { app.ports.refreshFluid.send({ layer: index }); }
+                , rebuildFluidGradients : (index) =>
+                    { app.ports.requestRegenerateFluidGradients.send({ layer: index }); }
                 , resize: (presetCode) =>
                     { app.ports.resize.send({
                         presetCode, viewport: [ window.innerWidth, window.innerHeight ]
@@ -408,10 +410,10 @@ setTimeout(() => {
         });
     });
 
-    app.ports.buildFluidGradients.subscribe(([ index, layerModel ]) => {
+    app.ports.buildFluidGradientTextures.subscribe(([ index, layerModel ]) => {
         //if (is.fluid(layer)) {
             const gradients = buildGradients(layerModel);
-            app.ports.loadFluidGradients.send({ value: gradients, layer: index });
+            app.ports.loadFluidGradientTextures.send({ value: gradients, layer: index });
         //}
     });
 

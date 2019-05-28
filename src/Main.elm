@@ -246,7 +246,7 @@ update msg model =
                             then
                                 commandForAllFluidLayers
                                     (\layerIndex fluidModel ->
-                                        buildFluidGradients
+                                        buildFluidGradientTextures
                                             ( layerIndex
                                             , fluidModel
                                                 |> Fluid.applyProductToGradients
@@ -413,7 +413,7 @@ update msg model =
                         then modelWithProduct
                             |> commandForAllFluidLayers
                                 (\layerIndex fluidModel ->
-                                    buildFluidGradients
+                                    buildFluidGradientTextures
                                         ( layerIndex
                                         , Fluid.applyProductToGradients product fluidModel
                                             |> FluidModel |> IE.encodeLayerModel
@@ -548,7 +548,7 @@ update msg model =
 
         RebuildFluid index fluidModel ->
             ( model |> rebuildFluid index fluidModel.groups
-            , buildFluidGradients
+            , buildFluidGradientTextures
                 ( index
                 , IE.encodeLayerModel <| FluidModel fluidModel
                 )
@@ -660,7 +660,7 @@ update msg model =
             , Cmd.none
             )
 
-        LoadFluidGradients layerIndex gradientUrls ->
+        LoadFluidGradientTextures layerIndex gradientUrls ->
             ( model
             , model
                 -- FIXME: apply only to the layer by layer index
@@ -677,6 +677,11 @@ update msg model =
                         _ -> Cmd.none
                    )
                 |> Cmd.batch
+            )
+
+        RegenerateFluidGradients layerIndex ->
+            ( model
+            , regenerateFluidGradients model
             )
 
         ApplyFluidTextures layerIndex textures ->
@@ -781,11 +786,13 @@ subscriptions model =
         , rebuildFss (\{ layer, value } ->
             RebuildFss layer value
           )
-        , loadFluidGradients (\{ layer, value } ->
+        , loadFluidGradientTextures (\{ layer, value } ->
             value
                 |> List.map Fluid.Base64Url
-                |> LoadFluidGradients layer
+                |> LoadFluidGradientTextures layer
           )
+        , requestRegenerateFluidGradients
+            (\{ layer } -> RegenerateFluidGradients layer)
         , refreshFluid (\{ layer } -> RequestNewFluid layer)
         , applyRandomizer ApplyRandomizer
         , import_ Import
@@ -830,7 +837,8 @@ view model =
             case model.mode of
                 Player -> True
                 _ -> False
-    in div [ H.class <| "mode-" ++ encodeMode model.mode ]
+    in div
+        [ H.class <| "mode-" ++ encodeMode model.mode ]
         [ if not isInPlayerMode then canvas [ H.id "js-save-buffer" ] [ ] else div [] []
         , if hasErrors model
             then
@@ -1245,11 +1253,43 @@ generateAllFluid model =
           |> Cmd.batch
 
 
+-- TODO: combine with generateAllMetaballs and generateAllFluid
+regenerateFluidGradients : Model -> Cmd Msg
+regenerateFluidGradients model =
+    let
+        _ = Debug.log "product for palette" model.product
+        productPalette = Product.getPalette model.product
+        isFluidLayer layerDef =
+            case layerDef.model of
+                FluidModel fluidModel -> Just fluidModel
+                _ -> Nothing
+    in
+        model.layers
+          |> List.indexedMap Tuple.pair
+          |> List.filterMap
+                (\(index, layer) ->
+                    isFluidLayer layer |> Maybe.map (Tuple.pair index)
+                )
+          |> List.map
+                (\(index, fluidModel) ->
+                    generateFluidGradients productPalette index fluidModel
+                )
+          |> Cmd.batch
+
+
 generateFluid : SizeRule -> Product.Palette -> LayerIndex -> Cmd Msg
 generateFluid size palette layerIdx =
     Fluid.generate
         (RebuildFluid layerIdx)
             (Fluid.generator (getRuleSizeOrZeroes size) palette)
+
+
+generateFluidGradients : Product.Palette -> LayerIndex -> Fluid.Model -> Cmd Msg
+generateFluidGradients palette layerIdx currentModel =
+    currentModel |>
+        Fluid.generateGradientsFor
+            (RebuildFluid layerIdx)
+            palette
 
 
 remapAllFluidLayersToNewSize : Model -> Model
@@ -1293,7 +1333,9 @@ port changeProduct : (String -> msg) -> Sub msg
 
 port rebuildFss : ({ value: FSS.SerializedScene, layer: LayerIndex } -> msg) -> Sub msg
 
-port loadFluidGradients : ({ value: List String, layer: LayerIndex } -> msg) -> Sub msg
+port loadFluidGradientTextures : ({ value: List String, layer: LayerIndex } -> msg) -> Sub msg
+
+port requestRegenerateFluidGradients : ({ layer: LayerIndex } -> msg) -> Sub msg
 
 port turnOn : (LayerIndex -> msg) -> Sub msg
 
@@ -1370,7 +1412,7 @@ port requestFssRebuild :
     , value: FSS.PortModel
     } -> Cmd msg
 
-port buildFluidGradients : ( Int, E.Value ) -> Cmd msg
+port buildFluidGradientTextures : ( Int, E.Value ) -> Cmd msg
 
 port sizeChanged : SizeUpdate -> Cmd msg
 

@@ -4,18 +4,20 @@ module Layer.Fluid exposing
     , BallGroup
     , Base64Url(..)
     , TextureAndSize
-    , GradientStops, GradientOrientation(..)
+    , Gradient, GradientStops, GradientOrientation(..)
     , applyProductToGradients
     , remapTo
     , makeEntities
     , build
     , init
     , loadTextures, injectTextures, packTextures
-    , generate, generator
+    , generator, gradientGenerator
+    , generate, generateGradient, generateGradientsFor
     , numberOfGroups, numberOfBalls
     , radiusRange, speedRange
     , amplitudeX, amplitudeY
     )
+
 
 import Array exposing (Array)
 import Random exposing (..)
@@ -57,11 +59,14 @@ type alias BallGroup =
             { gradient : TextureAndSize
             , data : TextureAndSize
             }
-    , gradient: Maybe
-        { stops: GradientStops
-        , orientation: GradientOrientation
-        }
-    , origin: Vec2    
+    , gradient: Maybe Gradient
+    , origin: Vec2
+    }
+
+
+type alias Gradient =
+    { stops: GradientStops
+    , orientation: GradientOrientation
     }
 
 
@@ -108,7 +113,7 @@ numberOfGroups = iRange 1 5
 numberOfBalls = iRange 4 10
 radiusRange = fRange 10 100
 speedRange = fRange 100 200
-phaseRange = fRange 0 360 -- Maybe useless 
+phaseRange = fRange 0 360 -- Maybe useless
 amplitudeX = fRange -50 50
 amplitudeY = fRange -10 10
 
@@ -116,24 +121,6 @@ amplitudeY = fRange -10 10
 generator : ( Int, Int ) -> Product.Palette -> Random.Generator Model
 generator ( w, h ) palette =
     let
-        _ = Debug.log "palette" palette
-        paletteLen = List.length palette
-        -- loopedPalette = [ 0, 1, 2, 3, 2, 1 ] -- just remember indices?
-        loopedPalette = palette ++ (palette |> List.drop 1 |> List.reverse |> List.drop 1)
-        loopedPaletteLen = List.length loopedPalette
-        loopedPaletteArray = Array.fromList loopedPalette
-        addColors shift stops =
-            stops |>
-                List.indexedMap
-                    (\index stop ->
-                        let
-                            loopedPaletteIndex = modBy loopedPaletteLen <| index + shift
-                        in
-                            ( stop
-                            , Array.get loopedPaletteIndex loopedPaletteArray
-                                |> Maybe.withDefault ""
-                            )
-                    )
         generatePosition =
             Random.map2 vec2
                 (Random.float 0 <| toFloat w * 0)
@@ -145,31 +132,6 @@ generator ( w, h ) palette =
             Random.map2 vec2
                 (randomFloatInRange amplitudeX)
                 (randomFloatInRange amplitudeY)
-        generateStopsWithColors =
-                   let
-                    count = 4
-                    step = 1 / count
-                    generateNext prevValues index min max =
-                        if index < count then
-                            Random.float min max
-                                |> Random.andThen
-                                    (\val ->
-                                        generateNext
-                                            (prevValues ++ [ val ])
-                                            (index + 1)
-                                            (min + step)
-                                            (max + step)
-                                    )
-                        else
-                            Random.constant prevValues
-                    in
-                        generateNext [] 0 0 step
-
-                    |> Random.andThen
-                        (\stops ->
-                            Random.int 0 paletteLen
-                                |> Random.map (\shift -> addColors shift stops)
-                        )
         generateGroup =
             randomIntInRange numberOfBalls
                 |> Random.andThen
@@ -185,26 +147,11 @@ generator ( w, h ) palette =
                     )
                 |> Random.andThen
                     (\balls ->
-                        generateStopsWithColors
+                        gradientGenerator palette
                             |> Random.map
-                                (\stopsWithColors ->
+                                (\gradient ->
                                     { balls = balls
-                                    , stops = stopsWithColors 
-                                    }
-                                )
-                    )
-                |> Random.andThen
-                    (\{ balls, stops } ->
-                        Random.float 0 1
-                            |> Random.map
-                                (\v -> if v >= 0.5 then Horizontal else Vertical)
-                            |> Random.map
-                                (\orientation -> 
-                                    { balls = balls
-                                    , gradient = Just 
-                                        { stops = stops
-                                        , orientation = orientation 
-                                        }
+                                    , gradient = Just gradient
                                     }
                                 )
                     )
@@ -213,8 +160,8 @@ generator ( w, h ) palette =
                         Random.map2 vec2
                             (Random.float 0 1)
                             (Random.float 0 1)
-                        |> Random.map 
-                            (\origin -> 
+                        |> Random.map
+                            (\origin ->
                                 { balls = balls
                                 , gradient = gradient
                                 , textures = Nothing
@@ -234,6 +181,96 @@ generator ( w, h ) palette =
 
 generate : (Model -> msg) -> Random.Generator Model -> Cmd msg
 generate = Random.generate
+
+
+gradientGenerator
+    :  Product.Palette
+    -> Random.Generator Gradient
+gradientGenerator palette =
+    let
+        _ = Debug.log "palette" palette
+        paletteLen = List.length palette
+        -- loopedPalette = [ 0, 1, 2, 3, 2, 1 ] -- just remember indices?
+        loopedPalette = palette ++ (palette |> List.drop 1 |> List.reverse |> List.drop 1)
+        loopedPaletteLen = List.length loopedPalette
+        loopedPaletteArray = Array.fromList loopedPalette
+        addColors shift stops =
+            stops |>
+                List.indexedMap
+                    (\index stop ->
+                        let
+                            loopedPaletteIndex = modBy loopedPaletteLen <| index + shift
+                        in
+                            ( stop
+                            , Array.get loopedPaletteIndex loopedPaletteArray
+                                |> Maybe.withDefault ""
+                            )
+                    )
+        generateStopsWithColors =
+            let
+                count = 4
+                step = 1 / count
+                generateNext prevValues index min max =
+                    if index < count then
+                        Random.float min max
+                            |> Random.andThen
+                                (\val ->
+                                    generateNext
+                                        (prevValues ++ [ val ])
+                                        (index + 1)
+                                        (min + step)
+                                        (max + step)
+                                )
+                    else
+                        Random.constant prevValues
+            in
+                generateNext [] 0 0 step
+
+            |> Random.andThen
+                (\stops ->
+                    Random.int 0 paletteLen
+                        |> Random.map (\shift -> addColors shift stops)
+                )
+        generateOrientation =
+            Random.float 0 1
+                |> Random.map
+                    (\v -> if v >= 0.5 then Horizontal else Vertical)
+    in
+        Random.map2
+            (\stopsWithColors orientation ->
+                { stops = stopsWithColors
+                , orientation = orientation
+                }
+            )
+            generateStopsWithColors
+            generateOrientation
+
+
+generateGradient : (Gradient -> msg) -> Random.Generator Gradient -> Cmd msg
+generateGradient = Random.generate
+
+
+generateGradientsFor : (Model -> msg) -> Product.Palette -> Model -> Cmd msg
+generateGradientsFor putIntoMsg palette model =
+    let
+        groupsCount = List.length model.groups
+    in
+        Random.generate
+            (\gradients ->
+                putIntoMsg
+                    { model
+                    | groups =
+                        List.map2
+                            (\group gradient ->
+                                { group
+                                | gradient = Just gradient
+                                }
+                            )
+                            model.groups
+                            gradients
+                    }
+            )
+            (Random.list groupsCount <| gradientGenerator palette)
 
 
 remapTo : ( Int, Int ) -> Model -> Model
@@ -346,7 +383,7 @@ makeEntity
     -> Viewport {}
     -> List Setting
     -> Mesh
-    -> Vec2    
+    -> Vec2
     -> List Ball
     -> { gradient : ( Texture, Vec2 ) , data : ( Texture, Vec2 ) }
     -> WebGL.Entity
@@ -461,7 +498,7 @@ type alias Uniforms =
 uniforms
     :  Time
     -> ( Int, Int )
-    -> Vec2    
+    -> Vec2
     -> List Ball
     -> TextureAndSize
     -> TextureAndSize
@@ -511,7 +548,7 @@ fragmentShader =
         uniform vec2 mousePosition;
 
         float v = 0.0;
- 
+
         //vec2 originOffset = vec2(.65, .45);
         // vec2 originOffset = vec2(.0, .0);
         float tm, dm;
@@ -633,6 +670,6 @@ fragmentShader =
 
             vec2 st = gl_FragCoord.xy / resolution;
             color.rgb = mix(color.rgb, vec3(noise(st * 1000.0, 1.0) * 100.0), 0.03 / pow(brightness(color.rgb), 0.3));
-            gl_FragColor = color * alpha * 0.8;           
+            gl_FragColor = color * alpha * 0.8;
         }
     |]
