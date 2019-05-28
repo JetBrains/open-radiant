@@ -529,7 +529,9 @@ fragmentShader =
 
             origin = (resolution / 2.);
 
-            newPos = amplitude * sin(time * speed / 500000.0 + phase);
+            //newPos = amplitude * sin(time * speed / 500000.0 + phase);
+            //newPos = amplitude * sin(time) * speed / 500000.0 + phase;
+            newPos = amplitude * 10000. * sin(time * speed / 500000.0 + phase);
 
           //  toReturn = vec2(curPos.x, curPos.y);
 
