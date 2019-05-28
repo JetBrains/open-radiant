@@ -104,8 +104,8 @@ init =
     }
 
 
-numberOfGroups = iRange 3 5
-numberOfBalls = iRange 5 30
+numberOfGroups = iRange 1 5
+numberOfBalls = iRange 4 10
 radiusRange = fRange 10 100
 speedRange = fRange 100 200
 phaseRange = fRange 0 360 -- Maybe useless 
@@ -285,7 +285,7 @@ makeDataTexture balls =
         width = 4
         -- FIXME: could be not enough height for all the data
         maxNumberOfBalls = getIntMax numberOfBalls
-        height = (maxNumberOfBalls + modBy 4 maxNumberOfBalls) * 2
+        height = 64
     in
         ( Base64Url <| encode24With  width height data  {defaultOptions | order = RightUp}
         , vec2 (toFloat width) (toFloat height)
@@ -476,6 +476,7 @@ uniforms now ( mouseX, mouseY ) groupOrigin balls ( groupTexture, _ ) ( dataText
         , dataTexture = dataTexture
         , resolution = vec2 width height
         , time = now
+        --, ballsQuantity = Debug.log "ballsCount" <| List.length balls
         , ballsQuantity = List.length balls
         , dataTextureSize = dataTextureSize
         , mousePosition = vec2 (toFloat mouseX) (toFloat mouseY)
@@ -597,6 +598,8 @@ fragmentShader =
                     animation = findAnimation(i);
 
                     r = metaball.z;
+                    //metaball.x = animation.y * 5.;
+                    //deltaPos = metaball.xy - curFragCoord;
                     animatedPos = animate(time, metaball.xy, r, animation);
                     deltaPos = animatedPos - curFragCoord;
                     v += r*r/dot( deltaPos, deltaPos );
