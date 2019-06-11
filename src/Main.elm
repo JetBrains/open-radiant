@@ -141,7 +141,7 @@ update msg model =
                     then generateAllMetaballs model
                     else Cmd.none
                 , if hasFluidLayers model
-                    then generateAllFluid model
+                    then model |> generateAllFluid .lastRangesUsed
                     else Cmd.none
                 ]
             )
@@ -557,7 +557,14 @@ update msg model =
         RequestNewFluid index ->
             ( model
             , if hasFluidLayers model
-                then generateAllFluid model -- FIXME: use actual index
+                then model |> generateAllFluid .lastRangesUsed -- FIXME: use actual index
+                else Cmd.none
+            )
+
+        RequestNewFluidInRanges index ranges ->
+            ( model
+            , if hasFluidLayers model
+                then model |> generateAllFluid (always ranges) -- FIXME: use actual index
                 else Cmd.none
             )
 
@@ -793,7 +800,10 @@ subscriptions model =
           )
         , requestRegenerateFluidGradients
             (\{ layer } -> RegenerateFluidGradients layer)
-        , refreshFluid (\{ layer } -> RequestNewFluid layer)
+        , refreshFluid
+            (\{ layer } -> RequestNewFluid layer)
+        , refreshFluidInRanges
+            (\{ layer, ranges } -> RequestNewFluidInRanges layer ranges)
         , applyRandomizer ApplyRandomizer
         , import_ Import
         , pause (\_ -> Pause)
@@ -1233,8 +1243,8 @@ generateMetaballs palette size layerIdx =
 
 
 -- TODO: combine with generateAllMetaballs
-generateAllFluid : Model -> Cmd Msg
-generateAllFluid model =
+generateAllFluid : (Fluid.Model -> Fluid.Ranges) -> Model -> Cmd Msg
+generateAllFluid getRanges model =
     let
         _ = Debug.log "product for palette" model.product
         productPalette = Product.getPalette model.product
@@ -1251,7 +1261,10 @@ generateAllFluid model =
                 )
           |> List.map
                 (\(index, fModel) ->
-                    generateFluid model.size fModel.lastRangesUsed productPalette index
+                    generateFluid
+                        model.size
+                        (getRanges fModel)
+                        productPalette index
                 )
           |> Cmd.batch
 
@@ -1392,6 +1405,12 @@ port changeHtmlBlend :
 
 port refreshFluid :
     ( { layer : Int }
+    -> msg) -> Sub msg
+
+port refreshFluidInRanges :
+    ( { layer : Int
+      , ranges : Fluid.Ranges
+      }
     -> msg) -> Sub msg
 
 

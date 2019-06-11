@@ -1,6 +1,6 @@
 module Model.Range exposing
-    ( IntRange(..)
-    , FloatRange(..)
+    ( IntRange
+    , FloatRange
     , iRange, fRange
     , getIntMin, getIntMax
     , getFloatMin, getFloatMax
@@ -11,8 +11,8 @@ module Model.Range exposing
 import Random
 
 
-type IntRange = IntRange Int Int
-type FloatRange = FloatRange Float Float
+type alias IntRange = { min: Int, max : Int }
+type alias FloatRange = { min: Float, max : Float }
 
 
 iRange = IntRange
@@ -20,24 +20,24 @@ fRange = FloatRange
 
 
 getIntMin : IntRange -> Int
-getIntMin (IntRange min _) = min
+getIntMin { min } = min
 
 
 getIntMax : IntRange -> Int
-getIntMax (IntRange _ max) = max
+getIntMax { max } = max
 
 
 getFloatMin : FloatRange -> Float
-getFloatMin (FloatRange min _) = min
+getFloatMin { min } = min
 
 
 getFloatMax : FloatRange -> Float
-getFloatMax (FloatRange _ max) = max
+getFloatMax { max } = max
 
 
 randomIntInRange : IntRange -> Random.Generator Int
-randomIntInRange (IntRange min max) = Random.int min max
+randomIntInRange { min, max } = Random.int min max
 
 
 randomFloatInRange : FloatRange -> Random.Generator Float
-randomFloatInRange (FloatRange min max) = Random.float min max
+randomFloatInRange { min, max } = Random.float min max

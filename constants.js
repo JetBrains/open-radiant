@@ -56,6 +56,9 @@
 // });
 
 
+ // FIXME: move everything to Elm and pass to JavaScript at initialization
+
+
 const BLEND_FUNCS =
   { '+': 'customAdd'
   , '-': 'customSubtract'
@@ -141,6 +144,24 @@ const BLEND_SETS =
   };
 
 
+const FLUID_RANGES =
+  { 'minGroups': 1
+  , 'maxGroups': 5
+  , 'minBalls': 4
+  , 'maxBalls': 10
+  , 'minRadius': 10
+  , 'maxRadius': 100
+  , 'minSpeed': 100
+  , 'maxSpeed': 200
+  , 'minPhase': 0
+  , 'maxPhase': 360
+  , 'minAmplitudeX': -50
+  , 'maxAmplitudeX': 10
+  , 'minAmplitudeY': -10
+  , 'maxAmplitudeY': 10
+  };
+
+
 const funcKeys = Object.keys(BLEND_FUNCS);
 const factorKeys = Object.keys(BLEND_FACTORS);
 const setsKeys = Object.keys(BLEND_SETS);
@@ -161,5 +182,6 @@ module.exports = {
     //WALLPAPER_SIZES,
     funcKeys,
     factorKeys,
-    setsKeys
+    setsKeys,
+    FLUID_RANGES
 }

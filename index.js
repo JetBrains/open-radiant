@@ -232,6 +232,22 @@ const savePng = (hiddenLink, { size, coverSize, product, background }) => {
 
 prepareImportExport();
 
+const convertRanges = r =>
+    {
+        return {
+            groups : { min : Math.floor(r.minGroups), max: Math.floor(r.maxGroups) },
+            balls: { min : Math.floor(r.minBalls), max: Math.floor(r.maxBalls) },
+            radius: { min : Math.floor(r.minRadius), max: Math.floor(r.maxRadius) },
+            speed: { min : r.minSpeed, max: r.maxSpeed },
+            phase: { min : r.minPhase, max: r.maxPhase },
+            amplitude:
+                {
+                    x: { min : r.minAmplitudeX, max: r.maxAmplitudeX },
+                    y: { min : r.minAmplitudeY, max: r.maxAmplitudeY }
+                }
+        };
+    }
+
 // document.addEventListener('DOMContentLoaded', () => {
 setTimeout(() => {
 
@@ -364,6 +380,9 @@ setTimeout(() => {
                     { app.ports.applyRandomizer.send(prepareModelForImport(value)); }
                 , refreshFluid : (index) =>
                     { app.ports.refreshFluid.send({ layer: index }); }
+                , refreshFluidInRanges : (index, ranges) =>
+                    { app.ports.refreshFluidInRanges.send(
+                        { layer: index, ranges : convertRanges(ranges) }); }
                 , rebuildFluidGradients : (index) =>
                     { app.ports.requestRegenerateFluidGradients.send({ layer: index }); }
                 , resize: (presetCode) =>

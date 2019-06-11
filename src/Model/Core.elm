@@ -94,6 +94,7 @@ type Msg
     | RebuildFluid LayerIndex Fluid.Model
     | RegenerateFluidGradients LayerIndex
     | RequestNewFluid LayerIndex
+    | RequestNewFluidInRanges LayerIndex Fluid.Ranges
     | LoadFluidGradientTextures LayerIndex (List Fluid.Base64Url)
     | ApplyFluidTextures
         LayerIndex
