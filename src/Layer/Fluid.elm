@@ -13,9 +13,7 @@ module Layer.Fluid exposing
     , loadTextures, injectTextures, packTextures
     , generator, gradientGenerator
     , generate, generateGradient, generateGradientsFor
-    , numberOfGroups, numberOfBalls
-    , radiusRange, speedRange
-    , amplitudeX, amplitudeY
+    , Ranges, defaultRanges
     )
 
 
@@ -53,14 +51,14 @@ type alias Ball =
 
 
 type alias BallGroup =
-    { balls: List Ball
-    , textures:
+    { balls : List Ball
+    , textures :
         Maybe
             { gradient : TextureAndSize
             , data : TextureAndSize
             }
-    , gradient: Maybe Gradient
-    , origin: Vec2
+    , gradient : Maybe Gradient
+    , origin : Vec2
     }
 
 
@@ -71,8 +69,9 @@ type alias Gradient =
 
 
 type alias Model =
-    { groups: List BallGroup
+    { groups : List BallGroup
     , forSize : Maybe ( Int, Int ) -- FIXME: if we always use the main window size for generating model, then it's the duplication
+    , lastRangesUsed : Ranges
     }
 
 
@@ -102,38 +101,57 @@ type GradientOrientation
     | Vertical
 
 
+type alias Ranges =
+    { groups : IntRange
+    , balls : IntRange
+    , radius : FloatRange
+    , speed : FloatRange
+    , phase : FloatRange
+    , amplitude :
+        { x : FloatRange
+        , y : FloatRange
+        }
+    }
+
+
 init : Model
 init =
     { groups = [ ]
     , forSize = Nothing
+    , lastRangesUsed = defaultRanges
     }
 
 
-numberOfGroups = iRange 1 5
-numberOfBalls = iRange 4 10
-radiusRange = fRange 10 100
-speedRange = fRange 100 200
-phaseRange = fRange 0 360 -- Maybe useless
-amplitudeX = fRange -50 50
-amplitudeY = fRange -10 10
+defaultRanges : Ranges
+defaultRanges =
+    { groups = iRange 1 5
+    , balls = iRange 4 10
+    , radius = fRange 10 100
+    , speed = fRange 100 200
+    , phase = fRange 0 360 -- Maybe useless
+    , amplitude =
+        { x = fRange -50 50
+        , y = fRange -10 10
+        }
+    }
 
 
-generator : ( Int, Int ) -> Product.Palette -> Random.Generator Model
-generator ( w, h ) palette =
+generator : ( Int, Int ) -> Ranges -> Product.Palette -> Random.Generator Model
+generator ( w, h ) range palette =
     let
         generatePosition =
             Random.map2 vec2
                 (Random.float 0 <| toFloat w * 0)
                 (Random.float 0 <| toFloat h * 0)
-        generateRadius = randomFloatInRange radiusRange
-        generateSpeed = randomFloatInRange speedRange
-        generatePhase = randomFloatInRange phaseRange
+        generateRadius = randomFloatInRange range.radius
+        generateSpeed = randomFloatInRange range.speed
+        generatePhase = randomFloatInRange range.phase
         generateAmplitude =
             Random.map2 vec2
-                (randomFloatInRange amplitudeX)
-                (randomFloatInRange amplitudeY)
+                (randomFloatInRange range.amplitude.x)
+                (randomFloatInRange range.amplitude.y)
         generateGroup =
-            randomIntInRange numberOfBalls
+            randomIntInRange range.balls
                 |> Random.andThen
                     (\numCircles ->
                         Random.map5
@@ -171,12 +189,16 @@ generator ( w, h ) palette =
                     )
         makeBall { center, radius } = Ball center radius
     in
-        randomIntInRange numberOfGroups
+        randomIntInRange range.groups
             |> Random.andThen
                 (\numGroups ->
                     Random.list numGroups generateGroup
                 )
-            |> Random.map (\groups -> { groups = groups, forSize = Just ( w, h ) })
+            |> Random.map (\groups ->
+                { groups = groups
+                , forSize = Just ( w, h )
+                , lastRangesUsed = range
+                })
 
 
 generate : (Model -> msg) -> Random.Generator Model -> Cmd msg
@@ -321,7 +343,7 @@ makeDataTexture balls =
         dataLen =  List.length data
         width = 4
         -- FIXME: could be not enough height for all the data
-        maxNumberOfBalls = getIntMax numberOfBalls
+        -- maxNumberOfBalls = getIntMax numberOfBalls
         height = 64
     in
         ( Base64Url <| encode24With  width height data  {defaultOptions | order = RightUp}
@@ -579,7 +601,7 @@ fragmentShader =
            // toReturn.x += dm * sin(tm) + (targX - curPos.x) * 0.1;
           //  toReturn.y += dm * cos(tm) + (targY - curPos.y) * 0.1;
 
-            toReturn = curPos + newPos + origin ;
+            toReturn = curPos + newPos + origin;
 
             return toReturn;
         }
@@ -629,7 +651,7 @@ fragmentShader =
             vec2 deltaPos, animatedPos;
 
             for (int i = 0; i < 50; i++) {
-                if (i < ballsQuantity){
+                if (i < ballsQuantity) {
                     metaball = findMetaball(i);
 
                     animation = findAnimation(i);

@@ -550,6 +550,7 @@ layerModelDecoder kind =
             layerModelDecoder M.Fss
         M.Fluid ->
             let
+                defRange = Fluid.defaultRanges
                 makeBall =
                     D.map7
                         (\x y r speed phase ax ay ->
@@ -563,10 +564,10 @@ layerModelDecoder kind =
                         (D.field "x" D.float)
                         (D.field "y" D.float)
                         (D.field "r" D.float)
-                        (D.field "speed" D.float |> D.withDefault (getFloatMin Fluid.speedRange))
+                        (D.field "speed" D.float |> D.withDefault (getFloatMin defRange.speed))
                         (D.field "phase" D.float |> D.withDefault 0)
-                        (D.field "ax" D.float |> D.withDefault (getFloatMin Fluid.amplitudeX))
-                        (D.field "ay" D.float |> D.withDefault (getFloatMin Fluid.amplitudeY))
+                        (D.field "ax" D.float |> D.withDefault (getFloatMin defRange.amplitude.x))
+                        (D.field "ay" D.float |> D.withDefault (getFloatMin defRange.amplitude.y))
                 makeGradientStop =
                     D.map2
                         Tuple.pair
@@ -608,7 +609,11 @@ layerModelDecoder kind =
                         (D.field "height" D.int)
             in
                 D.map2
-                    (\groups forSize -> { groups = groups, forSize = forSize })
+                    (\groups forSize ->
+                        { groups = groups
+                        , forSize = forSize
+                        , lastRangesUsed = Fluid.defaultRanges -- FIXME: shoudn't we store it?
+                        })
                     (D.field "groups" <| D.list makeGroup)
                     (D.maybe <| D.field "forSize" makeSize)
                     |> D.map M.FluidModel

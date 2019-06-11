@@ -1249,7 +1249,10 @@ generateAllFluid model =
                 (\(index, layer) ->
                     isFluidLayer layer |> Maybe.map (Tuple.pair index)
                 )
-          |> List.map (\(index, _) -> generateFluid model.size productPalette index)
+          |> List.map
+                (\(index, fModel) ->
+                    generateFluid model.size fModel.lastRangesUsed productPalette index
+                )
           |> Cmd.batch
 
 
@@ -1277,11 +1280,11 @@ regenerateFluidGradients model =
           |> Cmd.batch
 
 
-generateFluid : SizeRule -> Product.Palette -> LayerIndex -> Cmd Msg
-generateFluid size palette layerIdx =
+generateFluid : SizeRule -> Fluid.Ranges -> Product.Palette -> LayerIndex -> Cmd Msg
+generateFluid size ranges palette layerIdx =
     Fluid.generate
         (RebuildFluid layerIdx)
-            (Fluid.generator (getRuleSizeOrZeroes size) palette)
+            (Fluid.generator (getRuleSizeOrZeroes size) ranges palette)
 
 
 generateFluidGradients : Product.Palette -> LayerIndex -> Fluid.Model -> Cmd Msg
