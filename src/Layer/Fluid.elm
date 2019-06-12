@@ -171,28 +171,35 @@ generator ( w, h ) variety orbit palette =
         applyGaussX gaussX value =
             case gaussian gaussX (Focus value) variety of
                 (Gaussian gaussY) -> gaussY
-        generatePosition =
+        gaussInIntRange inRange gaussX =
+            gaussInFloatRange inRange gaussX
+                |> Random.map floor
+        gaussInFloatRange { min, max } gaussX =
+            Random.float 0 1
+                |> Random.map (applyGaussX gaussX)
+                |> Random.map (\v -> min + (v * (max - min)) )
+        generatePosition gaussX =
             Random.map2 vec2
                 (Random.float 0 <| toFloat w * 0)
                 (Random.float 0 <| toFloat h * 0)
-        generateRadius = randomFloatInRange range.radius
-        generateSpeed = randomFloatInRange range.speed
-        generatePhase = randomFloatInRange range.phase
-        generateAmplitude =
+        generateRadius = gaussInFloatRange range.radius
+        generateSpeed = gaussInFloatRange range.speed
+        generatePhase = gaussInFloatRange range.phase
+        generateAmplitude gaussX =
             Random.map2 vec2
-                (randomFloatInRange range.amplitude.x)
-                (randomFloatInRange range.amplitude.y)
+                (gaussInFloatRange range.amplitude.x gaussX)
+                (gaussInFloatRange range.amplitude.y gaussX)
         generateGroup gaussX =
             randomIntInRange range.balls
                 |> Random.andThen
                     (\numCircles ->
                         Random.map5
                             Ball
-                            generatePosition
-                            generateRadius
-                            generateSpeed
-                            generatePhase
-                            generateAmplitude
+                            (generatePosition gaussX)
+                            (generateRadius gaussX)
+                            (generateSpeed gaussX)
+                            (generatePhase gaussX)
+                            (generateAmplitude gaussX)
                             |> Random.list numCircles
                     )
                 |> Random.andThen
@@ -446,14 +453,24 @@ makeEntity
     -> Vec2
     -> List Ball
     -> { gradient : ( Texture, Vec2 ) , data : ( Texture, Vec2 ) }
+    -> Orbit
     -> WebGL.Entity
-makeEntity now mousePos viewport settings mesh groupOrigin balls textures  =
+makeEntity now mousePos viewport settings mesh groupOrigin balls textures orbit =
     WebGL.entityWith
         settings
         vertexShader
         fragmentShader
         mesh
-        (uniforms now mousePos groupOrigin balls textures.gradient textures.data viewport)
+        (uniforms
+            now
+            mousePos
+            groupOrigin
+            balls
+            textures.gradient
+            textures.data
+            orbit
+            viewport
+        )
 
 
 -- TODO: add mouse
@@ -471,7 +488,16 @@ makeEntities now mousePos viewport model settings mesh =
             group.textures
                 |> Maybe.map
                     (\textures ->
-                        makeEntity now mousePos viewport settings mesh group.origin group.balls textures
+                        makeEntity
+                            now
+                            mousePos
+                            viewport
+                            settings
+                            mesh
+                            group.origin
+                            group.balls
+                            textures
+                            model.orbit
                     )
     in
         model.groups |> List.filterMap makeGroupEntity
@@ -552,6 +578,7 @@ type alias Uniforms =
    , dataTextureSize : Vec2
    , mousePosition : Vec2
    , groupOrigin : Vec2
+   , orbit : Float
    }
 
 
@@ -562,9 +589,18 @@ uniforms
     -> List Ball
     -> TextureAndSize
     -> TextureAndSize
+    -> Orbit
     -> Viewport {}
     -> Uniforms
-uniforms now ( mouseX, mouseY ) groupOrigin balls ( groupTexture, _ ) ( dataTexture, dataTextureSize) v =
+uniforms
+    now
+    ( mouseX, mouseY )
+    groupOrigin
+    balls
+    ( groupTexture, _ )
+    ( dataTexture, dataTextureSize)
+    (Orbit orbit)
+    v =
     let
         width = Vec2.getX v.size
         height = Vec2.getY v.size
@@ -578,6 +614,7 @@ uniforms now ( mouseX, mouseY ) groupOrigin balls ( groupTexture, _ ) ( dataText
         , dataTextureSize = dataTextureSize
         , mousePosition = vec2 (toFloat mouseX) (toFloat mouseY)
         , groupOrigin = groupOrigin
+        , orbit = orbit
         }
 
 
