@@ -88,11 +88,8 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
       if (is.fluid(layer)) {
         this['bang' + index] = () => funcs.refreshFluid(index);
         this['rebuildGradients' + index] = () => funcs.rebuildFluidGradients(index);
-
-        const rangeProps = Object.keys(C.FLUID_RANGES);
-        rangeProps.forEach(rangeProp => {
-          this[rangeProp + index] = C.FLUID_RANGES[rangeProp];
-        })
+        this['variety'+index] = layer.model.variety;
+        this['orbit'+index] = layer.model.orbit;
       }
     });
 
@@ -310,21 +307,10 @@ function start(document, model, constants, funcs) {
       if (is.fluid(layer)) {
         folder.add(config, 'bang' + index).name('bang');
         folder.add(config, 'rebuildGradients' + index).name('regenerate gradients');
-
-        const rangesFolder = folder.addFolder('ranges');
-        const rangeProps = Object.keys(C.FLUID_RANGES);
-        rangeProps.forEach(rangeProp => {
-          const propItem = rangesFolder.add(config, rangeProp + index).name(rangeProp);
-          propItem.onFinishChange((newVal) => {
-            // FIXME: do it through the change in Elm, like with amplitudes and shiftColor
-            const newRanges = {};
-            rangeProps.forEach(rangeProp => {
-              newRanges[rangeProp] = config[rangeProp + index];
-            });
-            newRanges[rangeProp] = newVal;
-            funcs.refreshFluidInRanges(index, newRanges);
-          });
-        });
+        const variety = folder.add(config, 'variety' + index).name('variety').min(0.01).max(1).step(0.01);
+        const orbit = folder.add(config, 'orbit' + index).name('orbit').min(0).max(1).step(0.05);
+        variety.onFinishChange(funcs.changeVariety(index));
+        orbit.onFinishChange(funcs.changeOrbit(index));
       }
     }
 

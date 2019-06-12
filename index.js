@@ -380,9 +380,10 @@ setTimeout(() => {
                     { app.ports.applyRandomizer.send(prepareModelForImport(value)); }
                 , refreshFluid : (index) =>
                     { app.ports.refreshFluid.send({ layer: index }); }
-                , refreshFluidInRanges : (index, ranges) =>
-                    { app.ports.refreshFluidInRanges.send(
-                        { layer: index, ranges : convertRanges(ranges) }); }
+                , changeVariety : index => value =>
+                    { app.ports.changeVariety.send({ layer: index, value }); }
+                , changeOrbit : index => value =>
+                    { app.ports.changeOrbit.send({ layer: index, value }); }
                 , rebuildFluidGradients : (index) =>
                     { app.ports.requestRegenerateFluidGradients.send({ layer: index }); }
                 , resize: (presetCode) =>

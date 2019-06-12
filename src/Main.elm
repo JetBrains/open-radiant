@@ -141,7 +141,7 @@ update msg model =
                     then generateAllMetaballs model
                     else Cmd.none
                 , if hasFluidLayers model
-                    then model |> generateAllFluid .lastRangesUsed
+                    then generateAllFluid model
                     else Cmd.none
                 ]
             )
@@ -557,16 +557,49 @@ update msg model =
         RequestNewFluid index ->
             ( model
             , if hasFluidLayers model
-                then model |> generateAllFluid .lastRangesUsed -- FIXME: use actual index
+                then generateAllFluid model -- FIXME: use actual index
                 else Cmd.none
             )
 
-        RequestNewFluidInRanges index ranges ->
-            ( model
-            , if hasFluidLayers model
-                then model |> generateAllFluid (always ranges) -- FIXME: use actual index
-                else Cmd.none
-            )
+        ChangeFluidVariety index value ->
+            if hasFluidLayers model then
+                let
+                    newModel =
+                        model |> updateLayerDef index
+                            (\layerDef ->
+                                case layerDef.model of
+                                    FluidModel fModel ->
+                                        { layerDef
+                                        | model =
+                                            FluidModel { fModel | variety = value }
+                                        }
+                                    _ -> layerDef
+                            )
+                in
+                    ( newModel
+                    , generateAllFluid newModel -- FIXME: use actual index
+                    )
+            else ( model, Cmd.none )
+
+        ChangeFluidOrbit index value ->
+            if hasFluidLayers model then
+                let
+                    newModel =
+                        model |> updateLayerDef index
+                            (\layerDef ->
+                                case layerDef.model of
+                                    FluidModel fModel ->
+                                        { layerDef
+                                        | model =
+                                            FluidModel { fModel | orbit = value }
+                                        }
+                                    _ -> layerDef
+                            )
+                in
+                    ( newModel
+                    , generateAllFluid newModel -- FIXME: use actual index
+                    )
+            else ( model, Cmd.none )
 
         ChangeVignette index opacity ->
             ( model
@@ -802,8 +835,10 @@ subscriptions model =
             (\{ layer } -> RegenerateFluidGradients layer)
         , refreshFluid
             (\{ layer } -> RequestNewFluid layer)
-        , refreshFluidInRanges
-            (\{ layer, ranges } -> RequestNewFluidInRanges layer ranges)
+        , changeVariety
+            (\{ layer, value } -> ChangeFluidVariety layer (Fluid.Variety value))
+        , changeOrbit
+            (\{ layer, value } -> ChangeFluidOrbit layer (Fluid.Orbit value))
         , applyRandomizer ApplyRandomizer
         , import_ Import
         , pause (\_ -> Pause)
@@ -1243,8 +1278,8 @@ generateMetaballs palette size layerIdx =
 
 
 -- TODO: combine with generateAllMetaballs
-generateAllFluid : (Fluid.Model -> Fluid.Ranges) -> Model -> Cmd Msg
-generateAllFluid getRanges model =
+generateAllFluid : Model -> Cmd Msg
+generateAllFluid model =
     let
         _ = Debug.log "product for palette" model.product
         productPalette = Product.getPalette model.product
@@ -1263,7 +1298,8 @@ generateAllFluid getRanges model =
                 (\(index, fModel) ->
                     generateFluid
                         model.size
-                        (getRanges fModel)
+                        fModel.variety
+                        fModel.orbit
                         productPalette index
                 )
           |> Cmd.batch
@@ -1293,11 +1329,11 @@ regenerateFluidGradients model =
           |> Cmd.batch
 
 
-generateFluid : SizeRule -> Fluid.Ranges -> Product.Palette -> LayerIndex -> Cmd Msg
-generateFluid size ranges palette layerIdx =
+generateFluid : SizeRule -> Fluid.Variety -> Fluid.Orbit -> Product.Palette -> LayerIndex -> Cmd Msg
+generateFluid size variety orbit palette layerIdx =
     Fluid.generate
         (RebuildFluid layerIdx)
-            (Fluid.generator (getRuleSizeOrZeroes size) ranges palette)
+            (Fluid.generator (getRuleSizeOrZeroes size) variety orbit palette)
 
 
 generateFluidGradients : Product.Palette -> LayerIndex -> Fluid.Model -> Cmd Msg
@@ -1392,24 +1428,30 @@ port applyRandomizer : (PortModel -> msg) -> Sub msg
 port savePng : (() -> msg) -> Sub msg
 
 port changeWGLBlend :
-    ( { layer : Int
+    ( { layer : LayerIndex
       , value : WGLBlend.Blend
       }
     -> msg) -> Sub msg
 
 port changeHtmlBlend :
-    ( { layer : Int
+    ( { layer : LayerIndex
       , value : String
       }
     -> msg) -> Sub msg
 
 port refreshFluid :
-    ( { layer : Int }
+    ( { layer : LayerIndex }
     -> msg) -> Sub msg
 
-port refreshFluidInRanges :
-    ( { layer : Int
-      , ranges : Fluid.Ranges
+port changeVariety :
+    ( { layer : LayerIndex
+      , value : Float
+      }
+    -> msg) -> Sub msg
+
+port changeOrbit :
+    ( { layer : LayerIndex
+      , value : Float
       }
     -> msg) -> Sub msg
 

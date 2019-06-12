@@ -13,7 +13,8 @@ module Layer.Fluid exposing
     , loadTextures, injectTextures, packTextures
     , generator, gradientGenerator
     , generate, generateGradient, generateGradientsFor
-    , Ranges, defaultRanges
+    , range
+    , Variety(..), Orbit(..)
     )
 
 
@@ -71,7 +72,8 @@ type alias Gradient =
 type alias Model =
     { groups : List BallGroup
     , forSize : Maybe ( Int, Int ) -- FIXME: if we always use the main window size for generating model, then it's the duplication
-    , lastRangesUsed : Ranges
+    , variety : Variety
+    , orbit : Orbit
     }
 
 
@@ -114,16 +116,32 @@ type alias Ranges =
     }
 
 
+type Variety = Variety Float -- 0.01..1 -- a.k.a Variance
+type Orbit = Orbit Float -- 0..1
+type Focus = Focus Float -- 0..1
+type Gaussian = Gaussian Float -- 0..1
+
+
+-- type FocusChange
+--     = GroupsCount Int
+--     | BallsCount Int
+--     | Speed Float
+--     | Phase Float
+--     | AmplitudeX Float
+--     | AmplitudeY Float
+
+
 init : Model
 init =
     { groups = [ ]
     , forSize = Nothing
-    , lastRangesUsed = defaultRanges
+    , variety = Variety 0.5
+    , orbit = Orbit 0.5
     }
 
 
-defaultRanges : Ranges
-defaultRanges =
+range : Ranges
+range =
     { groups = iRange 1 5
     , balls = iRange 4 10
     , radius = fRange 10 100
@@ -136,9 +154,23 @@ defaultRanges =
     }
 
 
-generator : ( Int, Int ) -> Ranges -> Product.Palette -> Random.Generator Model
-generator ( w, h ) range palette =
+gaussian : Float -> Focus -> Variety -> Gaussian
+gaussian x (Focus focus) (Variety variety) =
     let
+        numerator = (x - focus) ^ 2
+        denominator = 2 * (variety ^ 2)
+    in
+        Gaussian <| e ^ (-1 * numerator / denominator)
+
+
+generator : ( Int, Int ) -> Variety -> Orbit -> Product.Palette -> Random.Generator Model
+generator ( w, h ) variety orbit palette =
+    let
+        generateGaussianX =
+            Random.float 0 1
+        applyGaussX gaussX value =
+            case gaussian gaussX (Focus value) variety of
+                (Gaussian gaussY) -> gaussY
         generatePosition =
             Random.map2 vec2
                 (Random.float 0 <| toFloat w * 0)
@@ -150,7 +182,7 @@ generator ( w, h ) range palette =
             Random.map2 vec2
                 (randomFloatInRange range.amplitude.x)
                 (randomFloatInRange range.amplitude.y)
-        generateGroup =
+        generateGroup gaussX =
             randomIntInRange range.balls
                 |> Random.andThen
                     (\numCircles ->
@@ -189,15 +221,21 @@ generator ( w, h ) range palette =
                     )
         makeBall { center, radius } = Ball center radius
     in
-        randomIntInRange range.groups
+        generateGaussianX
             |> Random.andThen
-                (\numGroups ->
-                    Random.list numGroups generateGroup
+                (\gaussX ->
+                    randomIntInRange range.groups
+                        |> Random.map (Tuple.pair gaussX)
+                )
+            |> Random.andThen
+                (\( gaussX, numGroups ) ->
+                    Random.list numGroups (generateGroup gaussX)
                 )
             |> Random.map (\groups ->
                 { groups = groups
                 , forSize = Just ( w, h )
-                , lastRangesUsed = range
+                , variety = variety
+                , orbit = orbit
                 })
 
 

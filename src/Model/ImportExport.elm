@@ -233,6 +233,8 @@ encodeLayerModel layerModel =
                             fluidModel.forSize
                                 |> Maybe.map encodeSize
                                 |> Maybe.withDefault E.null)
+                    , ( "variety", E.float <| case fluidModel.variety of Fluid.Variety v -> v)
+                    , ( "orbit", E.float <| case fluidModel.orbit of Fluid.Orbit v -> v)
                     ]
             _ -> [] -- FIXME: fail for unknown layer kinds, but don't fail if layer just has empty model
 
@@ -550,7 +552,7 @@ layerModelDecoder kind =
             layerModelDecoder M.Fss
         M.Fluid ->
             let
-                defRange = Fluid.defaultRanges
+                range = Fluid.range
                 makeBall =
                     D.map7
                         (\x y r speed phase ax ay ->
@@ -564,10 +566,10 @@ layerModelDecoder kind =
                         (D.field "x" D.float)
                         (D.field "y" D.float)
                         (D.field "r" D.float)
-                        (D.field "speed" D.float |> D.withDefault (getFloatMin defRange.speed))
+                        (D.field "speed" D.float |> D.withDefault (getFloatMin range.speed))
                         (D.field "phase" D.float |> D.withDefault 0)
-                        (D.field "ax" D.float |> D.withDefault (getFloatMin defRange.amplitude.x))
-                        (D.field "ay" D.float |> D.withDefault (getFloatMin defRange.amplitude.y))
+                        (D.field "ax" D.float |> D.withDefault (getFloatMin range.amplitude.x))
+                        (D.field "ay" D.float |> D.withDefault (getFloatMin range.amplitude.y))
                 makeGradientStop =
                     D.map2
                         Tuple.pair
@@ -608,14 +610,17 @@ layerModelDecoder kind =
                         (D.field "width" D.int)
                         (D.field "height" D.int)
             in
-                D.map2
-                    (\groups forSize ->
+                D.map4
+                    (\groups forSize variety orbit ->
                         { groups = groups
                         , forSize = forSize
-                        , lastRangesUsed = Fluid.defaultRanges -- FIXME: shoudn't we store it?
+                        , variety = variety |> Maybe.withDefault 0.5 |> Fluid.Variety
+                        , orbit = orbit |> Maybe.withDefault 0.5 |> Fluid.Orbit
                         })
                     (D.field "groups" <| D.list makeGroup)
                     (D.maybe <| D.field "forSize" makeSize)
+                    (D.maybe <| D.field "variety" D.float)
+                    (D.maybe <| D.field "orbit" D.float)
                     |> D.map M.FluidModel
         -- TODO: add parsing other models here
         _ -> D.succeed <| M.initLayerModel kind -- FIXME: Fail to decode if layer is unknown, but don't fail if it just has empty model
