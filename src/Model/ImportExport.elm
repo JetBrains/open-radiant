@@ -322,7 +322,7 @@ decodePortModel createLayer portModel =
                     , size = decodedSize
                     , origin = portModel.origin
                     , mouse = portModel.mouse
-                    , product = Debug.log "decoded product" decodedProduct
+                    , product = decodedProduct -- Debug.log "decoded product" decodedProduct
                     }
             in
                 { decodedModel
@@ -663,7 +663,7 @@ modelDecoder currentMode createLayer createGui =
                             , origin = origin
                             , mouse = mouse
                             , now = now
-                            , product = Debug.log "product decoded" product
+                            , product = product -- Debug.log "product decoded" product
                             --, palette = Product.getPalette product
                             }
                         )

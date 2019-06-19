@@ -142,8 +142,8 @@ init =
 
 range : Ranges
 range =
-    { groups = iRange 1 5
-    , balls = iRange 4 10
+    { groups = iRange 1 10
+    , balls = iRange 4 50
     , radius = fRange 10 100
     , speed = fRange 100 200
     , phase = fRange 0 360 -- Maybe useless
@@ -255,7 +255,7 @@ gradientGenerator
     -> Random.Generator Gradient
 gradientGenerator palette =
     let
-        _ = Debug.log "palette" palette
+        -- _ = Debug.log "palette" palette
         paletteLen = List.length palette
         -- loopedPalette = [ 0, 1, 2, 3, 2, 1 ] -- just remember indices?
         loopedPalette = palette ++ (palette |> List.drop 1 |> List.reverse |> List.drop 1)
@@ -354,7 +354,7 @@ remapTo ( newWidth, newHeight ) model =
                                 )
                     )
                 |> Maybe.withDefault ( 1.0, 1.0 )
-        _ = Debug.log "factor" ( factorW, factorH )
+        -- _ = Debug.log "factor" ( factorW, factorH )
         remapGroup group =
             { group
             | balls = List.map remapBall group.balls

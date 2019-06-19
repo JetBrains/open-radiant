@@ -305,7 +305,7 @@ update msg model =
 
         Resize rule ->
             let
-                _ = Debug.log "Resize: rule" rule
+                -- _ = Debug.log "Resize: rule" rule
                 ( width, height ) = getRuleSizeOrZeroes rule
                 newModelWithSize =
                     { model
@@ -1281,7 +1281,7 @@ generateMetaballs palette size layerIdx =
 generateAllFluid : Model -> Cmd Msg
 generateAllFluid model =
     let
-        _ = Debug.log "product for palette" model.product
+        -- _ = Debug.log "product for palette" model.product
         productPalette = Product.getPalette model.product
         isFluidLayer layerDef =
             case layerDef.model of
@@ -1309,7 +1309,7 @@ generateAllFluid model =
 regenerateFluidGradients : Model -> Cmd Msg
 regenerateFluidGradients model =
     let
-        _ = Debug.log "product for palette" model.product
+        -- _ = Debug.log "product for palette" model.product
         productPalette = Product.getPalette model.product
         isFluidLayer layerDef =
             case layerDef.model of
