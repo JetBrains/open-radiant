@@ -55,6 +55,7 @@ import Layer.Canvas as Canvas
 import Layer.Vignette as Vignette
 import Layer.Metaballs as Metaballs
 import Layer.Fluid as Fluid
+import Layer.FluidGrid as FluidGrid
 
 
 initialMode : AppMode
@@ -117,7 +118,7 @@ initialLayers mode =
 --    , ( Cover, "Cover", CoverModel Cover.init )
 --    ]
     -- -- [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
-    [ ( Fluid, "Fluid", FluidModel Fluid.init )
+    [ ( FluidGrid, "FluidGrid", FluidGridModel FluidGrid.init )
     ]
     |> List.filter (\(kind, _, _) ->
         case ( kind, mode ) of
@@ -998,6 +999,8 @@ layerToHtml model viewport index layerDef =
                         htmlBlend
                 ( MetaballsLayer, MetaballsModel metaballsModel ) ->
                     Metaballs.view viewport model.now model.timeShift model.mouse metaballsModel
+                ( FluidGridLayer, FluidGridModel fluidGridModel ) ->
+                    FluidGrid.view fluidGridModel
                 ( CanvasLayer, _ ) ->
                     Canvas.view
                 _ -> div [] []
