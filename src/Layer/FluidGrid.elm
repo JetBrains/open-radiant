@@ -40,23 +40,53 @@ type Report
     | GridIsFull
 
 
+type alias Size = { width : Int, height : Int }
+type alias GridPos = { x : Int, y : Int }
+type alias Groups = List (List Ball)
+
+
 type alias Model =
     { groups : List (List Ball)
-    , size : Vec2
+    , size : Size
     }
 
 
 type alias Taken = Array (Array Bool)
 
 
-nextStep : Taken -> Random.Generator Report
-nextStep taken =
-    Random.constant GridIsFull
+-- cellStep : GridPos -> Taken -> Random.Generator Report
+-- cellStep pos taken =
+--     Random.constant ( GridIsFull, taken )
 
 
-generator : Random.Generator (List (List Ball))
-generator =
-    Random.constant []
+randomStep : Random.Generator Step
+randomStep = Random.constant Stop
+
+
+groupsStep : GridPos -> Groups -> Taken -> Maybe Report -> Random.Generator ( Groups, GridPos, Taken )
+groupsStep curPos groups taken lastReport =
+    case lastReport of
+        Just GridIsFull -> Random.constant ( groups, curPos, taken )
+        _ -> randomStep
+            |> Random.andThen
+                (\nextStep ->
+                    groupsStep curPos groups taken (Just GridIsFull)
+                )
+
+
+generator : Size -> Random.Generator (List (List Ball))
+generator { width, height } =
+    let
+        taken =
+            Array.repeat height False
+                |> Array.repeat width
+    in
+        groupsStep
+            { x = 0, y = 0 }
+            []
+            taken
+            Nothing
+                |> Random.map (\(groups, _, _) -> groups)
 
 
 init : Model
@@ -69,7 +99,7 @@ init =
             , Ball <| vec2 0 1
             ]
         ]
-    , size = vec2 10 10
+    , size = { width = 10, height = 10 }
     }
 
 
