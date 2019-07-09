@@ -93,19 +93,36 @@ initTaken : Size -> Taken
 initTaken { width, height } =
     Taken
         { asGrid =
-            Array.repeat height False
-                |> Array.repeat width
+            Array.repeat width False
+                |> Array.repeat height
         , asArray = Array.empty
         }
-
-
-storeTaken : GridPos -> Taken -> Taken
-storeTaken pos taken = taken
 
 
 allTaken : Size -> Taken -> Bool
 allTaken { width, height } (Taken { asArray }) =
     Array.length asArray >= width * height
+
+
+isTakenAmong : Taken -> GridPos -> Bool
+isTakenAmong (Taken { asGrid }) { x, y } =
+    asGrid
+        |> Array.get y
+        |> Maybe.andThen (Array.get x)
+        |> Maybe.withDefault True
+
+
+storeTaken : GridPos -> Taken -> Taken
+storeTaken ({ x, y } as pos) (Taken { asGrid, asArray }) =
+    Taken
+        { asArray =
+            asArray |> Array.push pos
+        , asGrid =
+            Array.get y asGrid
+                |> Maybe.map (Array.set x True)
+                |> Maybe.map (\newRow -> Array.set y newRow asGrid)
+                |> Maybe.withDefault asGrid
+        }
 
 
 move : Direction -> GridPos -> GridPos
@@ -122,15 +139,9 @@ move direction { x, y } =
 
 
 randomStep : DirectionSet -> Random.Generator Step
-randomStep among = Random.constant Stop
-
-
-isTakenAmong : Taken -> GridPos -> Bool
-isTakenAmong (Taken { asGrid }) { x, y } =
-    asGrid
-        |> Array.get x
-        |> Maybe.andThen (Array.get y)
-        |> Maybe.withDefault True
+randomStep among =
+    -- TODO: add `Stop` to the values, return constant `Stop` when among is empty
+    Random.constant Stop
 
 
 possibleMoves : Size -> Taken -> GridPos -> DirectionSet
@@ -149,14 +160,40 @@ possibleMoves { width, height } taken pos =
         allDirections |> ASet.foldl addIfFree noDirections
 
 
+maxGroups : Int
+maxGroups = 50 -- additional control for the recursion/randomness overflow
+maxBalls : Int
+maxBalls = 200 -- additional control for the recursion/randomness overflow
+
+
+addToTheLastGroup : GridPos -> Groups -> Groups
+addToTheLastGroup pos groups =
+    groups
+
+
+addEmptyGroupTo : Groups -> Groups
+addEmptyGroupTo groups = groups
+
+
+ballsInTheLastGroup : Groups -> Int
+ballsInTheLastGroup groups = 0
+
+
+groupsCount : Groups -> Int
+groupsCount = List.length
+
+
+findPosToStartNextGroup : Groups -> Taken -> Maybe GridPos
+findPosToStartNextGroup groups taken = Nothing
+
+
 groupsStep
      : Size
     -> GridPos
-    -> Int
     -> Groups
     -> Taken
     -> Random.Generator ( Groups, GridPos, Taken )
-groupsStep size curPos curGroup groups taken =
+groupsStep size curPos groups taken =
     if not <| allTaken size taken then
         Random.constant ( groups, curPos, taken )
     else
@@ -176,10 +213,32 @@ groupsStep size curPos curGroup groups taken =
                 (\nextStep ->
                     case nextStep of
                         Stop ->
-                            -- start new group
-                            groupsStep size curPos curGroup groups taken
+                            -- start new group if not reached maxGroups
+                            if (groupsCount groups < maxGroups)
+                                then
+                                    case findPosToStartNextGroup groups taken of
+                                        Just nextPos ->
+                                            groupsStep
+                                                size
+                                                nextPos
+                                                (addEmptyGroupTo groups
+                                                    |> addToTheLastGroup nextPos)
+                                                taken
+                                        Nothing
+                                            -> Random.constant ( groups, curPos, taken )
+                                else
+                                    Random.constant ( groups, curPos, taken )
                         InDirection direction ->
-                            groupsStep size (curPos |> move direction) curGroup groups taken
+                            if ballsInTheLastGroup groups < maxBalls
+                            then
+                                let nextPos = curPos |> move direction
+                                in
+                                    groupsStep
+                                        size
+                                        nextPos
+                                        (groups |> addToTheLastGroup nextPos)
+                                        (taken |> storeTaken nextPos)
+                            else Random.constant ( groups, curPos, taken )
                 )
 
 
@@ -188,7 +247,6 @@ generator size =
     groupsStep
         size
         { x = 0, y = 0 }
-        0
         []
         (initTaken size)
             |> Random.map (\(groups, _, _) -> groups)
