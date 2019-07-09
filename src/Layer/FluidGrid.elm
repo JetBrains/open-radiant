@@ -4,6 +4,7 @@ module Layer.FluidGrid exposing
     , view
     )
 
+import Set exposing (Set)
 import Array exposing (Array)
 import Random exposing (..)
 import Math.Vector2 as Vec2 exposing (vec2, Vec2)
@@ -21,23 +22,19 @@ import Html exposing (..)
 type Ball = Ball Vec2
 
 
+type Direction
+    = North
+    | West
+    | South
+    | East
+    | NorthWest
+    | NorthEast
+    | SouthWest
+    | SouthEast
+
 type Step
     = Stop
-    | GoNorth
-    | GoWest
-    | GoSouth
-    | GoEast
-    | GoNorthWest
-    | GoNorthEast
-    | GoSouthWest
-    | GoSouthEast
-
-
-type Report
-    = Decision Step
-    | MetEdge
-    | MetTakenTile
-    | GridIsFull
+    | InDirection Direction
 
 
 type alias Size = { width : Int, height : Int }
@@ -58,8 +55,14 @@ type Taken =
         }
 
 
-initTaken : Taken
-initTaken = Taken { asGrid = Array.empty, asArray = Array.empty }
+initTaken : Size -> Taken
+initTaken { width, height } =
+    Taken
+        { asGrid =
+            Array.repeat height False
+                |> Array.repeat width
+        , asArray = Array.empty
+        }
 
 
 storeTaken : GridPos -> Taken -> Taken
@@ -75,8 +78,38 @@ allTaken { width, height } (Taken { asArray }) =
 --     Random.constant ( GridIsFull, taken )
 
 
-randomStep : Random.Generator Step
-randomStep = Random.constant Stop
+move : Direction -> GridPos -> GridPos
+move direction { x, y } =
+    case direction of
+        NorthWest -> { x = x - 1, y = y - 1 }
+        North ->     { x = x,     y = y - 1 }
+        NorthEast -> { x = x + 1, y = y - 1 }
+        East ->      { x = x - 1, y = y     }
+        West ->      { x = x + 1, y = y     }
+        SouthWest -> { x = x - 1, y = y + 1 }
+        South ->     { x = x,     y = y + 1 }
+        SouthEast -> { x = x + 1, y = y + 1 }
+
+
+randomStep : Set Direction -> Random.Generator Step
+randomStep among = Random.constant Stop
+
+
+possibleMoves : Size -> Taken -> GridPos -> Set Direction
+possibleMoves { width, height } (Taken { asGrid }) pos =
+    let
+        currentMoves = Set.empty
+        addIfFree { x, y } step set = Set.empty
+    in
+        currentMoves
+            |> addIfFree (pos |> move NorthWest) NorthWest
+            |> addIfFree (pos |> move North) North
+            |> addIfFree (pos |> move NorthEast) NorthEast
+            |> addIfFree (pos |> move East) East
+            |> addIfFree (pos |> move West) West
+            |> addIfFree (pos |> move SouthWest) SouthWest
+            |> addIfFree (pos |> move South) South
+            |> addIfFree (pos |> move SouthEast) SouthEast
 
 
 groupsStep
@@ -90,27 +123,38 @@ groupsStep size curPos curGroup groups taken =
     if not <| allTaken size taken then
         Random.constant ( groups, curPos, taken )
     else
-        randomStep
+        -- get info about the edges and taken tiles around the current cell
+        -- then provide the list of possible moves to the `randomStep`,
+        -- but ensure it is not empty. If it is empty, finish the current group,
+        -- find the next free cell and provide it to the generator.
+        -- Add `Stop` to all the sets.
+        -- Then, when we get the new step, it is for sure exists in the grid and
+        -- so we may advance the generator futher, but before — add the posigion to
+        -- the `Taken` storage.
+        -- When the generated value is `Stop`, finish the current group,
+        -- find the next free cell and provide it to the generator.
+        possibleMoves size taken curPos
+            |> randomStep
             |> Random.andThen
                 (\nextStep ->
-                    groupsStep size curPos curGroup groups taken
+                    case nextStep of
+                        Stop ->
+                            -- start new group
+                            groupsStep size curPos curGroup groups taken
+                        InDirection direction ->
+                            groupsStep size (curPos |> move direction) curGroup groups taken
                 )
 
 
 generator : Size -> Random.Generator (List (List Ball))
-generator ({ width, height } as size) =
-    let
-        taken =
-            Array.repeat height False
-                |> Array.repeat width
-    in
-        groupsStep
-            size
-            { x = 0, y = 0 }
-            0
-            []
-            initTaken
-                |> Random.map (\(groups, _, _) -> groups)
+generator size =
+    groupsStep
+        size
+        { x = 0, y = 0 }
+        0
+        []
+        (initTaken size)
+            |> Random.map (\(groups, _, _) -> groups)
 
 
 init : Model
