@@ -21,10 +21,42 @@ import Html exposing (..)
 type Ball = Ball Vec2
 
 
+type Step
+    = Stop
+    | GoNorth
+    | GoWest
+    | GoSouth
+    | GoEast
+    | GoNorthWest
+    | GoNorthEast
+    | GoSouthWest
+    | GoSouthEast
+
+
+type Report
+    = Decision Step
+    | MetEdge
+    | MetTakenTile
+    | GridIsFull
+
+
 type alias Model =
     { groups : List (List Ball)
     , size : Vec2
     }
+
+
+type alias Taken = Array (Array Bool)
+
+
+nextStep : Taken -> Random.Generator Report
+nextStep taken =
+    Random.constant GridIsFull
+
+
+generator : Random.Generator (List (List Ball))
+generator =
+    Random.constant []
 
 
 init : Model
@@ -44,7 +76,8 @@ init =
 view : Model -> Html msg
 view model =
     let
-        drawGroup index balls = div [] [ text <| String.fromInt index ]
+        drawGroup index balls = div [] ( balls |> List.indexedMap drawBall )
+        drawBall index ball = div [] [ String.fromInt index |> text ]
     in
         div [] (model.groups |> List.indexedMap drawGroup)
 
