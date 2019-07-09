@@ -4,7 +4,9 @@ module Layer.FluidGrid exposing
     , view
     )
 
-import Set exposing (Set)
+
+import Set.Any exposing (AnySet)
+import Set.Any as ASet exposing (insert, empty)
 import Array exposing (Array)
 import Random exposing (..)
 import Math.Vector2 as Vec2 exposing (vec2, Vec2)
@@ -19,6 +21,9 @@ import Html exposing (..)
 --     | TopSide
 
 
+type alias DirectionSet = AnySet Int Direction -- it is better to be Set, but we can't
+
+
 type Ball = Ball Vec2
 
 
@@ -31,6 +36,35 @@ type Direction
     | NorthEast
     | SouthWest
     | SouthEast
+
+
+directionToInt : Direction -> Int
+directionToInt direction =
+    case direction of
+        North -> 0
+        West -> 1
+        South -> 2
+        East -> 3
+        NorthWest -> 4
+        NorthEast -> 5
+        SouthWest -> 6
+        SouthEast -> 7
+
+
+-- To use in `AnySet` builders
+asDirectionSet : Direction -> Int
+asDirectionSet = directionToInt
+
+
+noDirections : DirectionSet
+noDirections = ASet.empty asDirectionSet
+
+
+allDirections : DirectionSet
+allDirections =
+    [ North, West, South, East, NorthWest, NorthEast, SouthWest, SouthEast ] |>
+        List.foldl ASet.insert (ASet.empty asDirectionSet)
+
 
 type Step
     = Stop
@@ -73,10 +107,6 @@ allTaken : Size -> Taken -> Bool
 allTaken { width, height } (Taken { asArray }) =
     Array.length asArray >= width * height
 
--- cellStep : GridPos -> Taken -> Random.Generator Report
--- cellStep pos taken =
---     Random.constant ( GridIsFull, taken )
-
 
 move : Direction -> GridPos -> GridPos
 move direction { x, y } =
@@ -91,25 +121,32 @@ move direction { x, y } =
         SouthEast -> { x = x + 1, y = y + 1 }
 
 
-randomStep : Set Direction -> Random.Generator Step
+randomStep : DirectionSet -> Random.Generator Step
 randomStep among = Random.constant Stop
 
 
-possibleMoves : Size -> Taken -> GridPos -> Set Direction
-possibleMoves { width, height } (Taken { asGrid }) pos =
+isTakenAmong : Taken -> GridPos -> Bool
+isTakenAmong (Taken { asGrid }) { x, y } =
+    asGrid
+        |> Array.get x
+        |> Maybe.andThen (Array.get y)
+        |> Maybe.withDefault True
+
+
+possibleMoves : Size -> Taken -> GridPos -> DirectionSet
+possibleMoves { width, height } taken pos =
     let
-        currentMoves = Set.empty
-        addIfFree { x, y } step set = Set.empty
+        addIfFree direction freeMoves =
+            let ({ x, y } as posAtDirection) = pos |> move direction
+            in
+                if ((x < 0) || (y < 0))
+                then noDirections
+                else
+                    if posAtDirection |> isTakenAmong taken
+                    then noDirections
+                    else ASet.insert direction freeMoves
     in
-        currentMoves
-            |> addIfFree (pos |> move NorthWest) NorthWest
-            |> addIfFree (pos |> move North) North
-            |> addIfFree (pos |> move NorthEast) NorthEast
-            |> addIfFree (pos |> move East) East
-            |> addIfFree (pos |> move West) West
-            |> addIfFree (pos |> move SouthWest) SouthWest
-            |> addIfFree (pos |> move South) South
-            |> addIfFree (pos |> move SouthEast) SouthEast
+        allDirections |> ASet.foldl addIfFree noDirections
 
 
 groupsStep
