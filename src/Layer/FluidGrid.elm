@@ -51,8 +51,24 @@ type alias Model =
     }
 
 
-type alias Taken = Array (Array Bool)
+type Taken =
+    Taken
+        { asGrid : Array (Array Bool)
+        , asArray : Array GridPos
+        }
 
+
+initTaken : Taken
+initTaken = Taken { asGrid = Array.empty, asArray = Array.empty }
+
+
+storeTaken : GridPos -> Taken -> Taken
+storeTaken pos taken = taken
+
+
+allTaken : Size -> Taken -> Bool
+allTaken { width, height } (Taken { asArray }) =
+    Array.length asArray >= width * height
 
 -- cellStep : GridPos -> Taken -> Random.Generator Report
 -- cellStep pos taken =
@@ -63,29 +79,37 @@ randomStep : Random.Generator Step
 randomStep = Random.constant Stop
 
 
-groupsStep : GridPos -> Groups -> Taken -> Maybe Report -> Random.Generator ( Groups, GridPos, Taken )
-groupsStep curPos groups taken lastReport =
-    case lastReport of
-        Just GridIsFull -> Random.constant ( groups, curPos, taken )
-        _ -> randomStep
+groupsStep
+     : Size
+    -> GridPos
+    -> Int
+    -> Groups
+    -> Taken
+    -> Random.Generator ( Groups, GridPos, Taken )
+groupsStep size curPos curGroup groups taken =
+    if not <| allTaken size taken then
+        Random.constant ( groups, curPos, taken )
+    else
+        randomStep
             |> Random.andThen
                 (\nextStep ->
-                    groupsStep curPos groups taken (Just GridIsFull)
+                    groupsStep size curPos curGroup groups taken
                 )
 
 
 generator : Size -> Random.Generator (List (List Ball))
-generator { width, height } =
+generator ({ width, height } as size) =
     let
         taken =
             Array.repeat height False
                 |> Array.repeat width
     in
         groupsStep
+            size
             { x = 0, y = 0 }
+            0
             []
-            taken
-            Nothing
+            initTaken
                 |> Random.map (\(groups, _, _) -> groups)
 
 
