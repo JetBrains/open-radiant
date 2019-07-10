@@ -138,8 +138,8 @@ move direction { x, y } =
         NorthWest -> { x = x - 1, y = y - 1 }
         North ->     { x = x,     y = y - 1 }
         NorthEast -> { x = x + 1, y = y - 1 }
-        East ->      { x = x - 1, y = y     }
-        West ->      { x = x + 1, y = y     }
+        East ->      { x = x + 1, y = y     }
+        West ->      { x = x - 1, y = y     }
         SouthWest -> { x = x - 1, y = y + 1 }
         South ->     { x = x,     y = y + 1 }
         SouthEast -> { x = x + 1, y = y + 1 }
@@ -148,20 +148,16 @@ move direction { x, y } =
 randomStep : DirectionSet -> Random.Generator Step
 randomStep among =
     if not <| ASet.isEmpty among then
-        Random.int 0 8
+        let amongArray = Array.fromList <| ASet.toList among
+        in Random.int 0 (Array.length amongArray)
             |> Random.map
-                (\val ->
-                    case val of
-                        0 -> InDirection North
-                        1 -> InDirection West
-                        2 -> InDirection South
-                        3 -> InDirection East
-                        4 -> InDirection NorthWest
-                        5 -> InDirection NorthEast
-                        6 -> InDirection SouthWest
-                        7 -> InDirection SouthEast
-                        8 -> Stop
-                        _ -> Stop -- should never be reached, but anyway return `Stop`
+                (\index ->
+                    -- if the value will happen to equal the count of possible moves
+                    -- then `Stop` will be produced, which is what we wanted to always
+                    -- consider as an option
+                    Array.get index amongArray
+                        |> Maybe.map InDirection
+                        |> Maybe.withDefault Stop
                 )
     else
         Random.constant Stop
@@ -173,11 +169,11 @@ possibleMoves { width, height } taken pos =
         addIfFree direction freeMoves =
             let ({ x, y } as posAtDirection) = pos |> move direction
             in
-                if ((x < 0) || (y < 0))
-                then noDirections
+                if ((x < 0) || (y < 0) || (x >= width) || (y >= height))
+                then freeMoves
                 else
                     if posAtDirection |> isTakenAmong taken
-                    then noDirections
+                    then freeMoves
                     else ASet.insert direction freeMoves
     in
         allDirections |> ASet.foldl addIfFree noDirections
@@ -202,7 +198,7 @@ addToTheLastGroup pos groups =
 
 
 addEmptyGroupTo : Groups -> Groups
-addEmptyGroupTo groups = groups
+addEmptyGroupTo = Array.push Array.empty
 
 
 ballsInTheLastGroup : Groups -> Maybe Int
@@ -229,7 +225,9 @@ findPosToStartNextGroup size (Taken { asGrid }) =
         foldY row ( posFound, y )  =
             case posFound of
                 Nothing ->
-                    Array.foldr (foldX y) (posFound, 0) row
+                    Array.foldl (foldX y) (posFound, 0) row
+                        |> Tuple.first
+                        |> (\foundInRow -> ( foundInRow, y + 1 ))
                 Just _ -> ( posFound, y + 1 )
     in
         Array.foldl foldY (Nothing, 0) asGrid
@@ -266,12 +264,14 @@ groupsStep size curPos groups taken =
                                     -- if it was found, create new group and
                                     -- continue moving starting from the next point
                                     Just nextPos ->
-                                        groupsStep
-                                            size
-                                            nextPos
-                                            (addEmptyGroupTo groups
-                                                |> addToTheLastGroup nextPos)
-                                            (taken |> storeTaken nextPos)
+                                        Random.lazy (\_ ->
+                                            groupsStep
+                                                size
+                                                nextPos
+                                                (addEmptyGroupTo groups
+                                                    |> addToTheLastGroup nextPos)
+                                                (taken |> storeTaken nextPos)
+                                        )
                                     -- else, stop the recursion
                                     Nothing -> Random.constant ( groups, curPos, taken )
 
@@ -291,12 +291,13 @@ groupsStep size curPos groups taken =
                                 let nextPos = curPos |> move direction
                                 in
                                     -- and recursively continue moving starting from the next point
-                                    groupsStep
-                                        size
-                                        nextPos
-                                        (groups |> addToTheLastGroup nextPos)
-                                        (taken |> storeTaken nextPos)
-
+                                    Random.lazy (\_ ->
+                                        groupsStep
+                                            size
+                                            nextPos
+                                            (groups |> addToTheLastGroup nextPos)
+                                            (taken |> storeTaken nextPos)
+                                    )
                             -- else, stop the recursion
                             else Random.constant ( groups, curPos, taken )
 
@@ -307,19 +308,22 @@ groupsStep size curPos groups taken =
 
 
 generator : Size -> Random.Generator Model
-generator size =
-    groupsStep
-        size
-        { x = 0, y = 0 }
-        Array.empty
-        (initTaken size)
-            |> Random.map (\(groups, _, _) -> groups)
-            |> Random.map
-                (\groups ->
-                    { size = size
-                    , groups = groups
-                    }
-                )
+generator windowSize =
+    let
+        size = { width = 20, height = 20 }
+    in
+        groupsStep
+            size
+            { x = 0, y = 0 }
+            Array.empty
+            (initTaken size)
+                |> Random.map (\(groups, _, _) -> groups)
+                |> Random.map
+                    (\groups ->
+                        { size = size
+                        , groups = groups
+                        }
+                    )
 
 
 generate : (Model -> msg) -> Random.Generator Model -> Cmd msg
@@ -329,7 +333,7 @@ generate = Random.generate
 init : Model
 init =
     { groups = Array.empty
-    , size = { width = 10, height = 10 }
+    , size = { width = 20, height = 20 }
     }
 
 
