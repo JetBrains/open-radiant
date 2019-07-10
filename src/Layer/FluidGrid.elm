@@ -341,8 +341,10 @@ view : Model -> Html msg
 view model =
     let
         groupsList = groupsToListsOfBalls model.groups
-        drawGroup index balls = div [] ( balls |> List.indexedMap drawBall )
-        drawBall index ball = div [] [ String.fromInt index |> text ]
+        drawGroup groupIndex balls =
+            div [] ( balls |> List.indexedMap (drawBall groupIndex) )
+        drawBall groupIndex ballIndex (Ball { x, y }) =
+            div [] [ (String.fromInt groupIndex ++ " > " ++ String.fromInt x ++ ":" ++ String.fromInt y) |> text ]
     in
         div [] (groupsList |> List.indexedMap drawGroup)
 
