@@ -21,10 +21,16 @@ import Html exposing (..)
 --     | TopSide
 
 
-type alias DirectionSet = AnySet Int Direction -- it is better to be Set, but we can't
+type alias Size = { width : Int, height : Int }
+type alias GridPos = { x : Int, y : Int }
+type alias Groups = Array (Array Ball)
 
 
-type Ball = Ball Vec2
+groupsToListsOfBalls : Groups -> List (List Ball)
+groupsToListsOfBalls = Array.toList >> List.map Array.toList
+
+
+type Ball = Ball GridPos
 
 
 type Direction
@@ -36,6 +42,11 @@ type Direction
     | NorthEast
     | SouthWest
     | SouthEast
+
+
+type alias DirectionSet = AnySet Int Direction
+-- it is better to be just a Set, but we can't use sum types as `Set` values,
+-- so we use `AnySet` which allows it
 
 
 directionToInt : Direction -> Int
@@ -71,13 +82,8 @@ type Step
     | InDirection Direction
 
 
-type alias Size = { width : Int, height : Int }
-type alias GridPos = { x : Int, y : Int }
-type alias Groups = List (List Ball)
-
-
 type alias Model =
-    { groups : List (List Ball)
+    { groups : Groups
     , size : Size
     }
 
@@ -140,8 +146,24 @@ move direction { x, y } =
 
 randomStep : DirectionSet -> Random.Generator Step
 randomStep among =
-    -- TODO: add `Stop` to the values, return constant `Stop` when among is empty
-    Random.constant Stop
+    if not <| ASet.isEmpty among then
+        Random.int 0 8
+            |> Random.map
+                (\val ->
+                    case val of
+                        0 -> InDirection North
+                        1 -> InDirection West
+                        2 -> InDirection South
+                        3 -> InDirection East
+                        4 -> InDirection NorthWest
+                        5 -> InDirection NorthEast
+                        6 -> InDirection SouthWest
+                        7 -> InDirection SouthEast
+                        8 -> Stop
+                        _ -> Stop -- should never be reached, but anyway return `Stop`
+                )
+    else
+        Random.constant Stop
 
 
 possibleMoves : Size -> Taken -> GridPos -> DirectionSet
@@ -168,23 +190,49 @@ maxBalls = 200 -- additional control for the recursion/randomness overflow
 
 addToTheLastGroup : GridPos -> Groups -> Groups
 addToTheLastGroup pos groups =
-    groups
+    let
+        lastGroupIndex = (Array.length groups) - 1
+    in
+        groups
+            |> Array.get lastGroupIndex
+            |> Maybe.map (Array.push (Ball pos))
+            |> Maybe.map (\lastGroup -> Array.set lastGroupIndex lastGroup groups)
+            |> Maybe.withDefault groups
 
 
 addEmptyGroupTo : Groups -> Groups
 addEmptyGroupTo groups = groups
 
 
-ballsInTheLastGroup : Groups -> Int
-ballsInTheLastGroup groups = 0
+ballsInTheLastGroup : Groups -> Maybe Int
+ballsInTheLastGroup groups =
+    groups
+        |> Array.get ((Array.length groups) - 1)
+        |> Maybe.map Array.length
 
 
 groupsCount : Groups -> Int
-groupsCount = List.length
+groupsCount = Array.length
 
 
-findPosToStartNextGroup : Groups -> Taken -> Maybe GridPos
-findPosToStartNextGroup groups taken = Nothing
+findPosToStartNextGroup : Size -> Taken -> Maybe GridPos
+findPosToStartNextGroup size (Taken { asGrid }) =
+    let
+        foldX y isTaken ( posFound, x ) =
+            case posFound of
+                Nothing ->
+                    if not isTaken then
+                        ( Just { x = x, y = y }, x + 1 )
+                    else ( posFound, x + 1 )
+                Just _ -> ( posFound, x + 1 )
+        foldY row ( posFound, y )  =
+            case posFound of
+                Nothing ->
+                    Array.foldr (foldX y) (posFound, 0) row
+                Just _ -> ( posFound, y + 1 )
+    in
+        Array.foldl foldY (Nothing, 0) asGrid
+            |> Tuple.first
 
 
 groupsStep
@@ -194,74 +242,82 @@ groupsStep
     -> Taken
     -> Random.Generator ( Groups, GridPos, Taken )
 groupsStep size curPos groups taken =
+    -- if not all the tiles are taken
     if not <| allTaken size taken then
-        Random.constant ( groups, curPos, taken )
-    else
-        -- get info about the edges and taken tiles around the current cell
-        -- then provide the list of possible moves to the `randomStep`,
-        -- but ensure it is not empty. If it is empty, finish the current group,
-        -- find the next free cell and provide it to the generator.
-        -- Add `Stop` to all the sets.
-        -- Then, when we get the new step, it is for sure exists in the grid and
-        -- so we may advance the generator futher, but before — add the posigion to
-        -- the `Taken` storage.
-        -- When the generated value is `Stop`, finish the current group,
-        -- find the next free cell and provide it to the generator.
+        -- find possible moves for the current tile
         possibleMoves size taken curPos
-            |> randomStep
+            |> randomStep -- and generate the random one among them
             |> Random.andThen
                 (\nextStep ->
+                    -- then, we either randomly got the command to `Stop`
                     case nextStep of
                         Stop ->
-                            -- start new group if not reached maxGroups
+
+                            -- a safety barrier not to come to the infinite cycle
+                            -- (i.e. all the groups `Stop` without moving,
+                            -- though anyway a group takes at least one tile,
+                            -- and if there are no positions left, the grid is full)
                             if (groupsCount groups < maxGroups)
-                                then
-                                    case findPosToStartNextGroup groups taken of
-                                        Just nextPos ->
-                                            groupsStep
-                                                size
-                                                nextPos
-                                                (addEmptyGroupTo groups
-                                                    |> addToTheLastGroup nextPos)
-                                                taken
-                                        Nothing
-                                            -> Random.constant ( groups, curPos, taken )
-                                else
-                                    Random.constant ( groups, curPos, taken )
-                        InDirection direction ->
-                            if ballsInTheLastGroup groups < maxBalls
                             then
+
+                                -- find the next position where we may start the group
+                                case findPosToStartNextGroup size taken of
+                                    -- if it was found, create new group and
+                                    -- continue moving starting from the next point
+                                    Just nextPos ->
+                                        groupsStep
+                                            size
+                                            nextPos
+                                            (addEmptyGroupTo groups
+                                                |> addToTheLastGroup nextPos)
+                                            (taken |> storeTaken nextPos)
+                                    -- else, stop the recursion
+                                    Nothing -> Random.constant ( groups, curPos, taken )
+
+                            -- else, stop the recursion
+                            else Random.constant ( groups, curPos, taken )
+
+                        -- or to move in some direction
+                        -- (guaranteed not to be taken, because it is
+                        -- from the list of possible moves)
+                        InDirection direction ->
+
+                            -- a safety barrier not to come to the infinite cycle
+                            if (ballsInTheLastGroup groups |> Maybe.withDefault 0) < maxBalls
+                            then
+
+                                -- move in the prescribed direction
                                 let nextPos = curPos |> move direction
                                 in
+                                    -- and recursively continue moving starting from the next point
                                     groupsStep
                                         size
                                         nextPos
                                         (groups |> addToTheLastGroup nextPos)
                                         (taken |> storeTaken nextPos)
+
+                            -- else, stop the recursion
                             else Random.constant ( groups, curPos, taken )
+
                 )
+    else
+        -- stop the recursion
+        Random.constant ( groups, curPos, taken )
 
 
-generator : Size -> Random.Generator (List (List Ball))
+generator : Size -> Random.Generator Groups
 generator size =
     groupsStep
         size
         { x = 0, y = 0 }
-        []
+        Array.empty
         (initTaken size)
             |> Random.map (\(groups, _, _) -> groups)
 
 
 init : Model
 init =
-    { groups =
-        [
-            [ Ball <| vec2 0 0
-            , Ball <| vec2 1 0
-            , Ball <| vec2 2 0
-            , Ball <| vec2 0 1
-            ]
-        ]
+    { groups = Array.empty
     , size = { width = 10, height = 10 }
     }
 
@@ -269,8 +325,9 @@ init =
 view : Model -> Html msg
 view model =
     let
+        groupsList = groupsToListsOfBalls model.groups
         drawGroup index balls = div [] ( balls |> List.indexedMap drawBall )
         drawBall index ball = div [] [ String.fromInt index |> text ]
     in
-        div [] (model.groups |> List.indexedMap drawGroup)
+        div [] (groupsList |> List.indexedMap drawGroup)
 
