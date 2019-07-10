@@ -2,6 +2,7 @@ module Layer.FluidGrid exposing
     ( Model
     , init
     , view
+    , generate, generator
     )
 
 
@@ -305,7 +306,7 @@ groupsStep size curPos groups taken =
         Random.constant ( groups, curPos, taken )
 
 
-generator : Size -> Random.Generator Groups
+generator : Size -> Random.Generator Model
 generator size =
     groupsStep
         size
@@ -313,6 +314,16 @@ generator size =
         Array.empty
         (initTaken size)
             |> Random.map (\(groups, _, _) -> groups)
+            |> Random.map
+                (\groups ->
+                    { size = size
+                    , groups = groups
+                    }
+                )
+
+
+generate : (Model -> msg) -> Random.Generator Model -> Cmd msg
+generate = Random.generate
 
 
 init : Model

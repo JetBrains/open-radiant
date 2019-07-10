@@ -4,6 +4,7 @@ module Model.SizeRule exposing
     , getPresetLabel, getPresetSize, getRuleSize, getRuleSizeOrZeroes
     , getSizePresets
     , SizePresetCode, encodePreset, decodePreset
+    , toTuple, toRecord
     )
 
 
@@ -287,3 +288,13 @@ decodeSizeRule str =
             Ok <| decodeSize (\w h -> UseViewport (ViewportSize w h)) w_and_h -1 -1
         "dimensionless"::_ -> Ok Dimensionless
         _ -> Err str
+
+
+toTuple : SizeRule -> ( Int, Int )
+toTuple = getRuleSizeOrZeroes
+
+
+toRecord : SizeRule -> { width : Int, height : Int }
+toRecord sizeRule =
+    case getRuleSizeOrZeroes sizeRule of
+        ( width, height ) -> { width = width, height = height }
