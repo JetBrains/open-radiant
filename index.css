@@ -249,3 +249,15 @@ svg.text-layer {
 .dg.ac {
     z-index: 30 !important;
 }
+
+.fluid-grid {
+    /* margin-top: 300px; */
+}
+
+.fluid-grid .fluid-grid-ball {
+    color: white;
+    display: inline-block;
+    width: 70px;
+    font-size: 60px;
+    font-family: monospace;
+}

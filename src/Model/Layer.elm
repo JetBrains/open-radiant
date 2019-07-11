@@ -14,6 +14,7 @@ import Layer.Template as Template
 import Layer.Vignette as Vignette
 import Layer.Metaballs as Metaballs
 import Layer.Fluid as Fluid
+import Layer.FluidGrid as FluidGrid
 
 
 type alias CreateLayer = LayerKind -> LayerModel -> Maybe Layer
@@ -34,6 +35,7 @@ type LayerKind
     | Vignette
     | Metaballs
     | Fluid
+    | FluidGrid
 
 
 -- type LayerBlend
@@ -52,6 +54,7 @@ type LayerModel
     | CanvasModel Canvas.Model
     | CoverModel {}
     | FluidModel Fluid.Model
+    | FluidGridModel FluidGrid.Model
 
 -- FIXME: Cover module needs Model module and so by importing it we form the cycle reference
 
@@ -69,6 +72,7 @@ type WebGLLayer_
 type HtmlLayer_
     = CoverLayer
     | MetaballsLayer
+    | FluidGridLayer
     | CanvasLayer
     | NoContent -- TODO: get rid of `NoContent`?
 
@@ -127,6 +131,7 @@ initLayerModel kind =
         Vignette -> VignetteModel Vignette.init
         Metaballs -> MetaballsModel Metaballs.init
         Fluid -> FluidModel Fluid.init
+        FluidGrid -> FluidGridModel FluidGrid.init
 
 
 encodeKind : LayerKind -> String
@@ -143,6 +148,7 @@ encodeKind kind =
         Vignette -> "vignette"
         Metaballs -> "metaballs"
         Fluid -> "fluid"
+        FluidGrid -> "fluid-grid"
 
 
 decodeKind : String -> Result String LayerKind
@@ -158,6 +164,7 @@ decodeKind layerTypeStr =
         "vignette" -> Ok Vignette
         "metaballs" -> Ok Metaballs
         "fluid" -> Ok Fluid
+        "fluid-grid" -> Ok FluidGrid
         _ -> Err layerTypeStr
 
 
@@ -217,6 +224,11 @@ createLayer kind layerModel =
                 (WGLBlend.build
                     (B.customAdd, B.srcColor, B.one)
                     (B.customAdd, B.one, B.zero) )
+        ( FluidGrid, _ ) ->
+            Just <|
+                HtmlLayer
+                FluidGridLayer
+                HtmlBlend.default
         ( Vignette, _ ) ->
             Just <|
                 WebGLLayer

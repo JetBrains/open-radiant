@@ -31,6 +31,7 @@ import Model.Product as Product
 import Model.Constants exposing (..)
 import Model.Layer exposing (..)
 import Model.SizeRule exposing (..)
+import Model.SizeRule as SizeRule exposing (toRecord)
 import Model.Error exposing (..)
 import Model.ImportExport as IE
 import Model.WebGL.Blend as WGLBlend
@@ -55,6 +56,7 @@ import Layer.Canvas as Canvas
 import Layer.Vignette as Vignette
 import Layer.Metaballs as Metaballs
 import Layer.Fluid as Fluid
+import Layer.FluidGrid as FluidGrid
 
 
 initialMode : AppMode
@@ -117,7 +119,7 @@ initialLayers mode =
 --    , ( Cover, "Cover", CoverModel Cover.init )
 --    ]
     -- -- [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
-    [ ( Fluid, "Fluid", FluidModel Fluid.init )
+    [ ( FluidGrid, "FluidGrid", FluidGridModel FluidGrid.init )
     ]
     |> List.filter (\(kind, _, _) ->
         case ( kind, mode ) of
@@ -142,6 +144,9 @@ update msg model =
                     else Cmd.none
                 , if hasFluidLayers model
                     then generateAllFluid model
+                    else Cmd.none
+                , if hasFluidGridLayers model
+                    then generateAllFluidGrids model
                     else Cmd.none
                 ]
             )
@@ -601,6 +606,18 @@ update msg model =
                     )
             else ( model, Cmd.none )
 
+        RequestNewFluidGrid index ->
+            ( model
+            , if hasFluidGridLayers model
+                then generateAllFluidGrids model -- FIXME: use actual index
+                else Cmd.none
+            )
+
+        RebuildFluidGrid index fluidGridModel ->
+            ( model |> rebuildFluidGrid index fluidGridModel
+            , Cmd.none
+            )
+
         ChangeVignette index opacity ->
             ( model
                 |> updateFss index
@@ -998,6 +1015,8 @@ layerToHtml model viewport index layerDef =
                         htmlBlend
                 ( MetaballsLayer, MetaballsModel metaballsModel ) ->
                     Metaballs.view viewport model.now model.timeShift model.mouse metaballsModel
+                ( FluidGridLayer, FluidGridModel fluidGridModel ) ->
+                    FluidGrid.view fluidGridModel
                 ( CanvasLayer, _ ) ->
                     Canvas.view
                 _ -> div [] []
@@ -1131,6 +1150,11 @@ hasFssLayers model
     = True -- FIXME: implement, think that on Bang (where it is called) initialLayers could not exist yet
 
 
+hasFluidGridLayers : Model -> Bool
+hasFluidGridLayers model
+    = True -- FIXME: implement, think that on Bang (where it is called) initialLayers could not exist yet
+
+
 rebuildMetaballs : LayerIndex -> Metaballs.Model -> Model -> Model
 rebuildMetaballs index newMetaballsModel model =
     model |> updateLayerWithItsModel
@@ -1158,6 +1182,20 @@ rebuildFluid index newGroups model =
                         { currentFluidModel
                         | groups = newGroups
                         }
+                _ -> layerModel
+            )
+        )
+
+
+rebuildFluidGrid : LayerIndex -> FluidGrid.Model -> Model -> Model
+rebuildFluidGrid index newFluidGridModel model =
+    model |> updateLayerWithItsModel
+        index
+        (\(layer, layerModel) ->
+            -- FIXME: why update model in two places??
+            ( layer
+            , case layerModel of
+                FluidGridModel _ -> FluidGridModel newFluidGridModel
                 _ -> layerModel
             )
         )
@@ -1305,6 +1343,30 @@ generateAllFluid model =
           |> Cmd.batch
 
 
+generateAllFluidGrids : Model -> Cmd Msg
+generateAllFluidGrids model =
+    let
+        -- _ = Debug.log "product for palette" model.product
+        isFluidGridLayer layerDef =
+            case layerDef.model of
+                FluidGridModel fluidGridModel -> Just fluidGridModel
+                _ -> Nothing
+    in
+        model.layers
+          |> List.indexedMap Tuple.pair
+          |> List.filterMap
+                (\(index, layer) ->
+                    isFluidGridLayer layer |> Maybe.map (Tuple.pair index)
+                )
+          |> List.map
+                (\(index, fModel) ->
+                    generateFluidGrid
+                        model.size
+                        index
+                )
+          |> Cmd.batch
+
+
 -- TODO: combine with generateAllMetaballs and generateAllFluid
 regenerateFluidGradients : Model -> Cmd Msg
 regenerateFluidGradients model =
@@ -1355,6 +1417,12 @@ remapAllFluidLayersToNewSize model =
                         FluidModel fluidModel -> FluidModel <| Fluid.remapTo newSize <| fluidModel
                         _ -> layerModel
                 )
+
+generateFluidGrid : SizeRule -> LayerIndex -> Cmd Msg
+generateFluidGrid size layerIdx =
+    FluidGrid.generate
+        (RebuildFluidGrid layerIdx)
+            (FluidGrid.generator <| SizeRule.toRecord size)
 
 
 -- INCOMING PORTS

@@ -24,14 +24,16 @@
             "elm-explorations/webgl": "1.1.0",
             "mgold/elm-animation": "2.0.0",
             "newlandsvalley/elm-binary-base64": "1.0.3",
-            "noahzgordon/elm-color-extra": "1.0.2"
+            "noahzgordon/elm-color-extra": "1.0.2",
+            "turboMaCk/any-set": "1.1.1"
         },
         "indirect": {
             "elm/parser": "1.1.0",
             "elm/regex": "1.0.0",
             "elm/virtual-dom": "1.0.2",
             "fredcy/elm-parseint": "2.0.1",
-            "rtfeldman/elm-iso8601-date-strings": "1.1.2"
+            "rtfeldman/elm-iso8601-date-strings": "1.1.2",
+            "turboMaCk/any-dict": "1.1.0"
         }
     },
     "test-dependencies": {
