@@ -6,11 +6,13 @@ module Layer.FluidGrid exposing
     )
 
 
+import Color
 import Set.Any exposing (AnySet)
 import Set.Any as ASet exposing (insert, empty)
 import Array exposing (Array)
 import Random exposing (..)
 import Math.Vector2 as Vec2 exposing (vec2, Vec2)
+
 import Html exposing (..)
 import Html.Attributes as A exposing (..)
 
@@ -182,7 +184,7 @@ possibleMoves { width, height } taken pos =
 
 
 maxGroups : Int
-maxGroups = 50 -- additional control for the recursion/randomness overflow
+maxGroups = 100 -- additional control for the recursion/randomness overflow
 maxBalls : Int
 maxBalls = 200 -- additional control for the recursion/randomness overflow
 
@@ -363,23 +365,50 @@ toPreview model =
             |> Array.toList
 
 
+groupToColor : Int -> String
+groupToColor groupIdx =
+    let
+        phi = (1 + sqrt 5) / 2
+        hue = (toFloat groupIdx * phi) - (toFloat <| floor <| toFloat groupIdx * phi)
+    in
+        Color.hsl hue 1 0.5
+            |> Color.toRgba
+            |> (\{ red, green, blue, alpha } ->
+                "rgba("
+                    ++ (String.fromFloat <| red * 255.0) ++ ","
+                    ++ (String.fromFloat <| green * 255.0) ++ ","
+                    ++ (String.fromFloat <| blue * 255.0) ++ ","
+                    ++ String.fromFloat alpha
+                ++ ")")
+
+
 view : Model -> Html msg
 view model =
     let
         preview = toPreview model
+        getBallColor ball =
+            ball
+                |> Maybe.map .group
+                |> Maybe.map groupToColor
+                |> Maybe.withDefault "rgba(10, 10, 10, 0.3)"
         friendlyCoordString x y =
             let
                 xStr = if x < 10 then "0" ++ String.fromInt x else String.fromInt x
                 yStr = if y < 10 then "0" ++ String.fromInt y else String.fromInt y
             in xStr ++ ":" ++ yStr
         ballText x y groupIdx =
-            friendlyCoordString x y ++ " -> " ++ String.fromInt groupIdx
+            "⬤"
+            -- friendlyCoordString x y ++ " -> " ++ String.fromInt groupIdx
         emptyText x y =
-            friendlyCoordString x y ++ " -> " ++ "empty"
+            -- friendlyCoordString x y ++ " -> " ++ "empty"
+            "◯"
         drawBall y x ball =
-            span [ A.class "fluid-grid-ball" ]
+            span
+                [ A.class "fluid-grid-ball"
+                , A.style "color" <| getBallColor ball
+                ]
                 [ ball
-                    |> Maybe.map (.group)
+                    |> Maybe.map .group
                     |> Maybe.map (ballText x y)
                     |> Maybe.withDefault (emptyText x y)
                     |> text
