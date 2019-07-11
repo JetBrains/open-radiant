@@ -25,6 +25,7 @@ import Html exposing (..)
 type alias Size = { width : Int, height : Int }
 type alias GridPos = { x : Int, y : Int }
 type alias Groups = Array (Array Ball)
+type alias Preview = List (List (Maybe { group: Int })) -- the state between the model and the view
 
 
 groupsToListsOfBalls : Groups -> List (List Ball)
@@ -337,14 +338,47 @@ init =
     }
 
 
+toPreview : Model -> Preview
+toPreview model =
+    let
+        { width, height } = model.size
+        initialPreview =
+            Array.repeat width Nothing
+                |> Array.repeat height
+        addBallToPreview groupIndex (Ball { x, y }) preview =
+            preview
+                |> Array.get y
+                |> Maybe.map (Array.set x (Just { group = groupIndex }))
+                |> Maybe.map (\newRow -> Array.set y newRow preview)
+                |> Maybe.withDefault preview
+        foldGroup group ( preview, groupIndex ) =
+            ( Array.foldl (addBallToPreview groupIndex) preview group
+            , groupIndex + 1
+            )
+    in
+        Array.foldl foldGroup ( initialPreview, 0 ) model.groups
+            |> Tuple.first
+            |> Array.map Array.toList
+            |> Array.toList
+
+
 view : Model -> Html msg
 view model =
     let
-        groupsList = groupsToListsOfBalls model.groups
-        drawGroup groupIndex balls =
-            div [] ( balls |> List.indexedMap (drawBall groupIndex) )
-        drawBall groupIndex ballIndex (Ball { x, y }) =
-            div [] [ (String.fromInt groupIndex ++ " > " ++ String.fromInt x ++ ":" ++ String.fromInt y) |> text ]
+        preview = toPreview model
+        ballText x y groupIdx =
+            String.fromInt x ++ ":" ++ String.fromInt y ++ " : " ++ String.fromInt groupIdx
+        drawBall y x ball =
+            span []
+                [ ball
+                    |> Maybe.map (.group)
+                    |> Maybe.map (ballText x y)
+                    |> Maybe.withDefault "empty"
+                    |> text
+                ]
+        drawRow y row =
+            div [] <| List.indexedMap (drawBall y) row
     in
-        div [] (groupsList |> List.indexedMap drawGroup)
+        div [] <| List.indexedMap drawRow preview
+
 
