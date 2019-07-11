@@ -12,6 +12,7 @@ import Array exposing (Array)
 import Random exposing (..)
 import Math.Vector2 as Vec2 exposing (vec2, Vec2)
 import Html exposing (..)
+import Html.Attributes as A exposing (..)
 
 
 -- type Corner
@@ -366,19 +367,26 @@ view : Model -> Html msg
 view model =
     let
         preview = toPreview model
+        friendlyCoordString x y =
+            let
+                xStr = if x < 10 then "0" ++ String.fromInt x else String.fromInt x
+                yStr = if y < 10 then "0" ++ String.fromInt y else String.fromInt y
+            in xStr ++ ":" ++ yStr
         ballText x y groupIdx =
-            String.fromInt x ++ ":" ++ String.fromInt y ++ " : " ++ String.fromInt groupIdx
+            friendlyCoordString x y ++ " -> " ++ String.fromInt groupIdx
+        emptyText x y =
+            friendlyCoordString x y ++ " -> " ++ "empty"
         drawBall y x ball =
-            span []
+            span [ A.class "fluid-grid-ball" ]
                 [ ball
                     |> Maybe.map (.group)
                     |> Maybe.map (ballText x y)
-                    |> Maybe.withDefault "empty"
+                    |> Maybe.withDefault (emptyText x y)
                     |> text
                 ]
         drawRow y row =
-            div [] <| List.indexedMap (drawBall y) row
+            div [ A.class "fluid-grid-row" ] <| List.indexedMap (drawBall y) row
     in
-        div [] <| List.indexedMap drawRow preview
+        div [ A.class "fluid-grid" ] <| List.indexedMap drawRow preview
 
 
