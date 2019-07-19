@@ -151,7 +151,8 @@ update msg model =
                 , if hasFluidGridLayers model
                     then generateAllFluidGrids model
                     else Cmd.none
-                , NativeMetaballs.prepare model.product
+                , NativeMetaballs.with (Product.getPalette model.product)
+                    |> NativeMetaballs.export
                     |> Tuple.pair 0 -- FIXME: actual layer index
                     |> updateNativeMetaballs
                 ]
@@ -434,7 +435,8 @@ update msg model =
                     -- , if hasNativeMetaballLayers modelWithProduct
                     --     then generateAllMetaballs modelWithProduct
                     --     else Cmd.none
-                    , NativeMetaballs.prepare modelWithProduct.product
+                    , NativeMetaballs.with (Product.getPalette product)
+                        |> NativeMetaballs.export
                         |> Tuple.pair 0 -- FIXME: actual layer index
                         |> updateNativeMetaballs
                     ]

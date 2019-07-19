@@ -2,7 +2,8 @@ module Layer.NativeMetaballs exposing
     ( Model
     , PortModel
     , init
-    , prepare
+    , with
+    , export
     , view
     )
 
@@ -13,20 +14,29 @@ import Html as H
 import Html.Attributes as H
 
 
+defaultColors = [ "#f38038", "#ed3d7d", "#341f49" ]
+
+
 type alias Model =
-    {
+    { colors : Product.Palette
     }
 
 
-type alias PortModel = { }
+type alias PortModel = Product.Palette
 
 
 init : Model
-init = { }
+init =
+    { colors = defaultColors }
 
 
-prepare : Product.Product -> PortModel
-prepare product = { }
+export : Model -> PortModel
+export = .colors
+
+
+with : Product.Palette -> Model
+with palette =
+    { colors = palette }
 
 
 view : Model -> H.Html a

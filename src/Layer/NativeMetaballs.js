@@ -7,6 +7,7 @@ function m(target, width, height, options) {
     let displayWidth;
     let displayHeight;
     let createdMetaballs = [];
+    let isStopped = false;
 
     const defaults = {
       speedRange: {min: 0.2, max: 2.0},
@@ -18,6 +19,8 @@ function m(target, width, height, options) {
       colorIII: colors[2]
     }
 
+
+    const stop = function() { isStopped = true };
 
     initialize(target, width, height);
 
@@ -450,11 +453,10 @@ function m(target, width, height, options) {
     }
 
     function step() {
-
       createdMetaballs.forEach(function (metaball) {
         metaball.updateMetaballs();
       });
-      requestAnimationFrame(step);
+      if (!isStopped) requestAnimationFrame(step);
     };
 
 
@@ -723,7 +725,11 @@ function m(target, width, height, options) {
 
     }
 
+    return { width, height, stop };
 
   };
 
-  module.exports = m;
+  module.exports = {
+    start: m,
+    update: m
+  };
