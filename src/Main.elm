@@ -1036,6 +1036,8 @@ layerToHtml model viewport index layerDef =
                         htmlBlend
                 ( MetaballsLayer, MetaballsModel metaballsModel ) ->
                     Metaballs.view viewport model.now model.timeShift model.mouse metaballsModel
+                ( NativeMetaballsLayer, NativeMetaballsModel nativeMetaballsModel ) ->
+                    NativeMetaballs.view nativeMetaballsModel
                 ( FluidGridLayer, FluidGridModel fluidGridModel ) ->
                     FluidGrid.view fluidGridModel
                 ( CanvasLayer, _ ) ->

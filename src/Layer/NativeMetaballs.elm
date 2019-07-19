@@ -3,23 +3,32 @@ module Layer.NativeMetaballs exposing
     , PortModel
     , init
     , prepare
+    , view
     )
 
 
 import Model.Product as Product
 
+import Html as H
+import Html.Attributes as H
+
 
 type alias Model =
-    { palette : Maybe Product.Palette
+    {
     }
 
 
-type alias PortModel = ( String, String, String )
+type alias PortModel = { }
 
 
 init : Model
-init = { palette = Nothing }
+init = { }
 
 
 prepare : Product.Product -> PortModel
-prepare product = ( "aaa", "bbb", "ccc" )
+prepare product = { }
+
+
+view : Model -> H.Html a
+view _ =
+    H.canvas [ H.id "native-metaballs-0" ] [] -- FIXME: use actual layer index

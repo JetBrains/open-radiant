@@ -1,4 +1,6 @@
-function m(target, width, height) {
+function m(target, width, height, options) {
+
+    let colors = options.colors || [ '#f38038', '#ed3d7d', '#341f49' ];
 
     let canvas;
     let gl;
@@ -11,9 +13,9 @@ function m(target, width, height) {
       multArc: {x: {min: -.25, max: .75}, y: {min: -.25, max: .25}},
       originOffset: {x: 0.65, y: 0.45},
       scale: 0.65,
-      colorI: '#f38038',
-      colorII: '#ed3d7d',
-      colorIII: '#341f49'
+      colorI: colors[0],
+      colorII: colors[1],
+      colorIII: colors[2]
     }
 
 
