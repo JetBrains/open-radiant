@@ -29,6 +29,7 @@ import Model.Html.Blend as HtmlBlend
 
 import Layer.FSS as FSS
 import Layer.Metaballs as Metaballs
+import Layer.NativeMetaballs as NativeMetaballs
 import Layer.Fluid as Fluid
 import Layer.FluidGrid as FluidGrid
 
@@ -92,6 +93,7 @@ type Msg
     | ShiftColor LayerIndex FSS.ColorShiftPatch
     | ChangeOpacity LayerIndex FSS.Opacity
     | RebuildMetaballs LayerIndex Metaballs.Model
+    | UpdateNativeMetaballs LayerIndex NativeMetaballs.Model
     | RequestNewFluid LayerIndex
     | RebuildFluid LayerIndex Fluid.Model
     | RegenerateFluidGradients LayerIndex

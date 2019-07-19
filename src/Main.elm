@@ -118,8 +118,9 @@ initialLayers mode =
 --      )
 --    , ( Cover, "Cover", CoverModel Cover.init )
 --    ]
-    -- -- [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
-    [ ( FluidGrid, "FluidGrid", FluidGridModel FluidGrid.init )
+    [ ( Fluid, "Fluid", FluidModel Fluid.init )
+    -- [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
+    -- [ ( FluidGrid, "FluidGrid", FluidGridModel FluidGrid.init )
     ]
     |> List.filter (\(kind, _, _) ->
         case ( kind, mode ) of
@@ -755,6 +756,11 @@ update msg model =
                     )
                 )
             , Cmd.none
+            )
+
+        UpdateNativeMetaballs layerIndex nativeMetaballsModel ->
+            ( model
+            , updateNativeMetaballs ( "ff", "aa", "bb" )
             )
 
         NoOp -> ( model, Cmd.none )
@@ -1565,3 +1571,5 @@ port requestFitToWindow : () -> Cmd msg
 port requestWindowResize : ( Int, Int ) -> Cmd msg
 
 -- port rebuildOnClient : (FSS.SerializedScene, Int) -> Cmd msg
+
+port updateNativeMetaballs : ( String, String, String ) -> Cmd msg
