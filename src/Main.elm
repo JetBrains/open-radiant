@@ -55,6 +55,7 @@ import Layer.Cover as Cover
 import Layer.Canvas as Canvas
 import Layer.Vignette as Vignette
 import Layer.Metaballs as Metaballs
+import Layer.NativeMetaballs as NativeMetaballs
 import Layer.Fluid as Fluid
 import Layer.FluidGrid as FluidGrid
 
@@ -118,7 +119,8 @@ initialLayers mode =
 --      )
 --    , ( Cover, "Cover", CoverModel Cover.init )
 --    ]
-    [ ( Fluid, "Fluid", FluidModel Fluid.init )
+    [ ( NativeMetaballs, "NativeMetaballs", NativeMetaballsModel NativeMetaballs.init )
+    -- [ ( Fluid, "Fluid", FluidModel Fluid.init )
     -- [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
     -- [ ( FluidGrid, "FluidGrid", FluidGridModel FluidGrid.init )
     ]
@@ -149,6 +151,9 @@ update msg model =
                 , if hasFluidGridLayers model
                     then generateAllFluidGrids model
                     else Cmd.none
+                , NativeMetaballs.prepare model.product
+                    |> Tuple.pair 0 -- FIXME: actual layer index
+                    |> updateNativeMetaballs
                 ]
             )
 
@@ -426,6 +431,12 @@ update msg model =
                                         )
                                 )
                         else Cmd.none
+                    -- , if hasNativeMetaballLayers modelWithProduct
+                    --     then generateAllMetaballs modelWithProduct
+                    --     else Cmd.none
+                    , NativeMetaballs.prepare modelWithProduct.product
+                        |> Tuple.pair 0 -- FIXME: actual layer index
+                        |> updateNativeMetaballs
                     ]
                 )
 
@@ -758,10 +769,12 @@ update msg model =
             , Cmd.none
             )
 
-        UpdateNativeMetaballs layerIndex nativeMetaballsModel ->
-            ( model
-            , updateNativeMetaballs ( "ff", "aa", "bb" )
-            )
+        -- UpdateNativeMetaballs layerIndex ->
+        --     ( model
+        --     , NativeMetaballs.prepare model.product
+        --         |> Tuple.pair layerIndex
+        --         |> updateNativeMetaballs
+        --     )
 
         NoOp -> ( model, Cmd.none )
 
@@ -856,6 +869,8 @@ subscriptions model =
           )
         , requestRegenerateFluidGradients
             (\{ layer } -> RegenerateFluidGradients layer)
+        -- , requestUpdateNativeMetaballs
+        --     (\{ layer } -> UpdateNativeMetaballs layer)
         , refreshFluid
             (\{ layer } -> RequestNewFluid layer)
         , changeVariety
@@ -1463,6 +1478,8 @@ port loadFluidGradientTextures : ({ value: List String, layer: LayerIndex } -> m
 
 port requestRegenerateFluidGradients : ({ layer: LayerIndex } -> msg) -> Sub msg
 
+-- port requestUpdateNativeMetaballs : ({ layer: LayerIndex } -> msg) -> Sub msg
+
 port turnOn : (LayerIndex -> msg) -> Sub msg
 
 port turnOff : (LayerIndex -> msg) -> Sub msg
@@ -1572,4 +1589,4 @@ port requestWindowResize : ( Int, Int ) -> Cmd msg
 
 -- port rebuildOnClient : (FSS.SerializedScene, Int) -> Cmd msg
 
-port updateNativeMetaballs : ( String, String, String ) -> Cmd msg
+port updateNativeMetaballs : ( LayerIndex, NativeMetaballs.PortModel ) -> Cmd msg

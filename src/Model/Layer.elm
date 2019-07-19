@@ -13,6 +13,7 @@ import Layer.Voronoi as Voronoi
 import Layer.Template as Template
 import Layer.Vignette as Vignette
 import Layer.Metaballs as Metaballs
+import Layer.NativeMetaballs as NativeMetaballs
 import Layer.Fluid as Fluid
 import Layer.FluidGrid as FluidGrid
 
@@ -34,6 +35,7 @@ type LayerKind
     | Cover
     | Vignette
     | Metaballs
+    | NativeMetaballs
     | Fluid
     | FluidGrid
 
@@ -51,6 +53,7 @@ type LayerModel
     | TemplateModel Template.Model
     | VignetteModel Vignette.Model
     | MetaballsModel Metaballs.Model
+    | NativeMetaballsModel NativeMetaballs.Model
     | CanvasModel Canvas.Model
     | CoverModel {}
     | FluidModel Fluid.Model
@@ -72,6 +75,7 @@ type WebGLLayer_
 type HtmlLayer_
     = CoverLayer
     | MetaballsLayer
+    | NativeMetaballsLayer
     | FluidGridLayer
     | CanvasLayer
     | NoContent -- TODO: get rid of `NoContent`?
@@ -130,6 +134,7 @@ initLayerModel kind =
         Cover -> CoverModel {}
         Vignette -> VignetteModel Vignette.init
         Metaballs -> MetaballsModel Metaballs.init
+        NativeMetaballs -> NativeMetaballsModel NativeMetaballs.init
         Fluid -> FluidModel Fluid.init
         FluidGrid -> FluidGridModel FluidGrid.init
 
@@ -147,6 +152,7 @@ encodeKind kind =
         Cover -> "cover"
         Vignette -> "vignette"
         Metaballs -> "metaballs"
+        NativeMetaballs -> "native-metaballs"
         Fluid -> "fluid"
         FluidGrid -> "fluid-grid"
 
@@ -163,6 +169,7 @@ decodeKind layerTypeStr =
         "cover" -> Ok Cover
         "vignette" -> Ok Vignette
         "metaballs" -> Ok Metaballs
+        "native-metaballs" -> Ok NativeMetaballs
         "fluid" -> Ok Fluid
         "fluid-grid" -> Ok FluidGrid
         _ -> Err layerTypeStr
@@ -247,5 +254,10 @@ createLayer kind layerModel =
             Just <|
                 HtmlLayer
                 MetaballsLayer
+                HtmlBlend.default
+        ( NativeMetaballs, _ ) ->
+            Just <|
+                HtmlLayer
+                NativeMetaballsLayer
                 HtmlBlend.default
         _ -> Nothing

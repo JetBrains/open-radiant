@@ -23,8 +23,10 @@ const app = App.Elm.Main.init({ node: mountNode, flags: { forcedMode: null } });
 
 const startGui = require('./gui.js');
 const buildFSS = require('./fss.js');
+const nativeMetaballs = require('./native-metaballs.js');
 
 const fssScenes = {};
+const allNativeMetaballs = {};
 
 const batchPause = 1000;
 let savingBatch = false;
@@ -409,6 +411,11 @@ setTimeout(() => {
                 fssScenes[index] = fssScene;
                 app.ports.rebuildFss.send({ value: fssScene, layer: index });
             }
+            if (is.nativeMetaballs(layer)) {
+                const nativeMetaballsModel = nativeMetaballs.build(model, layer.model);
+                allNativeMetaballs[index] = nativeMetaballsModel;
+                // app.ports.rebuildFss.send({ value: fssScene, layer: index });
+            }
             // if (is.fluid(layer)) {
             //     const gradients = buildGradients(model, layer.model);
             //     app.ports.loadFluidGradients.send({ value: gradients, layer: index });
@@ -435,6 +442,10 @@ setTimeout(() => {
             const gradients = buildGradients(layerModel);
             app.ports.loadFluidGradientTextures.send({ value: gradients, layer: index });
         //}
+    });
+
+    app.ports.updateNativeMetaballs.subscribe(([ index, layerModel ]) => {
+        allNativeMetaballs[index] = nativeMetaballs.update(layerModel, allNativeMetaballs[index]);
     });
 
     app.ports.bang.send(null);

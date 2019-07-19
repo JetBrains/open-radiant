@@ -93,7 +93,7 @@ type Msg
     | ShiftColor LayerIndex FSS.ColorShiftPatch
     | ChangeOpacity LayerIndex FSS.Opacity
     | RebuildMetaballs LayerIndex Metaballs.Model
-    | UpdateNativeMetaballs LayerIndex NativeMetaballs.Model
+    -- | UpdateNativeMetaballs LayerIndex
     | RequestNewFluid LayerIndex
     | RebuildFluid LayerIndex Fluid.Model
     | RegenerateFluidGradients LayerIndex

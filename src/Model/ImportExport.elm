@@ -236,7 +236,8 @@ encodeLayerModel layerModel =
                     , ( "variety", E.float <| case fluidModel.variety of Fluid.Variety v -> v)
                     , ( "orbit", E.float <| case fluidModel.orbit of Fluid.Orbit v -> v)
                     ]
-            _ -> [] -- FIXME: fail for unknown layer kinds, but don't fail if layer just has empty model
+            _ -> [ ( "layer-model", E.string "do-not-exists" ) ]
+            -- FIXME: fail for unknown layer kinds, but don't fail if layer just has empty model
 
 
 encodeModel_ : M.Model -> E.Value
