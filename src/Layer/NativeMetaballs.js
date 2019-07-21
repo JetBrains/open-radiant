@@ -1,6 +1,6 @@
 function m(target, width, height, options) {
 
-    let colors = options.colors || [ '#f38038', '#ed3d7d', '#341f49' ];
+   let colors = options.colors || ['#341f49', '#f38038', '#ed3d7d'];
 
     let canvas;
     let gl;
@@ -12,11 +12,11 @@ function m(target, width, height, options) {
     const defaults = {
       speedRange: {min: 0.2, max: 2.0},
       multArc: {x: {min: -.25, max: .75}, y: {min: -.25, max: .25}},
-      originOffset: {x: 0.65, y: 0.45},
-      scale: 0.65,
-      colorI: colors[0],
-      colorII: colors[1],
-      colorIII: colors[2]
+      originOffset: {x: 0.6, y: 0.5},
+      scale: 0.85,
+      colorI: colors[1],
+      colorII: colors[2],
+      colorIII: colors[0]
     }
 
 
@@ -674,6 +674,22 @@ function m(target, width, height, options) {
                 return (0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b);
             }
 
+            vec3 rgb2hsv(vec3 c){
+              vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+              vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+              vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+      
+              float d = q.x - min(q.w, q.y);
+              float e = 1.0e-10;
+              return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+              }
+
+              vec3 hsv2rgb(vec3 c){
+                vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+                vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+                return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+            }
+
             void main(){
                vec2 cpos = gl_FragCoord.xy;
                for (int i = 0; i < NUM_METABALLS; i++) {
@@ -689,7 +705,7 @@ function m(target, width, height, options) {
                 #ifdef GL_OES_standard_derivatives
                     delta = fwidth(v);
                     if ( v > delta) {
-                      alpha = smoothstep( 1.0 - delta, 1.0 + delta, v );
+                      alpha = smoothstep( 1.0 - delta, 1.0 + delta, v);
                     }
                 #else
 
@@ -710,11 +726,18 @@ function m(target, width, height, options) {
                   }
 
                 #endif
-
+               
                  vec2 st = gl_FragCoord.xy / uResolution.xy;
+
+                 //ambient light
+                 color.a *=  smoothstep(-0.1, 0.5, distance(st, vec2(0.5)));
+                 color.rgb *= vec3(1.0, 0.5, 0.7);
+                 //noise
                  color.rgb = mix(color.rgb, vec3(noise(st * 1000.0, 1.0) * 100.0), 0.03 / pow(brightness(color.rgb), 0.3));
+                
                  gl_FragColor = color * alpha * 0.8;
 
+   
               }
 
   `;
