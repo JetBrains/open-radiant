@@ -13,7 +13,7 @@ function m(target, width, height, options) {
       speedRange: {min: 0.2, max: 2.0},
       multArc: {x: {min: -.25, max: .75}, y: {min: -.25, max: .25}},
       originOffset: {x: 0.6, y: 0.5},
-      scale: 0.85,
+      scale: width / 1500,
       colorI: colors[1],
       colorII: colors[2],
       colorIII: colors[0]
