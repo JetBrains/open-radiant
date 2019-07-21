@@ -383,7 +383,7 @@ function m(target, width, height, options) {
         createdMetaballs.push(new Metaballs(gl, group, defaults.scale));
       })
 
-      target.addEventListener('mousemove', onMouseMove);
+      // target.addEventListener('mousemove', onMouseMove);
 
       resizeGL(gl);
 

@@ -116,10 +116,11 @@ initialLayers mode =
 --            | renderMode = FSS.PartialLines
 --            , shareMesh = True
 --            } |> FssModel
---      )
---    , ( Cover, "Cover", CoverModel Cover.init )
+--      )    , ( Cover, "Cover", CoverModel Cover.init )
 --    ]
-    [ ( NativeMetaballs, "NativeMetaballs", NativeMetaballsModel NativeMetaballs.init )
+    [
+        ( Cover, "Cover", CoverModel Cover.init )
+        , ( NativeMetaballs, "NativeMetaballs", NativeMetaballsModel NativeMetaballs.init )
     -- [ ( Fluid, "Fluid", FluidModel Fluid.init )
     -- [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
     -- [ ( FluidGrid, "FluidGrid", FluidGridModel FluidGrid.init )
