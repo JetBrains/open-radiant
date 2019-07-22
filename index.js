@@ -13,7 +13,7 @@ const drawToCanvas = require('./draw-to-canvas.js');
 const JSZip = require('jszip');
 const JSZipUtils = require('jszip-utils');
 const FileSaver = require('jszip/vendor/FileSaver');
-const throttle = require('./throttle.js');
+const timing = require('./timing.js');
 
 // initialize Elm Application
 const App = require('./src/Main.elm');
@@ -415,12 +415,10 @@ setTimeout(() => {
             if (is.nativeMetaballs(layer)) {
                 const nativeMetaballsModel = nativeMetaballs.build(model.size, layer.model.colors);
                 allNativeMetaballs[index] = nativeMetaballsModel;
-                const throttledResize = throttle(function(newSize) {
-                    console.log(index);
+                const throttledResize = timing.debounce(function(newSize) {
                     const prev = allNativeMetaballs[index];
-                    console.log(prev);
                     allNativeMetaballs[index] = nativeMetaballs.update(newSize, prev.colors, prev.metaballs);
-                }, 500);
+                }, 300);
                 app.ports.requestWindowResize.subscribe((size) => {
                     throttledResize(size);
                 });
