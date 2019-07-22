@@ -1,6 +1,6 @@
 const buildFSS = require('./fss.js');
 const buildGradients = require('./gradients.js');
-const buildNativeMetaballs = require('./native-metaballs.js');
+const nativeMetaballs = require('./native-metaballs.js');
 const is = require('./check-layer-type.js');
 const deepClone = require('./deep-clone.js')
 const App = require('./src/Main.elm');
@@ -9,6 +9,7 @@ const import_ = (app, importedState) => {
     document.body.style.backgroundColor = importedState.background;
 
     const parsedState = importedState;
+    const allNativeMetaballs = {};
 
     app.ports.requestFssRebuild.subscribe(({ layer : index, model, value : fssModel }) => {
         const layer = model.layers[index];
@@ -33,7 +34,8 @@ const import_ = (app, importedState) => {
     app.ports.updateNativeMetaballs.subscribe(() => {
         parsedState.layers.forEach(layer => {
             if (is.nativeMetaballs(layer)) {
-                
+                const prev = allNativeMetaballs[index];
+                allNativeMetaballs[index] = nativeMetaballs.update(prev.size, colors, prev.metaballs);
             }
         });
     });
@@ -48,6 +50,20 @@ const import_ = (app, importedState) => {
     //console.log('sending for the import', toSend);
 
     app.ports.import_.send(JSON.stringify(toSend));
+
+    parsedState.layers.forEach((layer, index) => {
+        if (is.nativeMetaballs(layer)) {
+            const nativeMetaballsModel = nativeMetaballs.build([ parsedState.size.v1, parsedState.size.v2 ], layer.model.colors);
+            allNativeMetaballs[index] = nativeMetaballsModel;
+            const throttledResize = timing.debounce(function(newSize) {
+                const prev = allNativeMetaballs[index];
+                allNativeMetaballs[index] = nativeMetaballs.update(newSize, prev.colors, prev.metaballs);
+            }, 300);
+            app.ports.requestWindowResize.subscribe((size) => {
+                throttledResize(size);
+            });
+        }
+    });
 }
 
 const runGenScene = () => {

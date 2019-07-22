@@ -469,7 +469,7 @@ setTimeout(() => {
             }
             panelsHidden = !panelsHidden;
         }
-      });
+    });
 
 }, 100);
 
