@@ -236,6 +236,9 @@ encodeLayerModel layerModel =
                     , ( "variety", E.float <| case fluidModel.variety of Fluid.Variety v -> v)
                     , ( "orbit", E.float <| case fluidModel.orbit of Fluid.Orbit v -> v)
                     ]
+            M.NativeMetaballsModel
+                nativeMetaballsModel ->
+                    [ ( "colors", nativeMetaballsModel.colors |> E.list E.string ) ]
             _ -> [ ( "layer-model", E.string "do-not-exists" ) ]
             -- FIXME: fail for unknown layer kinds, but don't fail if layer just has empty model
 
@@ -623,6 +626,13 @@ layerModelDecoder kind =
                     (D.maybe <| D.field "variety" D.float)
                     (D.maybe <| D.field "orbit" D.float)
                     |> D.map M.FluidModel
+        M.NativeMetaballs ->
+            D.map
+                    (\colors ->
+                        { colors = colors
+                        })
+                    (D.field "colors" <| D.list D.string)
+                    |> D.map M.NativeMetaballsModel
         -- TODO: add parsing other models here
         _ -> D.succeed <| M.initLayerModel kind -- FIXME: Fail to decode if layer is unknown, but don't fail if it just has empty model
         -- _ -> D.fail "unknown kind"

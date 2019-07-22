@@ -13,6 +13,7 @@ const drawToCanvas = require('./draw-to-canvas.js');
 const JSZip = require('jszip');
 const JSZipUtils = require('jszip-utils');
 const FileSaver = require('jszip/vendor/FileSaver');
+const throttle = require('./throttle.js');
 
 // initialize Elm Application
 const App = require('./src/Main.elm');
@@ -264,7 +265,7 @@ setTimeout(() => {
 
     app.ports.requestWindowResize.subscribe((size) => {
         const [ width, height ] = size;
-        console.log(width, height);
+        // console.log(width, height);
         window.resizeTo(width, height);
     });
 
@@ -412,8 +413,17 @@ setTimeout(() => {
                 app.ports.rebuildFss.send({ value: fssScene, layer: index });
             }
             if (is.nativeMetaballs(layer)) {
-                const nativeMetaballsModel = nativeMetaballs.build(model, layer.model);
+                const nativeMetaballsModel = nativeMetaballs.build(model.size, layer.model.colors);
                 allNativeMetaballs[index] = nativeMetaballsModel;
+                const throttledResize = throttle(function(newSize) {
+                    console.log(index);
+                    const prev = allNativeMetaballs[index];
+                    console.log(prev);
+                    allNativeMetaballs[index] = nativeMetaballs.update(newSize, prev.colors, prev.metaballs);
+                }, 500);
+                app.ports.requestWindowResize.subscribe((size) => {
+                    throttledResize(size);
+                });
                 // app.ports.rebuildFss.send({ value: fssScene, layer: index });
             }
             // if (is.fluid(layer)) {
@@ -444,8 +454,9 @@ setTimeout(() => {
         //}
     });
 
-    app.ports.updateNativeMetaballs.subscribe(([ index, layerModel ]) => {
-        allNativeMetaballs[index] = nativeMetaballs.update(layerModel, allNativeMetaballs[index]);
+    app.ports.updateNativeMetaballs.subscribe(([ index, colors ]) => {
+        const prev = allNativeMetaballs[index];
+        allNativeMetaballs[index] = nativeMetaballs.update(prev.size, colors, prev.metaballs);
     });
 
     app.ports.bang.send(null);

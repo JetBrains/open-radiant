@@ -1,5 +1,6 @@
 const buildFSS = require('./fss.js');
 const buildGradients = require('./gradients.js');
+const buildNativeMetaballs = require('./native-metaballs.js');
 const is = require('./check-layer-type.js');
 const deepClone = require('./deep-clone.js')
 const App = require('./src/Main.elm');
@@ -27,6 +28,14 @@ const import_ = (app, importedState) => {
             const gradients = buildGradients(layerModel);
             app.ports.loadFluidGradientTextures.send({ value: gradients, layer: index });
         //}
+    });
+
+    app.ports.updateNativeMetaballs.subscribe(() => {
+        parsedState.layers.forEach(layer => {
+            if (is.nativeMetaballs(layer)) {
+                
+            }
+        });
     });
 
     const toSend = deepClone(parsedState);
