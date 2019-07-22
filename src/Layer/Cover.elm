@@ -51,7 +51,7 @@ view mode product ( w, h ) ( x, y ) blend =
                 -- , ("text-transform", "uppercase")
             , style "color" "white"
             ]
-        ( if (mode == Production) || (mode == TronUi Production) then
+        ( if (mode == Production) || (mode == Player) || (mode == TronUi Production) then
             [ productName product ( centerX, centerY ) blend scale
             , logo ( logoX, logoY ) blend scale
             ]

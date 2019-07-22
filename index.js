@@ -415,12 +415,12 @@ setTimeout(() => {
             if (is.nativeMetaballs(layer)) {
                 const nativeMetaballsModel = nativeMetaballs.build(model.size, layer.model.colors);
                 allNativeMetaballs[index] = nativeMetaballsModel;
-                const throttledResize = timing.debounce(function(newSize) {
+                const debouncedResize = timing.debounce(function(newSize) {
                     const prev = allNativeMetaballs[index];
                     allNativeMetaballs[index] = nativeMetaballs.update(newSize, prev.colors, prev.metaballs);
                 }, 300);
                 app.ports.requestWindowResize.subscribe((size) => {
-                    throttledResize(size);
+                    debouncedResize(size);
                 });
                 // app.ports.rebuildFss.send({ value: fssScene, layer: index });
             }

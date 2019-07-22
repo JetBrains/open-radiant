@@ -51,20 +51,19 @@ const import_ = (app, importedState) => {
     //console.log('sending for the import', toSend);
 
     app.ports.import_.send(JSON.stringify(toSend));
-    // console.log(parsedState);
 
     parsedState.layers.forEach((layer, index) => {
         if (is.nativeMetaballs(layer)) {
             // const nativeMetaballsModel = nativeMetaballs.build([ parsedState.size.v1, parsedState.size.v2 ], layer.model.colors);
             const nativeMetaballsModel = nativeMetaballs.build([ parsedState.size.v1, parsedState.size.v2 ], parsedState.palette);
             allNativeMetaballs[index] = nativeMetaballsModel;
-            const throttledResize = timing.debounce(function(newSize) {
+            const debouncedResize = timing.debounce(function(newSize) {
                 const prev = allNativeMetaballs[index];
                 allNativeMetaballs[index] = nativeMetaballs.update(newSize, parsedState.palette, prev.metaballs);
                 // allNativeMetaballs[index] = nativeMetaballs.update(newSize, prev.colors, prev.metaballs);
             }, 300);
             app.ports.requestWindowResize.subscribe((size) => {
-                throttledResize(size);
+                debouncedResize(size);
             });
         }
     });
