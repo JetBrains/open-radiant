@@ -158,89 +158,88 @@ encodeLayerDef layerDef =
 
 encodeLayerModel : M.LayerModel -> E.Value
 encodeLayerModel layerModel =
-    E.object <|
-        case layerModel of
-            M.FssModel fssModel ->
-                [ ( "renderMode", FSS.encodeRenderMode fssModel.renderMode |> E.string )
-                , ( "faces", encodeXY E.int fssModel.faces )
-                , ( "lightSpeed", E.int fssModel.lightSpeed )
-                , ( "amplitude", encodeAmplitude fssModel.amplitude )
-                , ( "colorShift", encodeColorShift fssModel.colorShift )
-                , ( "opacity", E.float fssModel.opacity )
-                , ( "mirror", E.bool fssModel.mirror )
-                , ( "clip",
-                        Maybe.withDefault FSS.noClip fssModel.clip
-                            |> encodeXY E.float
-                  )
-                , ( "shareMesh", E.bool fssModel.shareMesh )
-                , ( "vignette", E.float fssModel.vignette )
-                , ( "iris", E.float fssModel.iris )
-                ]
-            M.VignetteModel vignetteModel ->
-                [ ( "opacity", E.float vignetteModel.opacity )
-                , ( "color", encodeColor vignetteModel.color )
-                ]
-            M.FluidModel fluidModel ->
-                let
-                    encodeBall ball =
-                        E.object
-                            [ ( "x", E.float <| Vec2.getX ball.origin )
-                            , ( "y", E.float <| Vec2.getY ball.origin )
-                            , ( "r", E.float ball.radius )
-                            , ( "speed", E.float ball.speed )
-                            , ( "phase", E.float ball.phase )
-                            , ( "ax", E.float <| Vec2.getX ball.amplitude )
-                            , ( "ay", E.float <| Vec2.getY ball.amplitude )
+    case layerModel of
+        M.FssModel fssModel ->
+            [ ( "renderMode", FSS.encodeRenderMode fssModel.renderMode |> E.string )
+            , ( "faces", encodeXY E.int fssModel.faces )
+            , ( "lightSpeed", E.int fssModel.lightSpeed )
+            , ( "amplitude", encodeAmplitude fssModel.amplitude )
+            , ( "colorShift", encodeColorShift fssModel.colorShift )
+            , ( "opacity", E.float fssModel.opacity )
+            , ( "mirror", E.bool fssModel.mirror )
+            , ( "clip",
+                    Maybe.withDefault FSS.noClip fssModel.clip
+                        |> encodeXY E.float
+                )
+            , ( "shareMesh", E.bool fssModel.shareMesh )
+            , ( "vignette", E.float fssModel.vignette )
+            , ( "iris", E.float fssModel.iris )
+            ] |> E.object
+        M.VignetteModel vignetteModel ->
+            [ ( "opacity", E.float vignetteModel.opacity )
+            , ( "color", encodeColor vignetteModel.color )
+            ] |> E.object
+        M.FluidModel fluidModel ->
+            let
+                encodeBall ball =
+                    E.object
+                        [ ( "x", E.float <| Vec2.getX ball.origin )
+                        , ( "y", E.float <| Vec2.getY ball.origin )
+                        , ( "r", E.float ball.radius )
+                        , ( "speed", E.float ball.speed )
+                        , ( "phase", E.float ball.phase )
+                        , ( "ax", E.float <| Vec2.getX ball.amplitude )
+                        , ( "ay", E.float <| Vec2.getY ball.amplitude )
+                        ]
+                encodeStop ( stopPos, stopColor )  =
+                    E.object
+                        [ ( "pos", E.float stopPos )
+                        , ( "color", E.string stopColor )
+                        ]
+                encodeSize ( width, height )  =
+                    E.object
+                        [ ( "width", E.int width )
+                        , ( "height", E.int height )
+                        ]
+                encodeGradient { stops, orientation } =
+                    E.object
+                        [ ( "stops", E.list encodeStop stops )
+                        , ( "orientation",
+                            case orientation of
+                                Fluid.Horizontal -> E.string "horizontal"
+                                Fluid.Vertical -> E.string "vertical"
+                            )
+                        ]
+                encodeGroup group =
+                    E.object
+                        [ ( "balls", E.list encodeBall group.balls )
+                        , ( "gradient"
+                            , group.gradient
+                                |> Maybe.map encodeGradient
+                                |> Maybe.withDefault E.null
+                            )
+                        , ( "origin"
+                            , E.object
+                            [ ( "x", E.float <| Vec2.getX group.origin )
+                            , ( "y", E.float <| Vec2.getY group.origin )
                             ]
-                    encodeStop ( stopPos, stopColor )  =
-                        E.object
-                            [ ( "pos", E.float stopPos )
-                            , ( "color", E.string stopColor )
-                            ]
-                    encodeSize ( width, height )  =
-                        E.object
-                            [ ( "width", E.int width )
-                            , ( "height", E.int height )
-                            ]
-                    encodeGradient { stops, orientation } =
-                        E.object
-                            [ ( "stops", E.list encodeStop stops )
-                            , ( "orientation",
-                                case orientation of
-                                    Fluid.Horizontal -> E.string "horizontal"
-                                    Fluid.Vertical -> E.string "vertical"
-                                )
-                            ]
-                    encodeGroup group =
-                        E.object
-                            [ ( "balls", E.list encodeBall group.balls )
-                            , ( "gradient"
-                              , group.gradient
-                                    |> Maybe.map encodeGradient
-                                    |> Maybe.withDefault E.null
-                              )
-                            , ( "origin"
-                              , E.object
-                                [ ( "x", E.float <| Vec2.getX group.origin )
-                                , ( "y", E.float <| Vec2.getY group.origin )
-                                ]
-                              )
-                            ]
+                            )
+                        ]
 
-                in
-                    [ ( "groups", E.list encodeGroup fluidModel.groups )
-                    , ( "size",
-                            fluidModel.forSize
-                                |> Maybe.map encodeSize
-                                |> Maybe.withDefault E.null)
-                    , ( "variety", E.float <| case fluidModel.variety of Fluid.Variety v -> v)
-                    , ( "orbit", E.float <| case fluidModel.orbit of Fluid.Orbit v -> v)
-                    ]
-            M.NativeMetaballsModel
-                nativeMetaballsModel ->
-                    [ ( "colors", nativeMetaballsModel.colors |> E.list E.string ) ]
-            _ -> [ ( "layer-model", E.string "do-not-exists" ) ]
-            -- FIXME: fail for unknown layer kinds, but don't fail if layer just has empty model
+            in
+                [ ( "groups", E.list encodeGroup fluidModel.groups )
+                , ( "size",
+                        fluidModel.forSize
+                            |> Maybe.map encodeSize
+                            |> Maybe.withDefault E.null)
+                , ( "variety", E.float <| case fluidModel.variety of Fluid.Variety v -> v)
+                , ( "orbit", E.float <| case fluidModel.orbit of Fluid.Orbit v -> v)
+                ] |> E.object
+        M.NativeMetaballsModel
+            nativeMetaballsModel ->
+                encodeLayerModel <| M.FluidModel nativeMetaballsModel
+        _ -> [ ( "layer-model", E.string "do-not-exists" ) ] |> E.object
+        -- FIXME: fail for unknown layer kinds, but don't fail if layer just has empty model
 
 
 encodeModel_ : M.Model -> E.Value
@@ -627,12 +626,13 @@ layerModelDecoder kind =
                     (D.maybe <| D.field "orbit" D.float)
                     |> D.map M.FluidModel
         M.NativeMetaballs ->
-            D.map
-                    (\colors ->
-                        { colors = colors
-                        })
-                    (D.field "colors" <| D.list D.string)
-                    |> D.map M.NativeMetaballsModel
+            layerModelDecoder M.Fluid |>
+                D.map (\layerModel ->
+                    case layerModel of
+                        M.FluidModel fluidModel -> M.NativeMetaballsModel fluidModel
+                        _ -> layerModel
+                    )
+
         -- TODO: add parsing other models here
         _ -> D.succeed <| M.initLayerModel kind -- FIXME: Fail to decode if layer is unknown, but don't fail if it just has empty model
         -- _ -> D.fail "unknown kind"
