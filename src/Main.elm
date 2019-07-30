@@ -152,10 +152,9 @@ update msg model =
                 , if hasFluidGridLayers model
                     then generateAllFluidGrids model
                     else Cmd.none
-                , NativeMetaballs.with (Product.getPalette model.product)
-                    |> NativeMetaballs.export
-                    |> Tuple.pair 0 -- FIXME: actual layer index
-                    |> updateNativeMetaballs
+                , if hasNativeMetaballsLayers model
+                    then generateAllNativeMetaballs model
+                    else Cmd.none
                 ]
             )
 
@@ -436,10 +435,9 @@ update msg model =
                     -- , if hasNativeMetaballLayers modelWithProduct
                     --     then generateAllMetaballs modelWithProduct
                     --     else Cmd.none
-                    , NativeMetaballs.with (Product.getPalette product)
-                        |> NativeMetaballs.export
-                        |> Tuple.pair 0 -- FIXME: actual layer index
-                        |> updateNativeMetaballs
+                    , if hasNativeMetaballsLayers modelWithProduct
+                        then updateAllNativeMetaballsWith modelWithProduct
+                        else Cmd.none
                     ]
                 )
 
@@ -564,6 +562,14 @@ update msg model =
         RebuildMetaballs index metaballsModel ->
             ( model |> rebuildMetaballs index metaballsModel
             , Cmd.none
+            )
+
+        UpdateNativeMetaballs index nativeMetaballsModel ->
+            ( model
+            , updateNativeMetaballs
+                ( index
+                , IE.encodeLayerModel <| NativeMetaballsModel nativeMetaballsModel
+                )
             )
 
         RebuildFluid index fluidModel ->
@@ -1166,6 +1172,11 @@ hasMetaballLayers model
     = True -- FIXME: implement, think that on Bang (where it is called) initialLayers could not exist yet
 
 
+hasNativeMetaballsLayers : Model -> Bool
+hasNativeMetaballsLayers model
+    = True -- FIXME: implement, think that on Bang (where it is called) initialLayers could not exist yet
+
+
 hasFluidLayers : Model -> Bool
 hasFluidLayers model
     = True -- FIXME: implement, think that on Bang (where it is called) initialLayers could not exist yet
@@ -1261,6 +1272,18 @@ updateAndRebuildFssWith index f curModel =
         )
 
 
+forAllLayersOf : (LayerDef -> Maybe x) -> (Int -> x -> Cmd Msg) -> Model -> Cmd Msg
+forAllLayersOf isRequiredLayer performWhat model =
+    model.layers
+        |> List.indexedMap Tuple.pair
+        |> List.filterMap
+            (\(index, layer) ->
+                isRequiredLayer layer |> Maybe.map (Tuple.pair index)
+            )
+        |> List.map (\(index, layerModel) -> performWhat index layerModel)
+        |> Cmd.batch
+
+
 rebuildAllFssLayersWith : Model -> Cmd Msg
 rebuildAllFssLayersWith model =
     let
@@ -1268,21 +1291,13 @@ rebuildAllFssLayersWith model =
             case layerDef.model of
                 FssModel fssModel -> Just fssModel
                 _ -> Nothing
-        rebuildPotentialFss ( index, fssModel ) =
+        rebuildPotentialFss index fssModel =
             requestFssRebuild
                 { layer = index
                 , model = IE.encodePortModel model
                 , value = IE.encodeFss fssModel model.product
                 }
-    in
-        model.layers
-          |> List.indexedMap Tuple.pair
-          |> List.filterMap
-                (\(index, layer) ->
-                    isLayerFss layer |> Maybe.map (Tuple.pair index)
-                )
-          |> List.map rebuildPotentialFss
-          |> Cmd.batch
+    in model |> forAllLayersOf isLayerFss rebuildPotentialFss
 
 
 forAllFluidLayers : (Int -> Fluid.Model -> a) -> a -> (List (LayerIndex, a) -> b) -> Model -> b
@@ -1323,15 +1338,10 @@ generateAllMetaballs model =
             case layerDef.model of
                 MetaballsModel metaballsModel -> Just metaballsModel
                 _ -> Nothing
-    in
-        model.layers
-          |> List.indexedMap Tuple.pair
-          |> List.filterMap
-                (\(index, layer) ->
-                    isMetaballLayer layer |> Maybe.map (Tuple.pair index)
-                )
-          |> List.map (\(index, _) -> generateMetaballs palette model.size index)
-          |> Cmd.batch
+    in model
+        |> forAllLayersOf
+                isMetaballLayer
+                (\index _ -> generateMetaballs palette model.size index)
 
 
 generateMetaballs : Product.Palette -> SizeRule -> LayerIndex -> Cmd Msg
@@ -1351,22 +1361,16 @@ generateAllFluid model =
             case layerDef.model of
                 FluidModel fluidModel -> Just fluidModel
                 _ -> Nothing
-    in
-        model.layers
-          |> List.indexedMap Tuple.pair
-          |> List.filterMap
-                (\(index, layer) ->
-                    isFluidLayer layer |> Maybe.map (Tuple.pair index)
-                )
-          |> List.map
-                (\(index, fModel) ->
+    in model
+        |> forAllLayersOf
+                isFluidLayer
+                (\index fModel ->
                     generateFluid
                         model.size
                         fModel.variety
                         fModel.orbit
-                        productPalette index
-                )
-          |> Cmd.batch
+                        productPalette
+                        index)
 
 
 generateAllFluidGrids : Model -> Cmd Msg
@@ -1377,20 +1381,66 @@ generateAllFluidGrids model =
             case layerDef.model of
                 FluidGridModel fluidGridModel -> Just fluidGridModel
                 _ -> Nothing
-    in
-        model.layers
-          |> List.indexedMap Tuple.pair
-          |> List.filterMap
-                (\(index, layer) ->
-                    isFluidGridLayer layer |> Maybe.map (Tuple.pair index)
-                )
-          |> List.map
-                (\(index, fModel) ->
+    in model
+        |> forAllLayersOf
+                isFluidGridLayer
+                (\index fModel ->
                     generateFluidGrid
                         model.size
-                        index
-                )
-          |> Cmd.batch
+                        index)
+
+
+generateAllNativeMetaballs : Model -> Cmd Msg
+generateAllNativeMetaballs model =
+    let
+        palette = model.product |> Product.getPalette
+        isNativeMetaballsLayer layerDef =
+            case layerDef.model of
+                NativeMetaballsModel nativeMetaballsModel -> Just nativeMetaballsModel
+                _ -> Nothing
+    in model
+        |> forAllLayersOf
+                isNativeMetaballsLayer
+                (\index nmModel ->
+                    generateNativeMetaballs
+                        model.size
+                        nmModel.variety
+                        nmModel.orbit
+                        palette
+                        index)
+
+
+updateAllNativeMetaballsWith : Model -> Cmd Msg
+updateAllNativeMetaballsWith model =
+    let
+        palette = model.product |> Product.getPalette
+        isNativeMetaballsLayer layerDef =
+            case layerDef.model of
+                NativeMetaballsModel nativeMetaballsModel -> Just nativeMetaballsModel
+                _ -> Nothing
+    in model
+        |> forAllLayersOf
+                isNativeMetaballsLayer
+                (\index nmModel ->
+                    generateNativeMetaballs
+                        model.size
+                        nmModel.variety
+                        nmModel.orbit
+                        palette
+                        index)
+
+
+generateNativeMetaballs
+    :  SizeRule
+    -> Fluid.Variety
+    -> Fluid.Orbit
+    -> Product.Palette
+    -> LayerIndex
+    -> Cmd Msg
+generateNativeMetaballs size variety orbit palette layerIdx =
+    NativeMetaballs.generate
+        (UpdateNativeMetaballs layerIdx)
+            (NativeMetaballs.generator (getRuleSizeOrZeroes size) variety orbit palette)
 
 
 -- TODO: combine with generateAllMetaballs and generateAllFluid
@@ -1403,18 +1453,11 @@ regenerateFluidGradients model =
             case layerDef.model of
                 FluidModel fluidModel -> Just fluidModel
                 _ -> Nothing
-    in
-        model.layers
-          |> List.indexedMap Tuple.pair
-          |> List.filterMap
-                (\(index, layer) ->
-                    isFluidLayer layer |> Maybe.map (Tuple.pair index)
-                )
-          |> List.map
-                (\(index, fluidModel) ->
-                    generateFluidGradients productPalette index fluidModel
-                )
-          |> Cmd.batch
+    in model
+        |> forAllLayersOf
+                isFluidLayer
+                (\index fModel ->
+                    generateFluidGradients productPalette index fModel)
 
 
 generateFluid : SizeRule -> Fluid.Variety -> Fluid.Orbit -> Product.Palette -> LayerIndex -> Cmd Msg
@@ -1594,4 +1637,4 @@ port requestWindowResize : ( Int, Int ) -> Cmd msg
 
 -- port rebuildOnClient : (FSS.SerializedScene, Int) -> Cmd msg
 
-port updateNativeMetaballs : ( LayerIndex, NativeMetaballs.PortModel ) -> Cmd msg
+port updateNativeMetaballs : ( LayerIndex, E.Value ) -> Cmd msg
