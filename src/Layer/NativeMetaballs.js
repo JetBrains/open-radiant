@@ -1,6 +1,6 @@
 function m(target, width, height, model, colors_) {
 
-   console.log(model, colors_, width, height);
+    console.log(model, colors_, width, height);
 
     let colors = colors_ || ['#341f49', '#f38038', '#ed3d7d'];
 

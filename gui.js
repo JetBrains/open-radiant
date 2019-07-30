@@ -85,9 +85,11 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
         this['brightness' + index] = layer.model.colorShift[2];
       }
 
-      if (is.fluid(layer)) {
+      if (is.fluid(layer) || is.nativeMetaballs(layer)) {
         this['bang' + index] = () => funcs.refreshFluid(index);
-        this['rebuildGradients' + index] = () => funcs.rebuildFluidGradients(index);
+        if (is.fluid(layer)) {
+          this['rebuildGradients' + index] = () => funcs.rebuildFluidGradients(index);
+        }
         this['variety'+index] = layer.model.variety;
         this['orbit'+index] = layer.model.orbit;
       }
@@ -304,13 +306,21 @@ function start(document, model, constants, funcs) {
           funcs.shiftColor(index)(null, null, value);
         });
       }
-      if (is.fluid(layer)) {
+      if (is.fluid(layer) || is.nativeMetaballs(layer)) {
         folder.add(config, 'bang' + index).name('bang');
-        folder.add(config, 'rebuildGradients' + index).name('regenerate gradients');
+        if (is.fluid(layer)) {
+          folder.add(config, 'rebuildGradients' + index).name('regenerate gradients');
+        }
         const variety = folder.add(config, 'variety' + index).name('variety').min(0.01).max(1).step(0.01);
         const orbit = folder.add(config, 'orbit' + index).name('orbit').min(0).max(1).step(0.05);
-        variety.onFinishChange(funcs.changeVariety(index));
-        orbit.onFinishChange(funcs.changeOrbit(index));
+        variety.onFinishChange(
+          is.fluid(layer)
+            ? funcs.changeFluidVariety(index)
+            : funcs.changeNativeMetaballsVariety(index));
+            orbit.onFinishChange(
+          is.fluid(layer)
+            ? funcs.changeFluidOrbit(index)
+            : funcs.changeNativeMetaballsOrbit(index));
       }
     }
 

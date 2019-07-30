@@ -780,6 +780,46 @@ update msg model =
             , Cmd.none
             )
 
+        ChangeNativeMetaballsVariety index value ->
+            if hasNativeMetaballsLayers model then
+                let
+                    newModel =
+                        model |> updateLayerDef index
+                            (\layerDef ->
+                                case layerDef.model of
+                                    NativeMetaballsModel nmModel ->
+                                        { layerDef
+                                        | model =
+                                            NativeMetaballsModel { nmModel | variety = value }
+                                        }
+                                    _ -> layerDef
+                            )
+                in
+                    ( newModel
+                    , generateAllNativeMetaballs newModel -- FIXME: use actual index
+                    )
+            else ( model, Cmd.none )
+
+        ChangeNativeMetaballsOrbit index value ->
+            if hasNativeMetaballsLayers model then
+                let
+                    newModel =
+                        model |> updateLayerDef index
+                            (\layerDef ->
+                                case layerDef.model of
+                                    NativeMetaballsModel nmModel ->
+                                        { layerDef
+                                        | model =
+                                            NativeMetaballsModel { nmModel | orbit = value }
+                                        }
+                                    _ -> layerDef
+                            )
+                in
+                    ( newModel
+                    , generateAllNativeMetaballs newModel -- FIXME: use actual index
+                    )
+            else ( model, Cmd.none )
+
         -- UpdateNativeMetaballs layerIndex ->
         --     ( model
         --     , NativeMetaballs.prepare model.product
@@ -884,10 +924,16 @@ subscriptions model =
         --     (\{ layer } -> UpdateNativeMetaballs layer)
         , refreshFluid
             (\{ layer } -> RequestNewFluid layer)
-        , changeVariety
-            (\{ layer, value } -> ChangeFluidVariety layer (Fluid.Variety value))
-        , changeOrbit
+        , changeFluidVariety
+            (\{ layer, value } ->
+                ChangeFluidVariety layer (Fluid.Variety value))
+        , changeFluidOrbit
             (\{ layer, value } -> ChangeFluidOrbit layer (Fluid.Orbit value))
+        , changeNativeMetaballsVariety
+            (\{ layer, value } ->
+                ChangeNativeMetaballsVariety layer (Fluid.Variety value))
+        , changeNativeMetaballsOrbit
+            (\{ layer, value } -> ChangeNativeMetaballsOrbit layer (Fluid.Orbit value))
         , applyRandomizer ApplyRandomizer
         , import_ Import
         , pause (\_ -> Pause)
@@ -1584,18 +1630,29 @@ port refreshFluid :
     ( { layer : LayerIndex }
     -> msg) -> Sub msg
 
-port changeVariety :
+port changeFluidVariety :
     ( { layer : LayerIndex
       , value : Float
       }
     -> msg) -> Sub msg
 
-port changeOrbit :
+port changeFluidOrbit :
     ( { layer : LayerIndex
       , value : Float
       }
     -> msg) -> Sub msg
 
+port changeNativeMetaballsVariety :
+    ( { layer : LayerIndex
+      , value : Float
+      }
+    -> msg) -> Sub msg
+
+port changeNativeMetaballsOrbit :
+    ( { layer : LayerIndex
+      , value : Float
+      }
+    -> msg) -> Sub msg
 
 -- OUTGOING PORTS
 

@@ -400,12 +400,16 @@ setTimeout(() => {
                     { app.ports.applyRandomizer.send(prepareModelForImport(value)); }
                 , refreshFluid : (index) =>
                     { app.ports.refreshFluid.send({ layer: index }); }
-                , changeVariety : index => value =>
-                    { app.ports.changeVariety.send({ layer: index, value }); }
-                , changeOrbit : index => value =>
-                    { app.ports.changeOrbit.send({ layer: index, value }); }
+                , changeFluidVariety : index => value =>
+                    { app.ports.changeFluidVariety.send({ layer: index, value }); }
+                , changeFluidOrbit : index => value =>
+                    { app.ports.changeFluidOrbit.send({ layer: index, value }); }
                 , rebuildFluidGradients : (index) =>
                     { app.ports.requestRegenerateFluidGradients.send({ layer: index }); }
+                , changeNativeMetaballsVariety : index => value =>
+                    { app.ports.changeNativeMetaballsVariety.send({ layer: index, value }); }
+                , changeNativeMetaballsOrbit : index => value =>
+                    { app.ports.changeNativeMetaballsOrbit.send({ layer: index, value }); }
                 , resize: (presetCode) =>
                     { app.ports.resize.send({
                         presetCode, viewport: [ window.innerWidth, window.innerHeight ]

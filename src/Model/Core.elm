@@ -93,7 +93,6 @@ type Msg
     | ShiftColor LayerIndex FSS.ColorShiftPatch
     | ChangeOpacity LayerIndex FSS.Opacity
     | RebuildMetaballs LayerIndex Metaballs.Model
-    | UpdateNativeMetaballs LayerIndex NativeMetaballs.Model
     | RequestNewFluid LayerIndex
     | RebuildFluid LayerIndex Fluid.Model
     | RegenerateFluidGradients LayerIndex
@@ -105,6 +104,9 @@ type Msg
     | ApplyFluidTextures
         LayerIndex
         (List { gradient : Fluid.TextureAndSize, data : Fluid.TextureAndSize })
+    | UpdateNativeMetaballs LayerIndex NativeMetaballs.Model
+    | ChangeNativeMetaballsVariety LayerIndex NativeMetaballs.Variety
+    | ChangeNativeMetaballsOrbit LayerIndex NativeMetaballs.Orbit
     | Randomize
     | ApplyRandomizer PortModel
     | SavePng

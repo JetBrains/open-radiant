@@ -6,6 +6,8 @@ module Layer.NativeMetaballs exposing
     , view
     , generate
     , generator
+    , Variety
+    , Orbit
     )
 
 
@@ -13,7 +15,7 @@ import Html as H
 import Html.Attributes as H
 
 import Model.Product as Product
-import Layer.Fluid as Fluid exposing (Model, generate, generator)
+import Layer.Fluid as Fluid exposing (Model, generate, generator, Variety(..), Orbit(..))
 
 import Random
 
@@ -22,6 +24,10 @@ defaultColors = [ "#f38038", "#ed3d7d", "#341f49" ]
 
 
 type alias Model = Fluid.Model
+
+
+type alias Variety = Fluid.Variety
+type alias Orbit = Fluid.Orbit
 
 
 -- type alias PortModel =
