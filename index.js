@@ -235,6 +235,23 @@ const savePng = (hiddenLink, { size, coverSize, product, background }) => {
 
 prepareImportExport();
 
+const updateOrInitNativeMetaballs = (size, layerModel, palette, index) => {
+    if (!allNativeMetaballs[index]) {
+        const nativeMetaballsModel = nativeMetaballs.build(size, layerModel, palette);
+        allNativeMetaballs[index] = nativeMetaballsModel;
+        const debouncedResize = timing.debounce(function(newSize) {
+            const prev = allNativeMetaballs[index];
+            allNativeMetaballs[index] = nativeMetaballs.update(newSize, prev.model, prev.palette, prev.metaballs);
+        }, 300);
+        app.ports.requestWindowResize.subscribe((size) => {
+            debouncedResize(size);
+        });
+    } else {
+        const prev = allNativeMetaballs[index];
+        allNativeMetaballs[index] = nativeMetaballs.update(size, layerModel, palette, prev.metaballs);
+    }
+};
+
 const convertRanges = r =>
     {
         return {
@@ -413,15 +430,7 @@ setTimeout(() => {
                 app.ports.rebuildFss.send({ value: fssScene, layer: index });
             }
             if (is.nativeMetaballs(layer)) {
-                const nativeMetaballsModel = nativeMetaballs.build(model.size, layer.model.colors);
-                allNativeMetaballs[index] = nativeMetaballsModel;
-                const debouncedResize = timing.debounce(function(newSize) {
-                    const prev = allNativeMetaballs[index];
-                    allNativeMetaballs[index] = nativeMetaballs.update(newSize, prev.colors, prev.metaballs);
-                }, 300);
-                app.ports.requestWindowResize.subscribe((size) => {
-                    debouncedResize(size);
-                });
+                updateOrInitNativeMetaballs(model.size, layer.model, model.palette, index);
                 // app.ports.rebuildFss.send({ value: fssScene, layer: index });
             }
             // if (is.fluid(layer)) {
@@ -452,9 +461,8 @@ setTimeout(() => {
         //}
     });
 
-    app.ports.updateNativeMetaballs.subscribe(([ index, colors ]) => {
-        const prev = allNativeMetaballs[index];
-        allNativeMetaballs[index] = nativeMetaballs.update(prev.size, colors, prev.metaballs);
+    app.ports.updateNativeMetaballs.subscribe(({ index, size, layerModel, palette }) => {
+        updateOrInitNativeMetaballs(size, layerModel, palette, index);
     });
 
     app.ports.bang.send(null);

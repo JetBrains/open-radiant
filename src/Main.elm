@@ -567,9 +567,11 @@ update msg model =
         UpdateNativeMetaballs index nativeMetaballsModel ->
             ( model
             , updateNativeMetaballs
-                ( index
-                , IE.encodeLayerModel <| NativeMetaballsModel nativeMetaballsModel
-                )
+                { index = index
+                , size = getRuleSizeOrZeroes model.size
+                , palette = Product.getPalette model.product
+                , layerModel = IE.encodeLayerModel <| NativeMetaballsModel nativeMetaballsModel
+                }
             )
 
         RebuildFluid index fluidModel ->
@@ -1637,4 +1639,9 @@ port requestWindowResize : ( Int, Int ) -> Cmd msg
 
 -- port rebuildOnClient : (FSS.SerializedScene, Int) -> Cmd msg
 
-port updateNativeMetaballs : ( LayerIndex, E.Value ) -> Cmd msg
+port updateNativeMetaballs :
+    { index: LayerIndex
+    , size: (Int, Int)
+    , layerModel : E.Value
+    , palette: List String
+    } -> Cmd msg

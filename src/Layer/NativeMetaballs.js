@@ -1,6 +1,8 @@
-function m(target, width, height, options) {
+function m(target, width, height, model, colors_) {
 
-   let colors = options.colors || ['#341f49', '#f38038', '#ed3d7d'];
+   console.log(model, colors_, width, height);
+
+    let colors = colors_ || ['#341f49', '#f38038', '#ed3d7d'];
 
     let canvas;
     let gl;
@@ -678,7 +680,7 @@ function m(target, width, height, options) {
               vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
               vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
               vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
-      
+
               float d = q.x - min(q.w, q.y);
               float e = 1.0e-10;
               return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
@@ -726,7 +728,7 @@ function m(target, width, height, options) {
                   }
 
                 #endif
-               
+
                  vec2 st = gl_FragCoord.xy / uResolution.xy;
 
                  //ambient light
@@ -734,10 +736,10 @@ function m(target, width, height, options) {
                  color.rgb *= vec3(1.0, 0.5, 0.7);
                  //noise
                  color.rgb = mix(color.rgb, vec3(noise(st * 1000.0, 1.0) * 100.0), 0.03 / pow(brightness(color.rgb), 0.3));
-                
+
                  gl_FragColor = color * alpha * 0.8;
 
-   
+
               }
 
   `;
