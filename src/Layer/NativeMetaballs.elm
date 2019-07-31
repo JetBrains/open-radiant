@@ -49,7 +49,7 @@ init = Fluid.init
 
 view : Model -> H.Html a
 view _ =
-    H.canvas [ H.id "native-metaballs-0" ] [] -- FIXME: use actual layer index
+    H.canvas [ H.id "native-metaballs-0"] [] -- FIXME: use actual layer index
 
 
 generate : (Model -> msg) -> Random.Generator Model -> Cmd msg

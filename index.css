@@ -1,6 +1,8 @@
 body {
     margin: 0;
     padding: 0;
+    overflow-x: hidden;
+    overflow-y: hidden;
 }
 
 #patch-target {
@@ -260,4 +262,9 @@ svg.text-layer {
     width: 70px;
     font-size: 60px;
     font-family: monospace;
+}
+
+
+#native-metaballs-0 {
+    background: #171717;
 }
