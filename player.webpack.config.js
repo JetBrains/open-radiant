@@ -21,8 +21,8 @@ const config = {
           test:    /\.elm$/,
           exclude: [ /elm-stuff/, /node_modules/, /build/ ],
           use: {
-            // loader: "elm-webpack-loader?optimize=true"
-            loader: "elm-webpack-loader"
+            loader: "elm-webpack-loader?optimize=true"
+            //loader: "elm-webpack-loader"
           }
         },
         {
@@ -52,6 +52,14 @@ const config = {
             {
               search: 'case 1:throw new Error("Browser.application programs cannot handle URLs like this:\\n\\n    "+document.location.href+"\\n\\nWhat is the root? The root of your file system? Try looking at this program with `elm reactor` or some other server.");case 2:',
               replace: 'case 2:'
+            },
+            {
+              search: /return (\w+)\((\w+)\.location\.href\)\.(\w+)\|\|P\(1\)/,
+              replace: function(match, x, y, z) {
+                const href = y + '.location.href';
+                const toLocalhost = '\'http://localhost:8080/\'+' + href + '.substring(' + href + '.indexOf(\'index.html\'))';
+                return 'return ' + x + '(' + href + ').' + z + '||' + x + '(' + toLocalhost + ').' + z;
+              }
             }
           ]
       }])
