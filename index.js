@@ -197,7 +197,7 @@ const prepareImportExport = () => {
 
 const savePng = (hiddenLink, { size, coverSize, product, background }) => {
     const [ imageWidth, imageHeight ] = size;
-    const srcCanvas = document.querySelector('.webgl-layers');
+    const srcCanvas = document.querySelector('.webgl-layers') || document.querySelector('#native-metaballs-0');
     const trgCanvas = document.querySelector('#js-save-buffer');
     const [ width, height ] = [ srcCanvas.width, srcCanvas.height ];
     trgCanvas.width = width;
