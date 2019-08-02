@@ -16,6 +16,20 @@ import Model.SizeRule exposing (..)
 import Model.Core exposing (..)
 
 
+-- URL examples:
+-- http://localhost:8080/#custom|100:501
+-- http://localhost:8080/#preset|TW
+-- http://localhost:8080/#preset|PC:2
+-- http://localhost:8080/#preset|BA:200:300
+-- http://localhost:8080/#viewport|1020:300
+-- http://localhost:8080/#dimensionless
+-- http://localhost:8080/#dev/custom|100:501
+-- http://localhost:8080/#release/preset|TW
+-- http://localhost:8080/#player
+-- http://localhost:8080/#tron-dev/preset|TW
+
+
+
 type alias Fragment = String
 -- type ModeFragment = ModeFragment String
 -- type SizeRuleFragment = SizeRuleFragment
@@ -58,7 +72,7 @@ applyFragment fragmentStr model =
 
 fragmentToMessage : Fragment -> Msg
 fragmentToMessage fragmentStr =
-    case decodeFragment fragmentStr
+    case (Debug.log "decodeFragment" <| decodeFragment fragmentStr)
         |> Result.map
             (\fragment ->
                 case fragment of
@@ -67,7 +81,7 @@ fragmentToMessage fragmentStr =
                     Mode mode -> ChangeMode mode
                     NoData -> NoOp
             ) of
-        Ok fragmentMsg -> fragmentMsg
+        Ok fragmentMsg -> Debug.log "fragmentMsg" fragmentMsg
         Err errMsg -> AddError <| "Unknown URL fragment: " ++ errMsg
 
 
@@ -86,13 +100,16 @@ prepareUrlFragment model =
 
 onUrlChange : Url -> Msg
 onUrlChange url =
-    case url.fragment of
+    case Debug.log "url.fragment" <| url.fragment of
         Just fragment -> fragmentToMessage fragment
         Nothing -> NoOp
 
 
 onUrlRequest : Browser.UrlRequest -> Msg
-onUrlRequest req = NoOp
+onUrlRequest req =
+    let
+        _ = Debug.log "req" req
+    in NoOp
 
 
 decodeFragment : String -> Result String FragmentData
