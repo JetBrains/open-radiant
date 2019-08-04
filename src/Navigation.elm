@@ -72,7 +72,7 @@ applyFragment fragmentStr model =
 
 fragmentToMessage : Fragment -> Msg
 fragmentToMessage fragmentStr =
-    case (Debug.log "decodeFragment" <| decodeFragment fragmentStr)
+    case (decodeFragment fragmentStr)
         |> Result.map
             (\fragment ->
                 case fragment of
@@ -81,7 +81,7 @@ fragmentToMessage fragmentStr =
                     Mode mode -> ChangeMode mode
                     NoData -> NoOp
             ) of
-        Ok fragmentMsg -> Debug.log "fragmentMsg" fragmentMsg
+        Ok fragmentMsg ->  fragmentMsg
         Err errMsg -> AddError <| "Unknown URL fragment: " ++ errMsg
 
 
@@ -100,7 +100,7 @@ prepareUrlFragment model =
 
 onUrlChange : Url -> Msg
 onUrlChange url =
-    case Debug.log "url.fragment" <| url.fragment of
+    case url.fragment of
         Just fragment -> fragmentToMessage fragment
         Nothing -> NoOp
 
@@ -108,7 +108,7 @@ onUrlChange url =
 onUrlRequest : Browser.UrlRequest -> Msg
 onUrlRequest req =
     let
-        _ = Debug.log "req" req
+        _ = req
     in NoOp
 
 
