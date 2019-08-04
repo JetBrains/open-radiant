@@ -23,7 +23,7 @@ import Model.Core exposing (..)
 -- http://localhost:8080/#preset|BA:200:300
 -- http://localhost:8080/#viewport|1020:300
 -- http://localhost:8080/#dimensionless
--- http://localhost:8080/#dev/custom|100:501
+-- http://localhost:8080    
 -- http://localhost:8080/#release/preset|TW
 -- http://localhost:8080/#player
 -- http://localhost:8080/#tron-dev/preset|TW

@@ -1038,9 +1038,9 @@ getSizeUpdate : Model -> SizeUpdate
 getSizeUpdate model =
     { size = getRuleSize model.size |> Maybe.withDefault ( -1, -1 )
     , sizeRule = encodeSizeRule model.size
-    -- , product = Product.encode model.product
+    , product = Product.encode model.product
     -- , coverSize = Product.getCoverTextSize model.product
-    -- , background = model.background
+    , background = model.background
     , sizeConstant = -1
     -- , mode = encodeMode model.mode
     }
@@ -1659,9 +1659,9 @@ port changeNativeMetaballsOrbit :
 type alias SizeUpdate =
     { size: ( Int, Int )
     , sizeRule : String
-    -- , product: String
+    , product: String
     -- , coverSize: Size
-    -- , background: String
+    , background: String
     , sizeConstant: Int
     -- , mode: String
     }
