@@ -180,7 +180,7 @@ init appMode initialLayers createLayer createGui =
 
 initEmpty : AppMode -> Model
 initEmpty mode =
-    { background = "#000000"
+    { background = "#171717"
     , mode = mode
     , gui = Nothing
     , paused = False
