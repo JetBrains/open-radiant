@@ -41,7 +41,7 @@ type Product
     | Rider
     | TeamCity
     | YouTrack
-    | UpSource
+    | Upsource
     | Hub
     | Kotlin
     | MPS
@@ -68,7 +68,7 @@ allProducts =
     , Rider -- 16
     , TeamCity -- 17
     , YouTrack -- 18
-    , UpSource -- 19
+    , Upsource -- 19
     , Hub -- 20
     , Kotlin -- 21
     , MPS -- 22
@@ -105,7 +105,7 @@ getPalette product =
         Rider -> [ "#c90f5e", "#077cfb", "#fdb60d" ]
         TeamCity -> [ "#0cb0f2", "#905cfb", "#3bea62" ]
         YouTrack -> [ "#0cb0f2", "#905cfb", "#ff318c" ]
-        UpSource -> [ "#22b1ef", "#9062f7", "#fd8224" ]
+        Upsource -> [ "#22b1ef", "#9062f7", "#fd8224" ]
         Hub -> [ "#00b8f1", "#9758fb", "#ffee45" ]
         Kotlin -> [ "#22b1ef", "#9062f7", "#fd8224" ]
         MPS -> [ "#0b8fff", "#21d789", "#ffdc52" ]
@@ -133,7 +133,7 @@ getName product =
         Rider -> "Rider"
         TeamCity -> "TeamCity"
         YouTrack -> "YouTrack"
-        UpSource -> "UpSource"
+        Upsource -> "Upsource"
         Hub -> "Hub"
         Kotlin -> "Kotlin"
         MPS -> "MPS"
@@ -161,7 +161,7 @@ decode id =
         "rider" -> Ok Rider
         "teamcity" -> Ok TeamCity
         "youtrack" -> Ok YouTrack
-        "upsource" -> Ok UpSource
+        "upsource" -> Ok Upsource
         "hub" -> Ok Hub
         "kotlin" -> Ok Kotlin
         "mps" -> Ok MPS
@@ -190,7 +190,7 @@ encode product =
         Rider -> "rider"
         TeamCity -> "teamcity"
         YouTrack -> "youtrack"
-        UpSource -> "upsource"
+        Upsource -> "upsource"
         Hub -> "hub"
         Kotlin -> "kotlin"
         MPS -> "mps"
@@ -230,7 +230,7 @@ getCoverTextSize product =
         Rider -> ( 273, 90 )
         TeamCity -> ( 495, 108 )
         YouTrack -> ( 485, 90 )
-        UpSource -> ( 490, 104 )
+        Upsource -> ( 490, 104 )
         Hub -> ( 211, 90 )
         Kotlin -> ( 323, 99 )
         MPS -> ( 200, 77 )
@@ -273,7 +273,7 @@ twoLetterCode product =
         Rider -> "RD_"
         TeamCity -> "TC_"
         YouTrack -> "YT_"
-        UpSource -> "UP_"
+        Upsource -> "UP_"
         Hub -> "HB_"
         Kotlin -> "KT_"
         MPS -> "MPS_"
