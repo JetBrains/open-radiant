@@ -54,13 +54,12 @@ const import_ = (app, importedState) => {
 
     parsedState.layers.forEach((layer, index) => {
         if (is.nativeMetaballs(layer)) {
-            // const nativeMetaballsModel = nativeMetaballs.build([ parsedState.size.v1, parsedState.size.v2 ], layer.model.colors);
-            const nativeMetaballsModel = nativeMetaballs.build([ parsedState.size.v1, parsedState.size.v2 ], parsedState.palette);
+            const size = [ parsedState.size.v1, parsedState.size.v2 ];
+            const nativeMetaballsModel = nativeMetaballs.build(size, layer.model, parsedState.palette, index);
             allNativeMetaballs[index] = nativeMetaballsModel;
             const debouncedResize = timing.debounce(function(newSize) {
                 const prev = allNativeMetaballs[index];
-                allNativeMetaballs[index] = nativeMetaballs.update(newSize, parsedState.palette, prev.metaballs);
-                // allNativeMetaballs[index] = nativeMetaballs.update(newSize, prev.colors, prev.metaballs);
+                allNativeMetaballs[index] = nativeMetaballs.update(newSize, prev.model, prev.palette, prev.metaballs);
             }, 300);
             app.ports.requestWindowResize.subscribe((size) => {
                 debouncedResize(size);

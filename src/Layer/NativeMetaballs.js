@@ -1,6 +1,8 @@
 function m(target, width, height, model, colors_) {
 
-    // console.log(model, colors_, width, height);
+    if (!model) return;
+    
+    console.log(model, colors_, width, height);
 
     let colors = colors_ || ['#341f49', '#f38038', '#ed3d7d'];
 
@@ -20,7 +22,6 @@ function m(target, width, height, model, colors_) {
       colorII: colors[2],
       colorIII: colors[0]
     }
-
 
     const stop = function() { isStopped = true };
 
