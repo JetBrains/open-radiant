@@ -26,12 +26,13 @@ import WebGL.Settings.DepthTest as DepthTest
 import Model.Core exposing (..)
 import Model.Core as Model exposing (init)
 import Model.AppMode exposing (..)
+import Model.AppMode as Mode exposing (decode, encode)
 import Model.Product exposing (Product)
 import Model.Product as Product
 import Model.Constants exposing (..)
 import Model.Layer exposing (..)
 import Model.SizeRule exposing (..)
-import Model.SizeRule as SizeRule exposing (toRecord)
+import Model.SizeRule as SizeRule exposing (decode, encode, toRecord)
 import Model.Error exposing (..)
 import Model.ImportExport as IE
 import Model.WebGL.Blend as WGLBlend
@@ -84,7 +85,7 @@ init flags url _ =
     let
         mode =
             flags.forcedMode
-                |> Maybe.map (decodeMode >> Result.withDefault initialMode)
+                |> Maybe.map (Mode.decode >> Result.withDefault initialMode)
                 |> Maybe.withDefault initialMode
         model = Model.init
                     mode
@@ -164,37 +165,33 @@ update msg model =
             in
                 ( newModel
                 , Cmd.batch
-                    [ encodeMode newModel.mode |> modeChanged
+                    [ Mode.encode newModel.mode |> modeChanged
                     , resizeToViewport
                     ]
                 )
 
-        ChangeModeAndResize mode rule ->
+        ApplyUrl maybeMode maybeProduct maybeSize ->
             let
-                ( width, height ) = getRuleSizeOrZeroes rule
-                newModel =
-                    Model.init mode (initialLayers mode) createLayer Gui.gui
-                newModelWithSize =
-                    { newModel
-                    | size = rule
-                    , origin = getOrigin ( width, height )
-                    } |>
-                        (\modelWithSize ->
-                            if rule /= Dimensionless && hasFluidLayers modelWithSize
-                            then remapAllFluidLayersToNewSize modelWithSize
-                            else modelWithSize
-                        )
-                informSizeUpdate = newModelWithSize |> getSizeUpdate |> sizeChanged
-
+                ( newMode, newProduct, newSize ) =
+                    ( maybeMode |> Maybe.withDefault model.mode
+                    , maybeProduct |> Maybe.withDefault model.product
+                    , maybeSize |> Maybe.withDefault model.size
+                    )
+                ( modelWithProduct, commandsOne ) =
+                    if (newProduct /= model.product)
+                        then update (ChangeProduct newProduct) model
+                        else ( model, Cmd.none )
+                ( modelWithProductAndMode, commandsTwo ) =
+                    if (newMode /= model.mode)
+                        then update (ChangeMode newMode) modelWithProduct
+                        else ( modelWithProduct, Cmd.none )
+                ( finalModel, finalComands ) =
+                    if (newSize /= model.size)
+                        then update (Resize newSize) modelWithProductAndMode
+                        else ( modelWithProductAndMode, Cmd.none )
             in
-                ( newModelWithSize
-                , Cmd.batch
-                    [ informSizeUpdate
-                    , if rule /= Dimensionless && hasFssLayers model
-                        then rebuildAllFssLayersWith newModelWithSize
-                        else Cmd.none
-                    ]
-                )
+                ( finalModel, finalComands )
+
 
         GuiMessage guiMsg ->
             case model.gui of
@@ -306,14 +303,6 @@ update msg model =
             ( { model | omega = omega  }
             , Cmd.none
             )
-
-        -- Resize (ViewportSize width height) ->
-        --     ( { model
-        --       | size = adaptSize ( width, height )
-        --       , origin = getOrigin ( width, height )
-        --       }
-        --     , Cmd.none -- updateAndRebuildFssWith
-        --     )
 
         Resize rule ->
             let
@@ -885,7 +874,7 @@ subscriptions model =
         , changeIris (\{value, layer} -> ChangeIris layer value)
         , changeMode
             (\modeStr ->
-                case decodeMode modeStr of
+                case Mode.decode modeStr of
                     Ok mode -> ChangeMode mode
                     Err error -> AddError <| "Failed to decode mode: " ++ error
             )
@@ -978,7 +967,7 @@ view model =
                 Player -> True
                 _ -> False
     in div
-        [ H.class <| "mode-" ++ encodeMode model.mode ]
+        [ H.class <| "mode-" ++ Mode.encode model.mode ]
         [ if not isInPlayerMode then canvas [ H.id "js-save-buffer" ] [ ] else div [] []
         , if hasErrors model
             then
@@ -1037,7 +1026,7 @@ document model =
 getSizeUpdate : Model -> SizeUpdate
 getSizeUpdate model =
     { size = getRuleSize model.size |> Maybe.withDefault ( -1, -1 )
-    , sizeRule = encodeSizeRule model.size
+    , sizeRule = SizeRule.encode model.size
     , product = Product.encode model.product
     -- , coverSize = Product.getCoverTextSize model.product
     , background = model.background

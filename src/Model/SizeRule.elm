@@ -1,6 +1,6 @@
 module Model.SizeRule exposing
     ( ViewportSize(..)
-    , SizeRule(..), encodeSizeRule, decodeSizeRule
+    , SizeRule(..), encode, decode
     , getPresetLabel, getPresetSize, getRuleSize, getRuleSizeOrZeroes
     , getSizePresets
     , SizePresetCode, encodePreset, decodePreset
@@ -248,7 +248,7 @@ decodePreset presetStr =
                 "BF" -> withFactor BlogFooter
                 "LP" -> Just LandingPage
                 "IN" -> Just Instagram
-                "LN" -> Just LandingPage
+                "LN" -> Just LinkedIn
                 "BA" -> withSize Baidu
                 "AD" -> withSize Ad
                 "WP" -> withSize Wallpaper
@@ -258,8 +258,8 @@ decodePreset presetStr =
             |> Maybe.andThen decodeByCode
 
 
-encodeSizeRule : SizeRule -> String
-encodeSizeRule rule =
+encode : SizeRule -> String
+encode rule =
     case rule of
         Custom w h -> "custom|" ++ String.fromInt w ++ ":" ++ String.fromInt h
         FromPreset preset -> "preset|" ++ encodePreset preset
@@ -267,8 +267,8 @@ encodeSizeRule rule =
         Dimensionless -> "dimensionless"
 
 
-decodeSizeRule : String -> Result String SizeRule
-decodeSizeRule str =
+decode : String -> Result String SizeRule
+decode str =
     let
         decodeSize f w_and_h defaultWidth defaultHeight =
             case String.split ":" w_and_h of

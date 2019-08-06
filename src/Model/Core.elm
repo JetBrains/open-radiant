@@ -56,7 +56,7 @@ type alias CreateGui = Model -> Gui.Model Msg
 type Msg
     = Bang
     | ChangeMode AppMode
-    | ChangeModeAndResize AppMode SizeRule
+    | ApplyUrl (Maybe AppMode) (Maybe Product) (Maybe SizeRule)
     | Animate TimeDelta
     | GuiMessage (Gui.Msg Msg)
     | Resize SizeRule
