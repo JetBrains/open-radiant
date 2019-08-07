@@ -180,8 +180,8 @@ generator ( w, h ) variety orbit palette range =
                 |> Random.map (\v -> min + (v * (max - min)) )
         generatePosition gaussX =
             Random.map2 vec2
-                (Random.float 0 <| toFloat w * 0)
-                (Random.float 0 <| toFloat h * 0)
+                (Random.float 0 <| toFloat w)
+                (Random.float 0 <| toFloat h)
         generateRadius = gaussInFloatRange range.radius
         generateSpeed = gaussInFloatRange range.speed
         generatePhase = gaussInFloatRange range.phase

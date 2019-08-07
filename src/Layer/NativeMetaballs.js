@@ -1,6 +1,8 @@
 function m(target, width, height, model, colors_) {
 
     if (!model) return;
+
+    if (!model.groups.length) return;
     
     console.log(model, colors_, width, height);
 
@@ -52,7 +54,26 @@ function m(target, width, height, model, colors_) {
       displayHeight = Math.floor(gl.canvas.clientHeight);
 
 
-      const groups = [
+      const groups = model.groups.map( 
+        group => ({ 
+          metaballs: group.balls.map( 
+            ball => ({ 
+              center: { x: ball.x, y: ball.y }, 
+              radius: ball.r,
+              speed: ball.speed,
+              t: ball.phase,
+              arcMult: { x: ball.ax, y: ball.ay }
+
+            })
+          ), 
+          texture: generateGradientTexture(
+            group.gradient.stops.map( stop => ({ color: stop.color, stop: stop.pos })),
+            group.gradient.orientation === "vertical",
+            false
+          ) 
+        }) 
+      )
+      const groups1 = [
         {
           metaballs: [
             {
