@@ -16,13 +16,14 @@ function m(target, width, height, model, colors_) {
     let isStopped = false;
 
     const defaults = {
-      speedRange: {min: 0.2, max: 2.0},
-      multArc: {x: {min: -.25, max: .75}, y: {min: -.25, max: .25}},
-      originOffset: {x: 0.6, y: 0.5},
-      scale: width / 1500,
-      colorI: colors[1],
-      colorII: colors[2],
-      colorIII: colors[0]
+      // speedRange: {min: 0.2, max: 2.0},
+      // multArc: {x: {min: -.25, max: .75}, y: {min: -.25, max: .25}},
+      // originOffset: {x: 0.6, y: 0.5},
+      originOffset: {x: 0, y: 0},
+      scale: width / 1500
+      // colorI: colors[1],
+      // colorII: colors[2],
+      // colorIII: colors[0]
     }
 
     const stop = function() { isStopped = true };
@@ -58,12 +59,11 @@ function m(target, width, height, model, colors_) {
         group => ({ 
           metaballs: group.balls.map( 
             ball => ({ 
-              center: { x: ball.x, y: ball.y }, 
+              center: { x: group.origin.x + ball.x, y: group.origin.y + ball.y }, 
               radius: ball.r,
               speed: ball.speed,
               t: ball.phase,
               arcMult: { x: ball.ax, y: ball.ay }
-
             })
           ), 
           texture: generateGradientTexture(
@@ -72,340 +72,11 @@ function m(target, width, height, model, colors_) {
             false
           ) 
         }) 
-      )
-      const groups1 = [
-        {
-          metaballs: [
-            {
-              center: {x: -50, y: 220},
-              radius: 50,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-            {
-              center: {x: -20, y: 85},
-              radius: 90,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-            {
-              center: {x: -30, y: 50},
-              radius: 60,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-            {
-              center: {x: 170, y: 170},
-              radius: 100,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-
-            {
-              center: {x: 370, y: 30},
-              radius: 40,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-            {
-              center: {x: 450, y: 150},
-              radius: 50,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-            {
-              center: {x: 270, y: -240},
-              radius: 70,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-            {
-              center: {x: 370, y: -130},
-              radius: 60,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-            {
-              center: {x: 170, y: -70},
-              radius: 70,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-
-          ],
-          texture: generateGradientTexture([
-              {color: defaults.colorIII, stop: 0.2},
-              {color: defaults.colorI, stop: 0.3},
-              {color: defaults.colorII, stop: 0.5},
-              {color: defaults.colorIII, stop: 0.8}],
-            true, false)
-        },
-        {
-          metaballs: [
-            {
-              center: {x: 150, y: 350},
-              radius: 30,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-
-            {
-              center: {x: 250, y: 250},
-              radius: 70,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-
-            {
-              center: {x: 380, y: 280},
-              radius: 30,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-
-            {
-              center: {x: 200, y: 100},
-              radius: 25,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-
-
-          ],
-          texture: generateGradientTexture([
-              {color: defaults.colorII, stop: 0.2},
-              {color: defaults.colorIII, stop: 0.3},
-              {color: defaults.colorII, stop: 0.5},
-              {color: defaults.colorIII, stop: 0.7}],
-            true, false)
-        },
-        {
-          metaballs: [
-            {
-              center: {x: 410, y: -80},
-              radius: 28,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-            {
-              center: {x: 340, y: -100},
-              radius: 70,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-            {
-              center: {x: 200, y: -150},
-              radius: 40,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-            {
-              center: {x: 250, y: -200},
-              radius: 36,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-          ],
-          texture: generateGradientTexture([
-              {color: defaults.colorI, stop: 0.50},
-              {color: defaults.colorII, stop: 0.6},
-              {color: defaults.colorIII, stop: 0.70}],
-            true, false)
-        },
-        {
-          metaballs: [
-            {
-              center: {x: -410, y: -270},
-              radius: 48,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-            {
-              center: {x: -490, y: -230},
-              radius: 34,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-            {
-              center: {x: -470, y: -320},
-              radius: 40,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-            {
-              center: {x: -700, y: 250},
-              radius: 30,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-            {
-              center: {x: -740, y: 310},
-              radius: 20,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-          ],
-          texture: generateGradientTexture(
-            [
-              {color: defaults.colorIII, stop: 0.3},
-              {color: defaults.colorII, stop: 0.4},
-              {color: defaults.colorII, stop: 0.68},
-              {color: defaults.colorIII, stop: 0.77},
-              {color: defaults.colorIII, stop: 0.83}
-            ], true, false)
-        },
-
-        {
-          metaballs: [
-            {
-              center: {x: -830, y: 40},
-              radius: 30,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-            {
-              center: {x: -700, y: 90},
-              radius: 60,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-            {
-              center: {x: -540, y: 270},
-              radius: 50,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-            {
-              center: {x: -490, y: 150},
-              radius: 90,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-            {
-              center: {x: -300, y: 240},
-              radius: 40,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-            {
-              center: {x: -200, y: 120},
-              radius: 35,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-            {
-              center: {x: -350, y: 50},
-              radius: 70,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-            {
-              center: {x: -490, y: -40},
-              radius: 60,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-            {
-              center: {x: -270, y: -70},
-              radius: 50,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-          ],
-          texture: generateGradientTexture(
-            [
-              {color: defaults.colorIII, stop: 0.3},
-              {color: defaults.colorII, stop: 0.5},
-              {color: defaults.colorI, stop: 0.6}
-            ], true, false)
-        },
-        {
-          metaballs: [
-            {
-              // center: {x: randomFromTo({min: 10, max: 26}), y: 155},
-              center: {x: 26, y: 55},
-              radius: 120,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-            {
-              center: {x: -110, y: -90},
-              radius: 60,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-            {
-              center: {x: 12, y: -214},
-              radius: 80,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-            {
-              center: {x: -300, y: -80},
-              radius: 120,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-            {
-              center: {x: -570, y: -120},
-              radius: 50,
-              speed: randomFromTo(defaults.speedRange),
-              t: Math.random() * 200,
-              arcMult: randomXY(defaults.multArc)
-            },
-          ],
-
-          texture: generateGradientTexture(
-            [
-              {color: defaults.colorI, stop: 0.2},
-              {color: defaults.colorII, stop: 0.35},
-              {color: defaults.colorIII, stop: 0.55},
-              {color: defaults.colorII, stop: 0.75},
-              {color: defaults.colorI, stop: 1.0}
-            ], true, false)
-        }
-
-
-      ]
+      );
 
       groups.map(function (group) {
         createdMetaballs.push(new Metaballs(gl, group, defaults.scale));
-      })
+      });
 
       target.addEventListener('mousemove', onMouseMove);
 
