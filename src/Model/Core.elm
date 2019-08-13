@@ -16,6 +16,8 @@ module Model.Core exposing
 import Array
 import Array exposing (Array)
 
+import Browser.Navigation as Nav
+
 import WebGL.Texture exposing (Texture)
 
 import Model.Layer exposing (..)
@@ -133,7 +135,8 @@ type alias Model = -- TODO: Result Error { ... }
     , timeShift : TimeDelta
     , product : Product
     , controlsVisible : Bool
-    , errors: Errors
+    , errors : Errors
+    , navKey : Nav.Key
     -- voronoi : Voronoi.Config
     -- fractal : Fractal.Config
     -- , lights (taken from product)
@@ -158,14 +161,15 @@ type alias PortModel =
 
 
 init
-    :  AppMode
+    :  Nav.Key
+    -> AppMode
     -> List ( LayerKind, String, LayerModel )
     -> CreateLayer
     -> CreateGui
     -> Model
-init appMode initialLayers createLayer createGui =
+init navKey appMode initialLayers createLayer createGui =
     let
-        emptyModel = initEmpty appMode
+        emptyModel = initEmpty navKey appMode
         modelWithLayers =
             emptyModel
                 |> replaceLayers initialLayers createLayer
@@ -179,8 +183,8 @@ init appMode initialLayers createLayer createGui =
         }
 
 
-initEmpty : AppMode -> Model
-initEmpty mode =
+initEmpty : Nav.Key -> AppMode -> Model
+initEmpty navKey mode =
     { background = "#171717"
     , mode = mode
     , gui = Nothing
@@ -199,6 +203,7 @@ initEmpty mode =
     , product = Product.default
     , controlsVisible = True
     , errors = Errors [ ]
+    , navKey = navKey
     }
 
 

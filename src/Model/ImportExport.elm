@@ -14,6 +14,7 @@ import Array
 
 import Tuple
 import Time
+import Browser.Navigation as Nav
 
 import Math.Vector2 as Vec2
 
@@ -287,8 +288,8 @@ encodePortModel model =
     }
 
 
-decodePortModel : M.CreateLayer -> M.PortModel -> Result (List ModelDecodeError) M.Model
-decodePortModel createLayer portModel =
+decodePortModel : Nav.Key -> M.CreateLayer -> M.PortModel -> Result (List ModelDecodeError) M.Model
+decodePortModel navKey createLayer portModel =
     let
         couldBeDecodedLayers =
             List.map (decodePortLayer createLayer) portModel.layers
@@ -312,7 +313,7 @@ decodePortModel createLayer portModel =
                 mode =
                     modeResult
                         |> Result.withDefault Mode.Production
-                initialModel = M.initEmpty mode
+                initialModel = M.initEmpty navKey mode
                 decodedModel =
                     { initialModel
                     | background = portModel.background
@@ -637,8 +638,8 @@ layerModelDecoder kind =
         -- _ -> D.fail "unknown kind"
 
 
-modelDecoder : Mode.AppMode -> M.CreateLayer -> M.CreateGui -> D.Decoder M.Model
-modelDecoder currentMode createLayer createGui =
+modelDecoder : Nav.Key -> Mode.AppMode -> M.CreateLayer -> M.CreateGui -> D.Decoder M.Model
+modelDecoder navKey currentMode createLayer createGui =
     let
         createModel
             background
@@ -652,7 +653,7 @@ modelDecoder currentMode createLayer createGui =
             now
             productStr =
             let
-                initialModel = M.init currentMode [] createLayer createGui
+                initialModel = M.init navKey currentMode [] createLayer createGui
                 sizeResult =
                     case maybeSizeRule of
                         Just sizeRuleStr -> SizeRule.decode sizeRuleStr
@@ -699,9 +700,15 @@ modelDecoder currentMode createLayer createGui =
             |> D.andThen identity
 
 
-decodeModel : Mode.AppMode -> M.CreateLayer -> M.CreateGui -> String -> Result String M.Model
-decodeModel currentMode createLayer createGui modelStr =
-    D.decodeString (modelDecoder currentMode createLayer createGui) modelStr
+decodeModel
+     : Nav.Key
+    -> Mode.AppMode
+    -> M.CreateLayer
+    -> M.CreateGui
+    -> String
+    -> Result String M.Model
+decodeModel navKey currentMode createLayer createGui modelStr =
+    D.decodeString (modelDecoder navKey currentMode createLayer createGui) modelStr
         |> Result.mapError D.errorToString
 
 

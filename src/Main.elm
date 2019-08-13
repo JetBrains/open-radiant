@@ -81,13 +81,14 @@ main =
 
 
 init : Flags -> Url -> Nav.Key -> ( Model, Cmd Msg )
-init flags url _ =
+init flags url navKey =
     let
         mode =
             flags.forcedMode
                 |> Maybe.map (Mode.decode >> Result.withDefault initialMode)
                 |> Maybe.withDefault initialMode
         model = Model.init
+                    navKey
                     mode
                     (initialLayers mode)
                     createLayer
@@ -161,7 +162,8 @@ update msg model =
 
         ChangeMode mode ->
             let
-                newModel = Model.init mode (initialLayers mode) createLayer Gui.gui
+                newModel =
+                    Model.init model.navKey mode (initialLayers mode) createLayer Gui.gui
             in
                 ( newModel
                 , Cmd.batch
@@ -244,7 +246,7 @@ update msg model =
 
         Import encodedModel ->
             case (encodedModel
-                    |> IE.decodeModel model.mode createLayer Gui.gui) of
+                    |> IE.decodeModel model.navKey model.mode createLayer Gui.gui) of
                 Ok decodedModel ->
                     ( decodedModel
                     , Cmd.batch
@@ -707,7 +709,7 @@ update msg model =
             )
 
         ApplyRandomizer portModel ->
-            case IE.decodePortModel createLayer portModel of
+            case IE.decodePortModel model.navKey createLayer portModel of
                 Ok decodedPortModel ->
                     ( decodedPortModel
                     , if hasFssLayers decodedPortModel
