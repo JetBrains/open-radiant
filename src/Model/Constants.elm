@@ -5,6 +5,7 @@ module Model.Constants exposing
 
 
 import Model.AppMode exposing (..)
+import Model.AppMode as Mode exposing (encode)
 import Model.SizeRule exposing (..)
 import Model.Product as Product
 
@@ -28,7 +29,7 @@ type alias Constants =
 makeConstants : Constants
 makeConstants =
     let
-        getModeLabel = encodeMode
+        getModeLabel = Mode.encode
         sizePresetsConstants mode =
             getSizePresets mode
                 |> List.map (\preset ->
