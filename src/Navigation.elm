@@ -12,11 +12,11 @@ import Url exposing (..)
 
 
 import Model.AppMode exposing (..)
-import Model.AppMode as Mode exposing (decode)
+import Model.AppMode as Mode exposing (decode, default)
 import Model.SizeRule exposing (..)
-import Model.SizeRule as SizeRule exposing (decode)
+import Model.SizeRule as SizeRule exposing (decode, default)
 import Model.Product exposing (..)
-import Model.Product as Product exposing (decode)
+import Model.Product as Product exposing (decode, default)
 import Model.Core exposing (..)
 
 
@@ -57,7 +57,7 @@ type UncertainFragmentValue
 
 default : FragmentValue
 default =
-    FragmentValue Release JetBrains Dimensionless
+    FragmentValue Mode.default Product.default SizeRule.default
 
 
 defaultTo : Model -> UncertainFragmentValue -> FragmentValue

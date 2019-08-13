@@ -1,6 +1,6 @@
 module Model.SizeRule exposing
     ( ViewportSize(..)
-    , SizeRule(..), encode, decode
+    , SizeRule(..), default, encode, decode
     , getPresetLabel, getPresetSize, getRuleSize, getRuleSizeOrZeroes
     , getSizePresets
     , SizePresetCode, encodePreset, decodePreset
@@ -47,6 +47,10 @@ type SizePreset
     | BlogFooter Factor
     | LandingPage
     | Wallpaper Int Int
+
+
+default : SizeRule
+default = Dimensionless
 
 
 getSizePresets : AppMode -> List SizePreset

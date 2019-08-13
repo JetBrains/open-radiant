@@ -22,6 +22,7 @@ import Model.Layer exposing (..)
 import Model.AppMode exposing (..)
 import Model.Error exposing (..)
 import Model.SizeRule exposing (..)
+import Model.SizeRule as SizeRule exposing (default)
 import Model.Product as Product exposing (Product)
 import Model.Product
 import Model.WebGL.Blend as WGLBlend
@@ -189,13 +190,13 @@ initEmpty mode =
     , theta = 0.1
     , omega = 0.0
     , layers = []
-    , size = Dimensionless
+    , size = SizeRule.default
     , origin = ( 0, 0 )
     , mouse = ( 0, 0 )
     , now = 0.0
     , timeShift = 0.0
     --, range = ( 0.8, 1.0 )
-    , product = Product.JetBrains
+    , product = Product.default
     , controlsVisible = True
     , errors = Errors [ ]
     }

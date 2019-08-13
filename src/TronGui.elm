@@ -89,7 +89,7 @@ gui from =
                 "rs cpp" -> ChangeProduct Product.ReSharperCpp
                 "idea" -> ChangeProduct Product.IntelliJ
                 _ -> Product.decode label
-                        |> Result.withDefault Product.JetBrains
+                        |> Result.withDefault Product.default
                         |> ChangeProduct
         chooseSize _ label =
             case label of

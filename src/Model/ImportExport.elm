@@ -684,7 +684,7 @@ modelDecoder currentMode createLayer createGui =
         --     Just sizeRuleStr -> M.decodeSizeRule sizeRuleStr
         --     Nothing -> case maybeSize of
         --         Just (w, h) -> M.Custom w h
-        --         Nothing -> M.Dimensionless
+        --         Nothing -> SizeRule.default
         D.succeed createModel
             |> D.andMap (D.field "background" D.string)
             |> D.andMap (D.field "theta" D.float)

@@ -1,5 +1,6 @@
 module Model.AppMode exposing
     ( AppMode(..)
+    , default
     , encode
     , decode
     )
@@ -12,6 +13,10 @@ type AppMode
     | Ads
     | TronUi AppMode
     | Player
+
+
+default : AppMode
+default = Release
 
 
 encode : AppMode -> String
