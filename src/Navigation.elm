@@ -1,8 +1,9 @@
 module Navigation exposing
     ( applyUrl
-    , prepareUrlFragment
+    , loadUrl
     , onUrlChange
     , onUrlRequest
+    , pushUrlFrom
     )
 
 
@@ -60,6 +61,12 @@ default =
     FragmentValue Mode.default Product.default SizeRule.default
 
 
+defaultUncertain : UncertainFragmentValue
+defaultUncertain =
+    UncertainFragmentValue Nothing Nothing Nothing
+
+
+-- fill uncertain fragment with the values from the given model
 defaultTo : Model -> UncertainFragmentValue -> FragmentValue
 defaultTo model (UncertainFragmentValue maybeMode maybeProduct maybeSize) =
     FragmentValue
@@ -68,49 +75,88 @@ defaultTo model (UncertainFragmentValue maybeMode maybeProduct maybeSize) =
         (maybeSize |> Maybe.withDefault model.size)
 
 
-applyFragment : Fragment -> Model -> Model
-applyFragment fragment curModel =
-    case fragment |> decodeFragment |> defaultTo curModel  of
-        FragmentValue mode product size ->
-            { curModel
-            | size = size
-            , mode = mode
-            , product = product
-            }
+fillDefaults : UncertainFragmentValue -> FragmentValue
+fillDefaults (UncertainFragmentValue maybeMode maybeProduct maybeSize) =
+    FragmentValue
+        (maybeMode |> Maybe.withDefault Mode.default)
+        (maybeProduct |> Maybe.withDefault Product.default)
+        (maybeSize |> Maybe.withDefault SizeRule.default)
 
 
-fragmentToMessage : Fragment -> Msg
-fragmentToMessage fragment =
-    case decodeFragment fragment of
-        UncertainFragmentValue maybeMode maybeProduct maybeSize ->
-            ApplyUrl maybeMode maybeProduct maybeSize
+-- take current model and command to update the URL of the browser with its state
+pushUrlFrom : Model -> Cmd Msg
+pushUrlFrom model =
+    pushUrl model.navKey <| loadUrl model
 
 
-applyUrl : Url -> Model -> Model
-applyUrl url model =
+-- take the new URL (not the one stored in the model) & model,
+-- and build the messages required to be performed to update it to the new state,
+-- URL has the preference over the current model
+applyUrl : Url -> Model -> List Msg
+applyUrl url curModel =
     case url.fragment of
-        Just fragment -> model |> applyFragment fragment
-        Nothing -> model
+        Just fragment ->
+            case fragment |> decodeFragment |> fillDefaults of
+                FragmentValue mode product size ->
+                    [ if mode /= curModel.mode then ChangeMode mode else NoOp
+                    , if product /= curModel.product then ChangeProduct product else NoOp
+                    , if size /= curModel.size then Resize size else NoOp
+                    ] |> List.filter ((==) NoOp)
+        Nothing ->
+            []
 
 
-prepareUrlFragment : Model -> Fragment
-prepareUrlFragment model =
-    FragmentValue model.mode model.product model.size
-        |> encodeFragment
+-- prepareUrlFragment : Model -> Fragment
+-- prepareUrlFragment model =
+--     FragmentValue model.mode model.product model.size
+--         |> encodeFragment
 
 
-onUrlChange : Url -> Msg
-onUrlChange url =
-    case url.fragment of
-        Just fragment -> fragmentToMessage fragment
-        Nothing -> NoOp
+-- take current URL and model, and create the new URL representing
+-- the state where the model has the preference over current URL,
+-- and the defaults values are excluded
+loadUrl : Model -> Fragment
+loadUrl curModel =
+    let
+        curFragment =
+            curModel.url
+                |> Maybe.andThen .fragment
+                |> Maybe.map decodeFragment
+                |> Maybe.withDefault defaultUncertain
+        injectValue fromModel fromUrl defaultValue =
+            case fromUrl of
+                Just urlValue ->
+                    if fromModel == urlValue
+                    then Just urlValue
+                    else
+                        if fromModel /= defaultValue
+                            then Just fromModel
+                            else Nothing
+                Nothing ->
+                    if fromModel /= defaultValue
+                    then Just fromModel
+                    else Nothing
+    in
+        case curFragment of
+            UncertainFragmentValue maybeMode maybeProduct maybeSize ->
+                UncertainFragmentValue
+                        (injectValue curModel.mode maybeMode Mode.default)
+                        (injectValue curModel.product maybeProduct Product.default)
+                        (injectValue curModel.size maybeSize SizeRule.default)
+                |> encodeUncertainFragment
 
 
+-- there are no links, so no URL requests for the moment
+-- See https://package.elm-lang.org/packages/elm/browser/latest/Browser#UrlRequest
 onUrlRequest : Browser.UrlRequest -> Msg
 onUrlRequest req =
     let
         _ = req
     in NoOp
+
+
+onUrlChange : Url -> Msg
+onUrlChange = ApplyUrl
 
 
 tryIfError : String -> (String -> Result () a) -> Result () a -> Result () a
@@ -120,6 +166,9 @@ tryIfError str decoder prevVal =
         Ok v -> Ok v
 
 
+-- take the list of strings and try to find values
+-- among them using all the three given decoders
+-- in any combination
 tryDecode3
      : List String
     -> (String -> Result () a)
@@ -146,6 +195,8 @@ tryDecode3
                 -> f first second third
 
 
+-- take the URL string and collect the values if they are
+-- specified in it
 decodeFragment : Fragment -> UncertainFragmentValue
 decodeFragment str =
     tryDecode3
@@ -160,6 +211,28 @@ decodeFragment str =
                 (Result.toMaybe s))
 
 
+-- take uncertain fragment value and encode it into the URL,
+-- skipping the Nothing values
+encodeUncertainFragment : UncertainFragmentValue -> Fragment
+encodeUncertainFragment uncertainFragment =
+    case uncertainFragment of
+        UncertainFragmentValue maybeMode maybeProduct maybeSize
+            ->
+                (maybeMode
+                    |> Maybe.map Mode.encode
+                    |> Maybe.map ((++) "/")
+                    |> Maybe.withDefault "") ++
+                (maybeProduct
+                    |> Maybe.map Product.encode
+                    |> Maybe.map ((++) "/")
+                    |> Maybe.withDefault "") ++
+                (maybeSize
+                    |> Maybe.map SizeRule.encode
+                    |> Maybe.withDefault "")
+
+
+-- take current fragment value and encode it into the URL,
+-- omitting the default values
 encodeFragment : FragmentValue -> Fragment
 encodeFragment current =
     case (default, current) of

@@ -9,6 +9,7 @@ import Task exposing (Task)
 
 import Browser.Dom as Browser
 import Browser.Events as Browser
+import Browser.Navigation as Browser
 
 import Html exposing (Html, text, div, span, input, canvas)
 import Html.Attributes as H
@@ -87,16 +88,20 @@ init flags url navKey =
             flags.forcedMode
                 |> Maybe.map (Mode.decode >> Result.withDefault initialMode)
                 |> Maybe.withDefault initialMode
-        model = Model.init
+        initialModel =
+            Model.init
                     navKey
                     mode
                     (initialLayers mode)
                     createLayer
                     Gui.gui
+        ( model, commands ) =
+            initialModel
                 |> Nav.applyUrl url
+                |> batchUpdate initialModel
     in
         ( model
-        , case model.size of
+        , case model.size of -- FIXME: use commands
             Dimensionless ->
                 resizeToViewport
             _ ->
@@ -104,6 +109,10 @@ init flags url navKey =
                     then rebuildAllFssLayersWith model
                     else Cmd.none
         )
+
+
+batchUpdate : Model -> List Msg -> ( Model, Cmd Msg )
+batchUpdate model messages = ( model, Cmd.none ) -- FIXME: implement
 
 
 initialLayers : AppMode -> List ( LayerKind, String, LayerModel )
@@ -169,31 +178,13 @@ update msg model =
                 , Cmd.batch
                     [ Mode.encode newModel.mode |> modeChanged
                     , resizeToViewport
+                    , Nav.pushUrlFrom newModel
                     ]
                 )
 
-        ApplyUrl maybeMode maybeProduct maybeSize ->
-            let
-                ( newMode, newProduct, newSize ) =
-                    ( maybeMode |> Maybe.withDefault model.mode
-                    , maybeProduct |> Maybe.withDefault model.product
-                    , maybeSize |> Maybe.withDefault model.size
-                    )
-                ( modelWithProduct, commandsOne ) =
-                    if (newProduct /= model.product)
-                        then update (ChangeProduct newProduct) model
-                        else ( model, Cmd.none )
-                ( modelWithProductAndMode, commandsTwo ) =
-                    if (newMode /= model.mode)
-                        then update (ChangeMode newMode) modelWithProduct
-                        else ( modelWithProduct, Cmd.none )
-                ( finalModel, finalComands ) =
-                    if (newSize /= model.size)
-                        then update (Resize newSize) modelWithProductAndMode
-                        else ( modelWithProductAndMode, Cmd.none )
-            in
-                ( finalModel, finalComands )
-
+        ApplyUrl url ->
+            Nav.applyUrl url model
+                |> batchUpdate model
 
         GuiMessage guiMsg ->
             case model.gui of
@@ -267,6 +258,7 @@ update msg model =
                                     )
                                     decodedModel
                             else Cmd.none
+                        , Nav.pushUrlFrom decodedModel
                         ]
                     )
                 Err importError ->
@@ -328,6 +320,7 @@ update msg model =
                         then rebuildAllFssLayersWith newModelWithSize
                         else Cmd.none
                     , requestWindowResize ( width, height )
+                    , Nav.pushUrlFrom newModelWithSize
                     ]
                 )
 
@@ -429,6 +422,7 @@ update msg model =
                     , if hasNativeMetaballsLayers modelWithProduct
                         then updateAllNativeMetaballsWith modelWithProduct
                         else Cmd.none
+                    , Nav.pushUrlFrom modelWithProduct
                     ]
                 )
 
@@ -706,6 +700,7 @@ update msg model =
         Randomize ->
             ( model
             , model |> IE.encodePortModel |> requestRandomize
+            -- TODO: updateUrl newModel?
             )
 
         ApplyRandomizer portModel ->

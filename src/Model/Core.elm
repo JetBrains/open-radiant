@@ -17,6 +17,7 @@ import Array
 import Array exposing (Array)
 
 import Browser.Navigation as Nav
+import Url exposing (..)
 
 import WebGL.Texture exposing (Texture)
 
@@ -59,7 +60,7 @@ type alias CreateGui = Model -> Gui.Model Msg
 type Msg
     = Bang
     | ChangeMode AppMode
-    | ApplyUrl (Maybe AppMode) (Maybe Product) (Maybe SizeRule)
+    | ApplyUrl Url
     | Animate TimeDelta
     | GuiMessage (Gui.Msg Msg)
     | Resize SizeRule
@@ -137,6 +138,7 @@ type alias Model = -- TODO: Result Error { ... }
     , controlsVisible : Bool
     , errors : Errors
     , navKey : Nav.Key
+    , url : Maybe Url
     -- voronoi : Voronoi.Config
     -- fractal : Fractal.Config
     -- , lights (taken from product)
@@ -204,6 +206,7 @@ initEmpty navKey mode =
     , controlsVisible = True
     , errors = Errors [ ]
     , navKey = navKey
+    , url = Nothing
     }
 
 
