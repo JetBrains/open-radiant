@@ -9,6 +9,7 @@ import Task exposing (Task)
 
 import Browser.Dom as Browser
 import Browser.Events as Browser
+import Browser.Navigation as Browser
 
 import Html exposing (Html, text, div, span, input, canvas)
 import Html.Attributes as H
@@ -26,12 +27,13 @@ import WebGL.Settings.DepthTest as DepthTest
 import Model.Core exposing (..)
 import Model.Core as Model exposing (init)
 import Model.AppMode exposing (..)
+import Model.AppMode as Mode exposing (decode, encode)
 import Model.Product exposing (Product)
 import Model.Product as Product
 import Model.Constants exposing (..)
 import Model.Layer exposing (..)
 import Model.SizeRule exposing (..)
-import Model.SizeRule as SizeRule exposing (toRecord)
+import Model.SizeRule as SizeRule exposing (decode, encode, toRecord)
 import Model.Error exposing (..)
 import Model.ImportExport as IE
 import Model.WebGL.Blend as WGLBlend
@@ -80,27 +82,34 @@ main =
 
 
 init : Flags -> Url -> Nav.Key -> ( Model, Cmd Msg )
-init flags url _ =
+init flags url navKey =
     let
         mode =
             flags.forcedMode
-                |> Maybe.map (decodeMode >> Result.withDefault initialMode)
+                |> Maybe.map (Mode.decode >> Result.withDefault initialMode)
                 |> Maybe.withDefault initialMode
-        model = Model.init
+        initialModel =
+            Model.init
+                    navKey
                     mode
                     (initialLayers mode)
                     createLayer
                     Gui.gui
-                |> Nav.applyUrl url
+        ( model, command ) =
+            Nav.applyUrl url initialModel
+                |> batchUpdate initialModel
     in
         ( model
-        , case model.size of
-            Dimensionless ->
-                resizeToViewport
-            _ ->
-                if hasFssLayers model
-                    then rebuildAllFssLayersWith model
-                    else Cmd.none
+        , Cmd.batch
+            [ command
+            , case model.size of
+                Dimensionless ->
+                    resizeToViewport
+                _ ->
+                    if hasFssLayers model
+                        then rebuildAllFssLayersWith model
+                        else Cmd.none
+            ]
         )
 
 
@@ -160,39 +169,32 @@ update msg model =
 
         ChangeMode mode ->
             let
-                newModel = Model.init mode (initialLayers mode) createLayer Gui.gui
+                newModel =
+                    Model.init model.navKey mode (initialLayers mode) createLayer Gui.gui
             in
                 ( newModel
                 , Cmd.batch
-                    [ encodeMode newModel.mode |> modeChanged
+                    [ Mode.encode newModel.mode |> modeChanged
                     , resizeToViewport
+                    , Nav.pushUrlFrom newModel
                     ]
                 )
 
-        ChangeModeAndResize mode rule ->
+        ApplyUrl url ->
             let
-                ( width, height ) = getRuleSizeOrZeroes rule
-                newModel =
-                    Model.init mode (initialLayers mode) createLayer Gui.gui
-                newModelWithSize =
-                    { newModel
-                    | size = rule
-                    , origin = getOrigin ( width, height )
-                    } |>
-                        (\modelWithSize ->
-                            if rule /= Dimensionless && hasFluidLayers modelWithSize
-                            then remapAllFluidLayersToNewSize modelWithSize
-                            else modelWithSize
-                        )
-                informSizeUpdate = newModelWithSize |> getSizeUpdate |> sizeChanged
-
+                (newModel, command) = Nav.applyUrl url model
+                    |> batchUpdate model
             in
-                ( newModelWithSize
+                ( newModel
                 , Cmd.batch
-                    [ informSizeUpdate
-                    , if rule /= Dimensionless && hasFssLayers model
-                        then rebuildAllFssLayersWith newModelWithSize
-                        else Cmd.none
+                    [ command
+                    , case model.size of
+                        Dimensionless ->
+                            resizeToViewport
+                        _ ->
+                            if hasFssLayers model
+                                then rebuildAllFssLayersWith model
+                                else Cmd.none
                     ]
                 )
 
@@ -247,7 +249,7 @@ update msg model =
 
         Import encodedModel ->
             case (encodedModel
-                    |> IE.decodeModel model.mode createLayer Gui.gui) of
+                    |> IE.decodeModel model.navKey model.mode createLayer Gui.gui) of
                 Ok decodedModel ->
                     ( decodedModel
                     , Cmd.batch
@@ -268,6 +270,7 @@ update msg model =
                                     )
                                     decodedModel
                             else Cmd.none
+                        , Nav.pushUrlFrom decodedModel
                         ]
                     )
                 Err importError ->
@@ -307,14 +310,6 @@ update msg model =
             , Cmd.none
             )
 
-        -- Resize (ViewportSize width height) ->
-        --     ( { model
-        --       | size = adaptSize ( width, height )
-        --       , origin = getOrigin ( width, height )
-        --       }
-        --     , Cmd.none -- updateAndRebuildFssWith
-        --     )
-
         Resize rule ->
             let
                 -- _ = Debug.log "Resize: rule" rule
@@ -337,6 +332,7 @@ update msg model =
                         then rebuildAllFssLayersWith newModelWithSize
                         else Cmd.none
                     , requestWindowResize ( width, height )
+                    , Nav.pushUrlFrom newModelWithSize
                     ]
                 )
 
@@ -438,6 +434,7 @@ update msg model =
                     , if hasNativeMetaballsLayers modelWithProduct
                         then updateAllNativeMetaballsWith modelWithProduct
                         else Cmd.none
+                    , Nav.pushUrlFrom modelWithProduct
                     ]
                 )
 
@@ -715,10 +712,11 @@ update msg model =
         Randomize ->
             ( model
             , model |> IE.encodePortModel |> requestRandomize
+            -- TODO: updateUrl newModel?
             )
 
         ApplyRandomizer portModel ->
-            case IE.decodePortModel createLayer portModel of
+            case IE.decodePortModel model.navKey createLayer portModel of
                 Ok decodedPortModel ->
                     ( decodedPortModel
                     , if hasFssLayers decodedPortModel
@@ -830,6 +828,18 @@ update msg model =
         NoOp -> ( model, Cmd.none )
 
 
+batchUpdate : Model -> List Msg -> ( Model, Cmd Msg )
+batchUpdate model messages =
+    List.foldl
+        (\msg ( prevModel, prevCmd ) ->
+            update msg prevModel
+                |> Tuple.mapSecond
+                    (\newCmd -> Cmd.batch [ prevCmd, newCmd ])
+        )
+        ( model, Cmd.none )
+        messages
+
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
@@ -885,7 +895,7 @@ subscriptions model =
         , changeIris (\{value, layer} -> ChangeIris layer value)
         , changeMode
             (\modeStr ->
-                case decodeMode modeStr of
+                case Mode.decode modeStr of
                     Ok mode -> ChangeMode mode
                     Err error -> AddError <| "Failed to decode mode: " ++ error
             )
@@ -978,7 +988,7 @@ view model =
                 Player -> True
                 _ -> False
     in div
-        [ H.class <| "mode-" ++ encodeMode model.mode ]
+        [ H.class <| "mode-" ++ Mode.encode model.mode ]
         [ if not isInPlayerMode then canvas [ H.id "js-save-buffer" ] [ ] else div [] []
         , if hasErrors model
             then
@@ -1037,13 +1047,22 @@ document model =
 getSizeUpdate : Model -> SizeUpdate
 getSizeUpdate model =
     { size = getRuleSize model.size |> Maybe.withDefault ( -1, -1 )
-    , sizeRule = encodeSizeRule model.size
+    , sizeRule = SizeRule.encode model.size
     , product = Product.encode model.product
     -- , coverSize = Product.getCoverTextSize model.product
     , background = model.background
     , sizeConstant = -1
     -- , mode = encodeMode model.mode
     }
+
+
+-- for the cases when navigation by URL contains no size data, but requests a resize
+-- fallbackToViewport : Model -> Msg -> Msg
+-- fallbackToViewport model msg =
+--     case msg of
+--         Resize Dimensionless ->
+--             Resize (UseViewport model.size)
+--         _ -> msg
 
 
 tellGui : (Gui.Model Msg -> a -> Gui.Msg Msg) -> Model -> a -> Msg

@@ -1,6 +1,6 @@
 module Model.SizeRule exposing
     ( ViewportSize(..)
-    , SizeRule(..), encodeSizeRule, decodeSizeRule
+    , SizeRule(..), default, encode, decode
     , getPresetLabel, getPresetSize, getRuleSize, getRuleSizeOrZeroes
     , getSizePresets
     , SizePresetCode, encodePreset, decodePreset
@@ -47,6 +47,10 @@ type SizePreset
     | BlogFooter Factor
     | LandingPage
     | Wallpaper Int Int
+
+
+default : SizeRule
+default = Dimensionless
 
 
 getSizePresets : AppMode -> List SizePreset
@@ -192,46 +196,45 @@ getPresetLabel preset =
 encodePreset : SizePreset -> SizePresetCode
 encodePreset preset =
    let
-        sizeStr w h = String.fromInt w ++ ":" ++ String.fromInt h
+        sizeStr w h = String.fromInt w ++ "x" ++ String.fromInt h
         factorStr factor =
             case factor of
                 Single -> "1"
                 Double -> "2"
     in
         case preset of
-            ProductCard factor -> "PC:" ++ factorStr factor
-            ProductSplash factor -> "SP:" ++ factorStr factor
-            Newsletter factor -> "NL:" ++ factorStr factor
+            ProductCard factor -> "PCx" ++ factorStr factor
+            ProductSplash factor -> "SPx" ++ factorStr factor
+            Newsletter factor -> "NLx" ++ factorStr factor
             Twitter -> "TW"
             Facebook -> "FB"
             WebpagePreview -> "WB"
-            BlogHeader factor -> "BH:" ++ factorStr factor
-            BlogFooter factor -> "BF:" ++ factorStr factor
+            BlogHeader factor -> "BHx" ++ factorStr factor
+            BlogFooter factor -> "BFx" ++ factorStr factor
             LandingPage -> "LP"
             Instagram -> "IN"
             LinkedIn -> "LN"
-            Baidu w h -> "BA:_:" ++ sizeStr w h
-            Ad w h -> "AD:_:" ++ sizeStr w h
-            Wallpaper w h -> "WP:_:" ++ sizeStr w h
+            Baidu w h -> "BA:" ++ sizeStr w h
+            Ad w h -> "AD:" ++ sizeStr w h
+            Wallpaper w h -> "WP:" ++ sizeStr w h
 
 
 decodePreset : SizePresetCode -> Maybe SizePreset
 decodePreset presetStr =
     let
-        parts = String.split ":" presetStr
-                    |> Array.fromList
+        presetCode = String.left 2 presetStr
         decodeFactor nStr =
             case nStr of
                 "1" -> Just Single
                 "2" -> Just Double
                 _ -> Nothing
         withFactor f =
-            Array.get 1 parts
-                |> Maybe.andThen decodeFactor
+            String.dropLeft 3 presetStr
+                |> decodeFactor
                 |> Maybe.map f
         withSize f =
-            case ( Array.get 2 parts, Array.get 3 parts ) of
-                ( Just wStr, Just hStr ) ->
+            case String.dropLeft 3 presetStr |> String.split "x" of
+                wStr::hStr::_ ->
                     case ( String.toInt wStr, String.toInt hStr ) of
                         ( Just w, Just h ) -> f w h |> Just
                         _ -> Nothing
@@ -248,41 +251,40 @@ decodePreset presetStr =
                 "BF" -> withFactor BlogFooter
                 "LP" -> Just LandingPage
                 "IN" -> Just Instagram
-                "LN" -> Just LandingPage
+                "LN" -> Just LinkedIn
                 "BA" -> withSize Baidu
                 "AD" -> withSize Ad
                 "WP" -> withSize Wallpaper
                 _ -> Nothing
     in
-        Array.get 0 parts
-            |> Maybe.andThen decodeByCode
+       decodeByCode presetCode
 
 
-encodeSizeRule : SizeRule -> String
-encodeSizeRule rule =
+encode : SizeRule -> String
+encode rule =
     case rule of
-        Custom w h -> "custom|" ++ String.fromInt w ++ ":" ++ String.fromInt h
-        FromPreset preset -> "preset|" ++ encodePreset preset
-        UseViewport (ViewportSize w h) -> "viewport|" ++ String.fromInt w ++ ":" ++ String.fromInt h
+        Custom w h -> "custom:" ++ String.fromInt w ++ "x" ++ String.fromInt h
+        FromPreset preset -> "preset:" ++ encodePreset preset
+        UseViewport (ViewportSize w h) -> "viewport:" ++ String.fromInt w ++ "x" ++ String.fromInt h
         Dimensionless -> "dimensionless"
 
 
-decodeSizeRule : String -> Result String SizeRule
-decodeSizeRule str =
+decode : String -> Result String SizeRule
+decode str =
     let
         decodeSize f w_and_h defaultWidth defaultHeight =
-            case String.split ":" w_and_h of
+            case String.split "x" w_and_h of
                 wStr::hStr::_ ->
                     case ( String.toInt wStr, String.toInt hStr ) of
                         ( Just w, Just h ) -> f w h
                         _ -> f defaultWidth defaultHeight
                 _ -> f defaultWidth defaultHeight
-    in case String.split "|" str of
+    in case String.split ":" str of
         "custom"::w_and_h::_ ->
             Ok <| decodeSize Custom w_and_h -1 -1
         "preset"::presetStr::_ ->
             decodePreset presetStr
-                |> Result.fromMaybe (str ++ "|" ++ presetStr)
+                |> Result.fromMaybe str
                 |> Result.map FromPreset
         "viewport"::w_and_h::_ ->
             Ok <| decodeSize (\w h -> UseViewport (ViewportSize w h)) w_and_h -1 -1

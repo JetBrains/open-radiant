@@ -1,7 +1,8 @@
 module Model.AppMode exposing
     ( AppMode(..)
-    , encodeMode
-    , decodeMode
+    , default
+    , encode
+    , decode
     )
 
 
@@ -14,23 +15,27 @@ type AppMode
     | Player
 
 
-encodeMode : AppMode -> String
-encodeMode mode =
+default : AppMode
+default = Production
+
+
+encode : AppMode -> String
+encode mode =
     case mode of
         Development -> "dev"
         Production -> "prod"
         Release -> "release"
         Ads -> "ads"
-        TronUi innerMode -> "tron-" ++ encodeMode innerMode
+        TronUi innerMode -> "tron-" ++ encode innerMode
         Player -> "player"
 
 
-decodeMode : String -> Result String AppMode
-decodeMode mode =
+decode : String -> Result String AppMode
+decode mode =
     if String.startsWith "tron-" mode
     then
         String.dropLeft 5 mode
-            |> decodeMode
+            |> decode
             |> Result.map TronUi
     else
         case mode of

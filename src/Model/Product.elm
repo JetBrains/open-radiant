@@ -1,5 +1,6 @@
 module Model.Product exposing
     ( Product(..)
+    , default
     , allProducts
     , Palette
     , Color
@@ -45,6 +46,10 @@ type Product
     | Hub
     | Kotlin
     | MPS
+
+
+default : Product
+default = JetBrains
 
 
 allProducts : List Product

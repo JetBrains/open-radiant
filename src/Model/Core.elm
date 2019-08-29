@@ -16,12 +16,16 @@ module Model.Core exposing
 import Array
 import Array exposing (Array)
 
+import Browser.Navigation as Nav
+import Url exposing (..)
+
 import WebGL.Texture exposing (Texture)
 
 import Model.Layer exposing (..)
 import Model.AppMode exposing (..)
 import Model.Error exposing (..)
 import Model.SizeRule exposing (..)
+import Model.SizeRule as SizeRule exposing (default)
 import Model.Product as Product exposing (Product)
 import Model.Product
 import Model.WebGL.Blend as WGLBlend
@@ -56,7 +60,7 @@ type alias CreateGui = Model -> Gui.Model Msg
 type Msg
     = Bang
     | ChangeMode AppMode
-    | ChangeModeAndResize AppMode SizeRule
+    | ApplyUrl Url
     | Animate TimeDelta
     | GuiMessage (Gui.Msg Msg)
     | Resize SizeRule
@@ -132,7 +136,9 @@ type alias Model = -- TODO: Result Error { ... }
     , timeShift : TimeDelta
     , product : Product
     , controlsVisible : Bool
-    , errors: Errors
+    , errors : Errors
+    , navKey : Nav.Key
+    , url : Maybe Url
     -- voronoi : Voronoi.Config
     -- fractal : Fractal.Config
     -- , lights (taken from product)
@@ -157,14 +163,15 @@ type alias PortModel =
 
 
 init
-    :  AppMode
+    :  Nav.Key
+    -> AppMode
     -> List ( LayerKind, String, LayerModel )
     -> CreateLayer
     -> CreateGui
     -> Model
-init appMode initialLayers createLayer createGui =
+init navKey appMode initialLayers createLayer createGui =
     let
-        emptyModel = initEmpty appMode
+        emptyModel = initEmpty navKey appMode
         modelWithLayers =
             emptyModel
                 |> replaceLayers initialLayers createLayer
@@ -178,8 +185,8 @@ init appMode initialLayers createLayer createGui =
         }
 
 
-initEmpty : AppMode -> Model
-initEmpty mode =
+initEmpty : Nav.Key -> AppMode -> Model
+initEmpty navKey mode =
     { background = "#171717"
     , mode = mode
     , gui = Nothing
@@ -189,15 +196,17 @@ initEmpty mode =
     , theta = 0.1
     , omega = 0.0
     , layers = []
-    , size = Dimensionless
+    , size = SizeRule.default
     , origin = ( 0, 0 )
     , mouse = ( 0, 0 )
     , now = 0.0
     , timeShift = 0.0
     --, range = ( 0.8, 1.0 )
-    , product = Product.JetBrains
+    , product = Product.default
     , controlsVisible = True
     , errors = Errors [ ]
+    , navKey = navKey
+    , url = Nothing
     }
 
 

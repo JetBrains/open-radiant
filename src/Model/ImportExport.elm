@@ -14,6 +14,7 @@ import Array
 
 import Tuple
 import Time
+import Browser.Navigation as Nav
 
 import Math.Vector2 as Vec2
 
@@ -30,12 +31,11 @@ import Layer.Lorenz as Lorenz
 import Layer.Fluid as Fluid
 
 import Model.Core as M
-import Model.AppMode as M
+import Model.AppMode as Mode
 import Model.Layer as M
-import Model.SizeRule as M
+import Model.SizeRule as SizeRule
 import Model.Error as M
-import Model.Product as Product exposing (Product)
-import Model.Product exposing (..)
+import Model.Product as Product exposing (Product, encode, decode)
 import Model.Range exposing (..)
 
 import TronGui as GUI
@@ -246,7 +246,7 @@ encodeModel_ : M.Model -> E.Value
 encodeModel_ model =
     E.object
         [ ( "background", E.string model.background )
-        , ( "mode", E.string <| M.encodeMode model.mode )
+        , ( "mode", E.string <| Mode.encode model.mode )
         , ( "theta", E.float model.theta )
         , ( "omega", E.float model.omega )
         , ( "layers", E.list encodeLayerDef model.layers )
@@ -254,14 +254,14 @@ encodeModel_ model =
         --         (\layer -> Maybe.map encodeLayer layer) model.layers) )
         -- for b/w compatibility, we also encode size as numbers, but sizeRule is what should matter
         -- when it is defined/known on import
-        , ( "size", encodeIntPair <| M.getRuleSizeOrZeroes model.size )
-        , ( "sizeRule", E.string <| M.encodeSizeRule model.size )
+        , ( "size", encodeIntPair <| SizeRule.getRuleSizeOrZeroes model.size )
+        , ( "sizeRule", E.string <| SizeRule.encode model.size )
         , ( "origin", encodeIntPair model.origin )
         , ( "mouse", encodeIntPair model.mouse )
         , ( "now", E.float model.now )
         , ( "palette",
             model.product
-                |> getPalette
+                |> Product.getPalette
                 |> E.list E.string )
         , ( "product", model.product |> Product.encode |> E.string )
         ]
@@ -274,22 +274,22 @@ encodeModel model = model |> encodeModel_ |> E.encode 2
 encodePortModel : M.Model -> M.PortModel
 encodePortModel model =
     { background = model.background
-    , mode = M.encodeMode model.mode
+    , mode = Mode.encode model.mode
     , now = model.now
     , theta = model.theta
     , omega = model.omega
     , layers = List.map encodePortLayer model.layers
-    , size = M.getRuleSize model.size |> Maybe.withDefault ( -1, -1 )
-    , sizeRule = M.encodeSizeRule model.size |> Just
+    , size = SizeRule.getRuleSize model.size |> Maybe.withDefault ( -1, -1 )
+    , sizeRule = SizeRule.encode model.size |> Just
     , origin = model.origin
     , mouse = model.mouse
-    , palette = model.product |> getPalette
+    , palette = model.product |> Product.getPalette
     , product = model.product |> Product.encode
     }
 
 
-decodePortModel : M.CreateLayer -> M.PortModel -> Result (List ModelDecodeError) M.Model
-decodePortModel createLayer portModel =
+decodePortModel : Nav.Key -> M.CreateLayer -> M.PortModel -> Result (List ModelDecodeError) M.Model
+decodePortModel navKey createLayer portModel =
     let
         couldBeDecodedLayers =
             List.map (decodePortLayer createLayer) portModel.layers
@@ -303,17 +303,17 @@ decodePortModel createLayer portModel =
         tryToDecodeSize maybeSizeRule =
             case maybeSizeRule of
                 Just sizeRuleStr ->
-                    M.decodeSizeRule sizeRuleStr
+                    SizeRule.decode sizeRuleStr
                         |> Result.mapError (List.singleton << SizeRuleDecodeError)
                 Nothing -> case portModel.size of
-                    ( w, h ) -> Ok <| M.Custom w h
+                    ( w, h ) -> Ok <| SizeRule.Custom w h
         applyDecoded decodedLayers decodedSize decodedProduct =
             let
-                modeResult = M.decodeMode portModel.mode
+                modeResult = Mode.decode portModel.mode
                 mode =
                     modeResult
-                        |> Result.withDefault M.Production
-                initialModel = M.initEmpty mode
+                        |> Result.withDefault Mode.Production
+                initialModel = M.initEmpty navKey mode
                 decodedModel =
                     { initialModel
                     | background = portModel.background
@@ -330,7 +330,7 @@ decodePortModel createLayer portModel =
             in
                 { decodedModel
                 | gui = case mode of
-                    M.TronUi _ -> Just <| GUI.gui decodedModel
+                    Mode.TronUi _ -> Just <| GUI.gui decodedModel
                     _ -> Nothing
                 }
     in
@@ -638,8 +638,8 @@ layerModelDecoder kind =
         -- _ -> D.fail "unknown kind"
 
 
-modelDecoder : M.AppMode -> M.CreateLayer -> M.CreateGui -> D.Decoder M.Model
-modelDecoder currentMode createLayer createGui =
+modelDecoder : Nav.Key -> Mode.AppMode -> M.CreateLayer -> M.CreateGui -> D.Decoder M.Model
+modelDecoder navKey currentMode createLayer createGui =
     let
         createModel
             background
@@ -653,12 +653,12 @@ modelDecoder currentMode createLayer createGui =
             now
             productStr =
             let
-                initialModel = M.init currentMode [] createLayer createGui
+                initialModel = M.init navKey currentMode [] createLayer createGui
                 sizeResult =
                     case maybeSizeRule of
-                        Just sizeRuleStr -> M.decodeSizeRule sizeRuleStr
+                        Just sizeRuleStr -> SizeRule.decode sizeRuleStr
                         Nothing -> case maybeSize of
-                            Just (w, h) -> Ok <| M.Custom w h
+                            Just (w, h) -> Ok <| SizeRule.Custom w h
                             Nothing -> Err "Unknown Size"
             in
                 sizeResult
@@ -685,7 +685,7 @@ modelDecoder currentMode createLayer createGui =
         --     Just sizeRuleStr -> M.decodeSizeRule sizeRuleStr
         --     Nothing -> case maybeSize of
         --         Just (w, h) -> M.Custom w h
-        --         Nothing -> M.Dimensionless
+        --         Nothing -> SizeRule.default
         D.succeed createModel
             |> D.andMap (D.field "background" D.string)
             |> D.andMap (D.field "theta" D.float)
@@ -700,9 +700,15 @@ modelDecoder currentMode createLayer createGui =
             |> D.andThen identity
 
 
-decodeModel : M.AppMode -> M.CreateLayer -> M.CreateGui -> String -> Result String M.Model
-decodeModel currentMode createLayer createGui modelStr =
-    D.decodeString (modelDecoder currentMode createLayer createGui) modelStr
+decodeModel
+     : Nav.Key
+    -> Mode.AppMode
+    -> M.CreateLayer
+    -> M.CreateGui
+    -> String
+    -> Result String M.Model
+decodeModel navKey currentMode createLayer createGui modelStr =
+    D.decodeString (modelDecoder navKey currentMode createLayer createGui) modelStr
         |> Result.mapError D.errorToString
 
 
