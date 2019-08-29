@@ -19,7 +19,7 @@
             "elm-community/easing-functions": "2.0.0",
             "elm-community/json-extra": "4.0.0",
             "elm-community/list-extra": "8.1.0",
-            "elm-community/random-extra": "3.0.0",
+            "elm-community/random-extra": "3.1.0",
             "elm-explorations/linear-algebra": "1.0.3",
             "elm-explorations/webgl": "1.1.0",
             "mgold/elm-animation": "2.0.0",
@@ -31,6 +31,7 @@
             "elm/parser": "1.1.0",
             "elm/regex": "1.0.0",
             "elm/virtual-dom": "1.0.2",
+            "owanturist/elm-union-find": "1.0.0",
             "fredcy/elm-parseint": "2.0.1",
             "rtfeldman/elm-iso8601-date-strings": "1.1.2",
             "turboMaCk/any-dict": "1.1.0"

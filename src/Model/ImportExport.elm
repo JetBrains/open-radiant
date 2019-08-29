@@ -555,7 +555,7 @@ layerModelDecoder kind =
             layerModelDecoder M.Fss
         M.Fluid ->
             let
-                range = Fluid.range
+                range = Fluid.defaultRange
                 makeBall =
                     D.map7
                         (\x y r speed phase ax ay ->

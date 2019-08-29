@@ -13,8 +13,8 @@ module Layer.Fluid exposing
     , loadTextures, injectTextures, packTextures
     , generator, gradientGenerator
     , generate, generateGradient, generateGradientsFor
-    , range
-    , Variety(..), Orbit(..)
+    , defaultRange
+    , Variety(..), Orbit(..), Ranges
     )
 
 
@@ -140,8 +140,8 @@ init =
     }
 
 
-range : Ranges
-range =
+defaultRange : Ranges
+defaultRange =
     { groups = iRange 1 10
     , balls = iRange 4 50
     , radius = fRange 10 100
@@ -163,8 +163,8 @@ gaussian x (Focus focus) (Variety variety) =
         Gaussian <| e ^ (-1 * numerator / denominator)
 
 
-generator : ( Int, Int ) -> Variety -> Orbit -> Product.Palette -> Random.Generator Model
-generator ( w, h ) variety orbit palette =
+generator : ( Int, Int ) -> Variety -> Orbit -> Product.Palette -> Ranges -> Random.Generator Model
+generator ( w, h ) variety orbit palette range =
     let
         generateGaussianX =
             Random.float 0 1

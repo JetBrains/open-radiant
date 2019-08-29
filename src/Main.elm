@@ -127,9 +127,8 @@ initialLayers mode =
 --            } |> FssModel
 --      )    , ( Cover, "Cover", CoverModel Cover.init )
 --    ]
-    [
-        ( Cover, "Cover", CoverModel Cover.init )
-        , ( NativeMetaballs, "NativeMetaballs", NativeMetaballsModel NativeMetaballs.init )
+    [ ( Cover, "Cover", CoverModel Cover.init )
+    , ( NativeMetaballs, "NativeMetaballs", NativeMetaballsModel NativeMetaballs.init )
     -- [ ( Fluid, "Fluid", FluidModel Fluid.init )
     -- [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
     -- [ ( FluidGrid, "FluidGrid", FluidGridModel FluidGrid.init )
@@ -1507,7 +1506,13 @@ generateNativeMetaballs
 generateNativeMetaballs size variety orbit palette layerIdx =
     NativeMetaballs.generate
         (UpdateNativeMetaballs layerIdx)
-            (NativeMetaballs.generator (getRuleSizeOrZeroes size) variety orbit palette)
+            (NativeMetaballs.generator
+                (getRuleSizeOrZeroes size)
+                variety
+                orbit
+                palette
+                Fluid.defaultRange
+            )
 
 
 -- TODO: combine with generateAllMetaballs and generateAllFluid
@@ -1531,7 +1536,13 @@ generateFluid : SizeRule -> Fluid.Variety -> Fluid.Orbit -> Product.Palette -> L
 generateFluid size variety orbit palette layerIdx =
     Fluid.generate
         (RebuildFluid layerIdx)
-            (Fluid.generator (getRuleSizeOrZeroes size) variety orbit palette)
+            (Fluid.generator
+                (getRuleSizeOrZeroes size)
+                variety
+                orbit
+                palette
+                Fluid.defaultRange
+            )
 
 
 generateFluidGradients : Product.Palette -> LayerIndex -> Fluid.Model -> Cmd Msg
