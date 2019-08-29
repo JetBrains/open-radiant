@@ -17,6 +17,7 @@ import Html.Attributes as H
 import Math.Vector2 as Vec2 exposing (..)
 
 import Model.Product as Product
+import Model.Product exposing (ColorId(..))
 import Model.Range exposing (..)
 import Layer.Fluid as Fluid exposing
     ( Model
@@ -90,12 +91,6 @@ generator =
     Fluid.generator
 
 
-type GradientColor
-    = ColorI
-    | ColorII
-    | ColorIII
-
-
 generateInitial : ( Int, Int ) -> Product.Palette -> Random.Generator Model
 generateInitial ( w, h ) palette =
     let
@@ -109,6 +104,7 @@ generateInitial ( w, h ) palette =
             , y = fRange -0.25 0.25
             }
         originOffset = { x = 0.6, y = 0.5 }
+
         generateBall { x, y, radius } =
             Random.map4
                 (\speed t arcMultX arcMultY ->
@@ -123,25 +119,35 @@ generateInitial ( w, h ) palette =
                 (randomFloatInRange tRange)
                 (randomFloatInRange amplitudeRange.x)
                 (randomFloatInRange amplitudeRange.y)
+
+        generateStop stop =
+            Random.constant
+                ( stop.stop
+                , Product.getPaletteColor stop.color palette
+                    |> Maybe.withDefault "#000000"
+                )
+
         generateGroup source =
             Random.map2
                 Tuple.pair
                 (Random.traverse generateBall source.balls)
-                (Random.traverse
-                    (\stop ->
-                        Random.constant {
-
-                        }
-                    )
-                source.gradient)
+                (Random.traverse generateStop source.gradient
+                    |> Random.map
+                        (\stops ->
+                            { stops = stops
+                            , orientation = Fluid.Vertical
+                            }
+                        )
+                )
             |> Random.map
                 (\(balls, gradient) ->
                     { balls = balls
                     , origin = vec2 0 0
                     , textures = Nothing
-                    , gradient = Nothing
+                    , gradient = Just gradient
                     }
                 )
+
     in
         initialGroups
             |> Random.traverse generateGroup

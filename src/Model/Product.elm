@@ -1,10 +1,12 @@
 module Model.Product exposing
     ( Product(..)
+    , ColorId(..)
     , default
     , allProducts
     , Palette
     , Color
     , getPalette
+    , getPaletteColor
     , getName
     , decode
     , encode
@@ -19,7 +21,14 @@ module Model.Product exposing
 type alias Color = String
 type alias ProductId = Int
 
+
 type alias Palette = List Color
+
+
+type ColorId
+    = ColorI
+    | ColorII
+    | ColorIII
 
 
 type Product
@@ -114,6 +123,17 @@ getPalette product =
         Hub -> [ "#00b8f1", "#9758fb", "#ffee45" ]
         Kotlin -> [ "#22b1ef", "#9062f7", "#fd8224" ]
         MPS -> [ "#0b8fff", "#21d789", "#ffdc52" ]
+
+
+getPaletteColor : ColorId -> Palette -> Maybe Color
+getPaletteColor colorId palette =
+    case colorId of
+        ColorI   -> List.head palette
+        ColorII  -> List.tail palette
+                        |> Maybe.andThen List.head
+        ColorIII -> List.tail palette
+                        |> Maybe.andThen List.tail
+                        |> Maybe.andThen List.head
 
 
 getName : Product -> String

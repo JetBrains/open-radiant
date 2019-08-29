@@ -261,6 +261,7 @@ gradientGenerator palette =
         loopedPalette = palette ++ (palette |> List.drop 1 |> List.reverse |> List.drop 1)
         loopedPaletteLen = List.length loopedPalette
         loopedPaletteArray = Array.fromList loopedPalette
+
         addColors shift stops =
             stops |>
                 List.indexedMap
@@ -273,6 +274,7 @@ gradientGenerator palette =
                                 |> Maybe.withDefault ""
                             )
                     )
+
         generateStopsWithColors =
             let
                 count = 4
@@ -298,10 +300,12 @@ gradientGenerator palette =
                     Random.int 0 paletteLen
                         |> Random.map (\shift -> addColors shift stops)
                 )
+
         generateOrientation =
             Random.float 0 1
                 |> Random.map
                     (\v -> if v >= 0.5 then Horizontal else Vertical)
+
     in
         Random.map2
             (\stopsWithColors orientation ->
@@ -355,15 +359,20 @@ remapTo ( newWidth, newHeight ) model =
                     )
                 |> Maybe.withDefault ( 1.0, 1.0 )
         -- _ = Debug.log "factor" ( factorW, factorH )
+
         remapGroup group =
             { group
             | balls = List.map remapBall group.balls
             }
+
         remapBall ball =
             { ball
             | origin =
-                Vec2.vec2 (Vec2.getX ball.origin * factorW) (Vec2.getY ball.origin * factorH)
+                Vec2.vec2
+                    (Vec2.getX ball.origin * factorW)
+                    (Vec2.getY ball.origin * factorH)
             }
+
     in
         { model
         | groups = List.map remapGroup model.groups
@@ -422,6 +431,7 @@ applyProductToGradients : Product.Product -> Model -> Model
 applyProductToGradients product model =
     let
         newProductPalette = Product.getPalette product |> Array.fromList
+
         updateStop index stop =
             let
                 paletteIndex = modBy (Array.length newProductPalette) index
@@ -429,6 +439,7 @@ applyProductToGradients product model =
                 Array.get paletteIndex newProductPalette
                     |> Maybe.map (\color -> Tuple.mapSecond (always color) stop)
                     |> Maybe.withDefault stop
+
         updateGroupGradient group =
             { group
             | gradient =
@@ -440,6 +451,7 @@ applyProductToGradients product model =
                     )
                     group.gradient
             }
+
     in
         { model | groups = List.map updateGroupGradient model.groups }
 
