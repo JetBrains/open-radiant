@@ -16,7 +16,7 @@ type AppMode
 
 
 default : AppMode
-default = Release
+default = Production
 
 
 encode : AppMode -> String

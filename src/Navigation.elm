@@ -86,7 +86,7 @@ fillDefaults (UncertainFragmentValue maybeMode maybeProduct maybeSize) =
 -- take current model and command to update the URL of the browser with its state
 pushUrlFrom : Model -> Cmd Msg
 pushUrlFrom model =
-    pushUrl model.navKey <| loadUrl model
+    pushUrl model.navKey <| "#" ++ loadUrl model
 
 
 -- take the new URL (not the one stored in the model) & model,
@@ -101,7 +101,7 @@ applyUrl url curModel =
                     [ if mode /= curModel.mode then ChangeMode mode else NoOp
                     , if product /= curModel.product then ChangeProduct product else NoOp
                     , if size /= curModel.size then Resize size else NoOp
-                    ] |> List.filter ((==) NoOp)
+                    ] |> List.filter ((/=) NoOp)
         Nothing ->
             []
 
@@ -151,12 +151,13 @@ loadUrl curModel =
 onUrlRequest : Browser.UrlRequest -> Msg
 onUrlRequest req =
     let
-        _ = req
+        _ =  Debug.log "req" req
     in NoOp
 
 
 onUrlChange : Url -> Msg
-onUrlChange = ApplyUrl
+onUrlChange url =
+    ApplyUrl <| Debug.log "url" url
 
 
 tryIfError : String -> (String -> Result () a) -> Result () a -> Result () a
@@ -220,11 +221,11 @@ encodeUncertainFragment uncertainFragment =
             ->
                 (maybeMode
                     |> Maybe.map Mode.encode
-                    |> Maybe.map ((++) "/")
+                    |> Maybe.map (\m -> m ++ "/")
                     |> Maybe.withDefault "") ++
                 (maybeProduct
                     |> Maybe.map Product.encode
-                    |> Maybe.map ((++) "/")
+                    |> Maybe.map (\p -> p ++ "/")
                     |> Maybe.withDefault "") ++
                 (maybeSize
                     |> Maybe.map SizeRule.encode

@@ -95,24 +95,22 @@ init flags url navKey =
                     (initialLayers mode)
                     createLayer
                     Gui.gui
-        ( model, commands ) =
-            initialModel
-                |> Nav.applyUrl url
+        ( model, command ) =
+            Nav.applyUrl url initialModel
                 |> batchUpdate initialModel
     in
         ( model
-        , case model.size of -- FIXME: use commands
-            Dimensionless ->
-                resizeToViewport
-            _ ->
-                if hasFssLayers model
-                    then rebuildAllFssLayersWith model
-                    else Cmd.none
+        , Cmd.batch
+            [ command
+            , case model.size of
+                Dimensionless ->
+                    resizeToViewport
+                _ ->
+                    if hasFssLayers model
+                        then rebuildAllFssLayersWith model
+                        else Cmd.none
+            ]
         )
-
-
-batchUpdate : Model -> List Msg -> ( Model, Cmd Msg )
-batchUpdate model messages = ( model, Cmd.none ) -- FIXME: implement
 
 
 initialLayers : AppMode -> List ( LayerKind, String, LayerModel )
@@ -183,8 +181,22 @@ update msg model =
                 )
 
         ApplyUrl url ->
-            Nav.applyUrl url model
-                |> batchUpdate model
+            let
+                (newModel, command) = Nav.applyUrl url model
+                    |> batchUpdate model
+            in
+                ( newModel
+                , Cmd.batch
+                    [ command
+                    , case model.size of
+                        Dimensionless ->
+                            resizeToViewport
+                        _ ->
+                            if hasFssLayers model
+                                then rebuildAllFssLayersWith model
+                                else Cmd.none
+                    ]
+                )
 
         GuiMessage guiMsg ->
             case model.gui of
@@ -816,6 +828,18 @@ update msg model =
         NoOp -> ( model, Cmd.none )
 
 
+batchUpdate : Model -> List Msg -> ( Model, Cmd Msg )
+batchUpdate model messages =
+    List.foldl
+        (\msg ( prevModel, prevCmd ) ->
+            update msg prevModel
+                |> Tuple.mapSecond
+                    (\newCmd -> Cmd.batch [ prevCmd, newCmd ])
+        )
+        ( model, Cmd.none )
+        messages
+
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
@@ -1030,6 +1054,15 @@ getSizeUpdate model =
     , sizeConstant = -1
     -- , mode = encodeMode model.mode
     }
+
+
+-- for the cases when navigation by URL contains no size data, but requests a resize
+-- fallbackToViewport : Model -> Msg -> Msg
+-- fallbackToViewport model msg =
+--     case msg of
+--         Resize Dimensionless ->
+--             Resize (UseViewport model.size)
+--         _ -> msg
 
 
 tellGui : (Gui.Model Msg -> a -> Gui.Msg Msg) -> Model -> a -> Msg
