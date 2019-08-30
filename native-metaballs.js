@@ -1,7 +1,7 @@
 const nm = require('./src/Layer/NativeMetaballs.js');
 
 function build(size, model, palette) {
-    // console.log('build', nm, model, layerModel);
+    //console.log('build', size, model, palette);
     return {
         size,
         model,
@@ -13,7 +13,7 @@ function build(size, model, palette) {
 };
 
 function update(size, model, palette, prevMetaballs) {
-    // console.log('update', nm, layerModel, prevLayerModel);
+    //console.log('update', size, model, palette, prevMetaballs);
     if (prevMetaballs) prevMetaballs.stop();
     return {
         size,

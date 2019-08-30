@@ -26,7 +26,7 @@ function m(target, width, height, model, colors_) {
       // colorIII: colors[0]
     }
 
-    const stop = function() { isStopped = true };
+    const stop = function() { console.log('stop'); isStopped = true };
 
     initialize(target, width, height);
 
@@ -118,7 +118,7 @@ function m(target, width, height, model, colors_) {
       return {x: randomFromTo(ranges.x), y: randomFromTo(ranges.y)}
     }
 
-    function onWindowResize(event) {
+    function onWindowResize(event) { // FIXME: use
       canvas.width = canvas.clientWidth;
       canvas.height = canvas.clientHeight;
 

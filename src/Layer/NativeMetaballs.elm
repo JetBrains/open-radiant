@@ -5,7 +5,7 @@ module Layer.NativeMetaballs exposing
     -- , export
     , view
     , generate
-    , generator
+    , generator, initialStateGenerator
     , Variety
     , Orbit
     )
@@ -98,8 +98,8 @@ generator =
     Fluid.generator
 
 
-generateInitial : ( Int, Int ) -> Product.Palette -> Random.Generator Model
-generateInitial ( w, h ) palette =
+initialStateGenerator : ( Int, Int ) -> Product.Palette -> Random.Generator Model
+initialStateGenerator ( w, h ) palette =
     let
         -- [ color1, color2, color3 ] =
         --     case palette of
@@ -115,7 +115,9 @@ generateInitial ( w, h ) palette =
         generateBall { x, y, radius } =
             Random.map4
                 (\speed t arcMultX arcMultY ->
-                    { origin = vec2 x y
+                    { origin = vec2
+                        (originOffset.x * toFloat w + x)
+                        (originOffset.y * toFloat h + y)
                     , radius = radius
                     , speed = speed
                     , phase = t
@@ -149,7 +151,7 @@ generateInitial ( w, h ) palette =
             |> Random.map
                 (\(balls, gradient) ->
                     { balls = balls
-                    , origin = vec2 0 0
+                    , origin = vec2 0 0 -- vec2 originOffset.x originOffset.y
                     , textures = Nothing
                     , gradient = Just gradient
                     }

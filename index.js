@@ -246,6 +246,7 @@ const updateOrInitNativeMetaballs = (size, layerModel, palette, index) => {
         app.ports.requestWindowResize.subscribe((size) => {
             debouncedResize(size);
         });
+        //debouncedResize(size);
     } else {
         const prev = allNativeMetaballs[index];
         allNativeMetaballs[index] = nativeMetaballs.update(size, layerModel, palette, prev.metaballs);
@@ -434,7 +435,8 @@ setTimeout(() => {
                 app.ports.rebuildFss.send({ value: fssScene, layer: index });
             }
             if (is.nativeMetaballs(layer)) {
-                updateOrInitNativeMetaballs(model.size, layer.model, model.palette, index);
+                // update is done at bang now.
+                // updateOrInitNativeMetaballs(model.size, layer.model, model.palette, index);
                 // app.ports.rebuildFss.send({ value: fssScene, layer: index });
             }
             // if (is.fluid(layer)) {

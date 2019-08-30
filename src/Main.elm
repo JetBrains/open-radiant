@@ -161,7 +161,7 @@ update msg model =
                     then generateAllFluidGrids model
                     else Cmd.none
                 , if hasNativeMetaballsLayers model
-                    then generateAllNativeMetaballs model
+                    then generateAllInitialNativeMetaballs model
                     else Cmd.none
                 ]
             )
@@ -1476,6 +1476,26 @@ generateAllNativeMetaballs model =
                         index)
 
 
+
+generateAllInitialNativeMetaballs : Model -> Cmd Msg
+generateAllInitialNativeMetaballs model =
+    let
+        palette = model.product |> Product.getPalette
+        isNativeMetaballsLayer layerDef =
+            case layerDef.model of
+                NativeMetaballsModel nativeMetaballsModel -> Just nativeMetaballsModel
+                _ -> Nothing
+    in model
+        |> forAllLayersOf
+                isNativeMetaballsLayer
+                (\index nmModel ->
+                    generateInitialNativeMetaballs
+                        model.size
+                        palette
+                        index)
+
+
+-- FIXME: same as generateAllNativeMetaballs?
 updateAllNativeMetaballsWith : Model -> Cmd Msg
 updateAllNativeMetaballsWith model =
     let
@@ -1512,6 +1532,20 @@ generateNativeMetaballs size variety orbit palette layerIdx =
                 orbit
                 palette
                 Fluid.defaultRange
+            )
+
+
+generateInitialNativeMetaballs
+    :  SizeRule
+    -> Product.Palette
+    -> LayerIndex
+    -> Cmd Msg
+generateInitialNativeMetaballs size palette layerIdx =
+    NativeMetaballs.generate
+        (UpdateNativeMetaballs layerIdx)
+            (NativeMetaballs.initialStateGenerator
+                (getRuleSizeOrZeroes size)
+                palette
             )
 
 
