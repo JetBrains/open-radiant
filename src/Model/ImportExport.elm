@@ -29,6 +29,7 @@ import Model.Html.Blend as HtmlBlend
 import Layer.FSS as FSS
 import Layer.Lorenz as Lorenz
 import Layer.Fluid as Fluid
+import Layer.Background as Background
 
 import Model.Core as M
 import Model.AppMode as Mode
@@ -159,6 +160,8 @@ encodeLayerDef layerDef =
 encodeLayerModel : M.LayerModel -> E.Value
 encodeLayerModel layerModel =
     case layerModel of
+        M.BackgroundModel bgModel ->
+            Background.encode bgModel
         M.FssModel fssModel ->
             [ ( "renderMode", FSS.encodeRenderMode fssModel.renderMode |> E.string )
             , ( "faces", encodeXY E.int fssModel.faces )
@@ -633,6 +636,9 @@ layerModelDecoder kind =
                         _ -> layerModel
                     )
 
+        M.Background ->
+            Background.decoder
+                |> D.map M.BackgroundModel
         -- TODO: add parsing other models here
         _ -> D.succeed <| M.initLayerModel kind -- FIXME: Fail to decode if layer is unknown, but don't fail if it just has empty model
         -- _ -> D.fail "unknown kind"

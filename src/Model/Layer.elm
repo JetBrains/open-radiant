@@ -4,6 +4,7 @@ import Model.Html.Blend as HtmlBlend
 import Model.WebGL.Blend as WGLBlend
 import WebGL.Settings.Blend as B
 
+import Layer.Background as Background
 import Layer.Canvas as Canvas
 -- import Layer.Cover as Cover
 import Layer.FSS as FSS
@@ -25,7 +26,8 @@ type alias LayerIndex = Int
 
 
 type LayerKind
-    = Lorenz
+    = Background
+    | Lorenz
     | Fractal
     | Template
     | Canvas
@@ -46,7 +48,8 @@ type LayerKind
 
 
 type LayerModel
-    = LorenzModel Lorenz.Model
+    = BackgroundModel Background.Model
+    | LorenzModel Lorenz.Model
     | FractalModel Fractal.Model
     | VoronoiModel Voronoi.Model
     | FssModel FSS.Model
@@ -73,7 +76,8 @@ type WebGLLayer_
 
 
 type HtmlLayer_
-    = CoverLayer
+    = BackgroundLayer
+    | CoverLayer
     | MetaballsLayer
     | NativeMetaballsLayer
     | FluidGridLayer
@@ -124,6 +128,7 @@ emptyLayer =
 initLayerModel : LayerKind -> LayerModel
 initLayerModel kind =
     case kind of
+        Background -> BackgroundModel Background.init
         Lorenz -> LorenzModel Lorenz.init
         Fractal -> FractalModel Fractal.init
         Template -> TemplateModel Template.init
@@ -142,6 +147,7 @@ initLayerModel kind =
 encodeKind : LayerKind -> String
 encodeKind kind =
     case kind of
+        Background -> "bg"
         Fss -> "fss"
         MirroredFss -> "fss-mirror"
         Lorenz -> "lorenz"
@@ -160,6 +166,7 @@ encodeKind kind =
 decodeKind : String -> Result String LayerKind
 decodeKind layerTypeStr =
     case layerTypeStr of
+        "bg" -> Ok Background
         "fss" -> Ok Fss
         "fss-mirror" -> Ok MirroredFss
         "lorenz" -> Ok Lorenz
@@ -190,7 +197,12 @@ getBlendForPort layer =
 createLayer : LayerKind -> LayerModel -> Maybe Layer
 createLayer kind layerModel =
     case ( kind, layerModel ) of
-        ( Fss, FssModel fssModel )  ->
+        ( Background, BackgroundModel bgModel ) ->
+            Just <|
+                HtmlLayer
+                BackgroundLayer
+                HtmlBlend.default
+        ( Fss, FssModel fssModel ) ->
             Just <|
                 WebGLLayer
                 ( FSS.build fssModel Nothing |> FssLayer Nothing )

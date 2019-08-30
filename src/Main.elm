@@ -48,6 +48,7 @@ import RenderQueue as RQ
 import Controls
 import Navigation as Nav
 
+import Layer.Background as Background
 import Layer.Lorenz as Lorenz
 import Layer.Fractal as Fractal
 import Layer.Voronoi as Voronoi
@@ -129,6 +130,7 @@ initialLayers mode =
 --    ]
     [ ( Cover, "Cover", CoverModel Cover.init )
     , ( NativeMetaballs, "NativeMetaballs", NativeMetaballsModel NativeMetaballs.init )
+    , ( Background, "Background", BackgroundModel Background.init )
     -- [ ( Fluid, "Fluid", FluidModel Fluid.init )
     -- [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
     -- [ ( FluidGrid, "FluidGrid", FluidGridModel FluidGrid.init )
@@ -1102,6 +1104,8 @@ layerToHtml model viewport index layerDef =
     case layerDef.layer of
         HtmlLayer htmlLayer htmlBlend ->
             case ( htmlLayer, layerDef.model ) of
+                ( BackgroundLayer, BackgroundModel bgModel ) ->
+                    Background.view viewport bgModel
                 ( CoverLayer, _ ) ->
                     Cover.view
                         model.mode

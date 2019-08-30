@@ -31,8 +31,8 @@
             "elm/parser": "1.1.0",
             "elm/regex": "1.0.0",
             "elm/virtual-dom": "1.0.2",
-            "owanturist/elm-union-find": "1.0.0",
             "fredcy/elm-parseint": "2.0.1",
+            "owanturist/elm-union-find": "1.0.0",
             "rtfeldman/elm-iso8601-date-strings": "1.1.2",
             "turboMaCk/any-dict": "1.1.0"
         }

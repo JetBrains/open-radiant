@@ -4,7 +4,7 @@ function m(target, width, height, model, colors_) {
 
     if (!model.groups.length) return;
 
-    console.log(model, colors_, width, height);
+    //console.log(model, colors_, width, height);
 
     let colors = colors_ || ['#341f49', '#f38038', '#ed3d7d'];
 
@@ -26,7 +26,7 @@ function m(target, width, height, model, colors_) {
       // colorIII: colors[0]
     }
 
-    const stop = function() { console.log('stop'); isStopped = true };
+    const stop = function() { isStopped = true };
 
     initialize(target, width, height);
 
@@ -35,6 +35,7 @@ function m(target, width, height, model, colors_) {
       canvas = target;
       canvas.width = width;
       canvas.height = height;
+      canvas.className = 'layer';
 
       const glConfig = {
         premultipliedAlpha: true,

@@ -187,7 +187,7 @@ init navKey appMode initialLayers createLayer createGui =
 
 initEmpty : Nav.Key -> AppMode -> Model
 initEmpty navKey mode =
-    { background = "#171717"
+    { background = "rgba(0, 0, 0, 0)" -- FIXME: get rid of this property thanks to Background layer
     , mode = mode
     , gui = Nothing
     , paused = False

@@ -90,6 +90,13 @@ svg.text-layer {
 	right: 0;
 }
 
+
+.layer { /* TODO: use it everywhere where absolute-position is needed */
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
 .overlay-panel {
     position: absolute;
     bottom: 5px !important;
@@ -266,5 +273,5 @@ svg.text-layer {
 
 
 #native-metaballs-0 {
-    background: #171717;
+    /* background: #171717; */
 }
