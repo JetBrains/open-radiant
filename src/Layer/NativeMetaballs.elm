@@ -46,7 +46,14 @@ type alias Orbit = Fluid.Orbit
 
 
 init : Model
-init = Fluid.init
+init =
+    let fluidDefault = Fluid.init
+    in
+        { fluidDefault
+        | variety = Variety 0.2
+        , orbit = Orbit 0.25
+        }
+
 
 
 -- export : Model -> PortModel
