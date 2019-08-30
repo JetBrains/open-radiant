@@ -150,14 +150,16 @@ loadUrl curModel =
 -- See https://package.elm-lang.org/packages/elm/browser/latest/Browser#UrlRequest
 onUrlRequest : Browser.UrlRequest -> Msg
 onUrlRequest req =
-    let
-        _ =  Debug.log "req" req
-    in NoOp
+    -- let
+    --     _ =  Debug.log "req" req
+    -- in NoOp
+    NoOp
 
 
 onUrlChange : Url -> Msg
-onUrlChange url =
-    ApplyUrl <| Debug.log "url" url
+-- onUrlChange url =
+--     -- ApplyUrl <| Debug.log "url" url
+onUrlChange = ApplyUrl
 
 
 tryIfError : String -> (String -> Result () a) -> Result () a -> Result () a
