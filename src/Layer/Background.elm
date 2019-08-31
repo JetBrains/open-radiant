@@ -39,9 +39,13 @@ type alias Model =
     }
 
 
+defaultMode : Mode
+defaultMode = Fill "#171717"
+
+
 init : Model
 init =
-    { mode = Fill "#171717"
+    { mode = defaultMode
     , opacity = 1.0
     }
 
@@ -110,9 +114,48 @@ renderBackground ( w, h ) mode opacity =
 
 
 encode : Model -> E.Value
-encode _ =
-    E.object []
+encode model =
+    let
+        encodeMode =
+            case model.mode of
+                Fill _ -> E.string "fill"
+                Gradient _ -> E.string "gradient"
+        encodeValue =
+            case model.mode of
+                Fill color ->
+                    E.object
+                        [ ( "color", E.string color ) ]
+                Gradient gradient ->
+                    E.object
+                        [ ( "gradient", G.encode gradient ) ]
+    in
+        E.object
+            [ ( "opacity", E.float model.opacity )
+            , ( "mode", encodeMode )
+            , ( "value", encodeValue )
+            ]
 
 
 decode : D.Decoder Model
-decode = D.succeed init
+decode =
+    let
+        makeValue
+            = D.map2
+                (\maybeColor maybeGradient ->
+                    case ( maybeColor, maybeGradient ) of
+                        ( Just color, _ ) -> Fill color
+                        ( _, Just gradient ) -> Gradient gradient
+                        ( Nothing, Nothing ) -> defaultMode
+                )
+                (D.maybe <| D.field "color" D.string)
+                (D.maybe <| D.field "gradient" G.decode)
+    in
+        D.map3
+            (\opacity mode modeValue ->
+                { opacity = opacity
+                , mode = modeValue -- TODO: ensure mode string corresponds to value?
+                }
+            )
+            (D.field "opacity" D.float)
+            (D.field "mode" D.string)
+            (D.field "value" makeValue)
