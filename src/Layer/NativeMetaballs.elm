@@ -16,6 +16,8 @@ import Html.Attributes as H
 
 import Math.Vector2 as Vec2 exposing (..)
 
+import Gradient exposing (Orientation(..))
+
 import Model.Product as Product
 import Model.Product exposing (ColorId(..))
 import Model.Range exposing (..)
@@ -144,7 +146,7 @@ initialStateGenerator ( w, h ) palette =
                     |> Random.map
                         (\stops ->
                             { stops = stops
-                            , orientation = Fluid.Vertical
+                            , orientation = Vertical
                             }
                         )
                 )

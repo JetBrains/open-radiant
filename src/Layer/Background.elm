@@ -3,7 +3,7 @@ module Layer.Background exposing
     , init
     , view
     , encode
-    , decoder
+    , decode
     )
 
 
@@ -46,7 +46,10 @@ init =
 view : Viewport {} -> Model -> Html msg
 view viewport model =
     let
-        ( w, h ) = ( Vec2.getX viewport.size, Vec2.getY viewport.size )
+        ( w, h ) =
+            ( Vec2.getX viewport.size
+            , Vec2.getY viewport.size
+            )
     in
         div [ H.class "background-layer layer" ]
             [ renderBackground ( floor w, floor h ) model.mode model.opacity
@@ -77,5 +80,5 @@ encode : Model -> E.Value
 encode _ = E.object []
 
 
-decoder : D.Decoder Model
-decoder = D.succeed init
+decode : D.Decoder Model
+decode = D.succeed init

@@ -4,7 +4,6 @@ module Layer.Fluid exposing
     , BallGroup
     , Base64Url(..)
     , TextureAndSize
-    , Gradient, GradientStops, GradientOrientation(..)
     , applyProductToGradients
     , remapTo
     , makeEntities
@@ -37,6 +36,7 @@ import WebGL.Texture as Texture
 import WebGL.Texture exposing (Texture)
 
 import Viewport exposing (Viewport)
+import Gradient exposing (..)
 
 import Model.Product as Product
 import Model.Range exposing (..)
@@ -63,12 +63,6 @@ type alias BallGroup =
     }
 
 
-type alias Gradient =
-    { stops: GradientStops
-    , orientation: GradientOrientation
-    }
-
-
 type alias Model =
     { groups : List BallGroup
     , forSize : Maybe ( Int, Int ) -- FIXME: if we always use the main window size for generating model, then it's the duplication
@@ -89,18 +83,6 @@ type Base64Url = Base64Url String
 
 -- type alias GradientsToLoad =
 --     List Base64Url
-
-
-type alias ColorStop =
-    ( Float, Product.Color )
-
-
-type alias GradientStops = List ColorStop
-
-
-type GradientOrientation
-    = Horizontal
-    | Vertical
 
 
 type alias Ranges =

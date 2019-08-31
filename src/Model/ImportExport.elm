@@ -31,6 +31,8 @@ import Layer.Lorenz as Lorenz
 import Layer.Fluid as Fluid
 import Layer.Background as Background
 
+import Gradient
+
 import Model.Core as M
 import Model.AppMode as Mode
 import Model.Layer as M
@@ -194,31 +196,17 @@ encodeLayerModel layerModel =
                         , ( "ax", E.float <| Vec2.getX ball.amplitude )
                         , ( "ay", E.float <| Vec2.getY ball.amplitude )
                         ]
-                encodeStop ( stopPos, stopColor )  =
-                    E.object
-                        [ ( "pos", E.float stopPos )
-                        , ( "color", E.string stopColor )
-                        ]
                 encodeSize ( width, height )  =
                     E.object
                         [ ( "width", E.int width )
                         , ( "height", E.int height )
-                        ]
-                encodeGradient { stops, orientation } =
-                    E.object
-                        [ ( "stops", E.list encodeStop stops )
-                        , ( "orientation",
-                            case orientation of
-                                Fluid.Horizontal -> E.string "horizontal"
-                                Fluid.Vertical -> E.string "vertical"
-                            )
                         ]
                 encodeGroup group =
                     E.object
                         [ ( "balls", E.list encodeBall group.balls )
                         , ( "gradient"
                             , group.gradient
-                                |> Maybe.map encodeGradient
+                                |> Maybe.map Gradient.encode
                                 |> Maybe.withDefault E.null
                             )
                         , ( "origin"
@@ -576,24 +564,6 @@ layerModelDecoder kind =
                         (D.field "phase" D.float |> D.withDefault 0)
                         (D.field "ax" D.float |> D.withDefault (getFloatMin range.amplitude.x))
                         (D.field "ay" D.float |> D.withDefault (getFloatMin range.amplitude.y))
-                makeGradientStop =
-                    D.map2
-                        Tuple.pair
-                        (D.field "pos" D.float)
-                        (D.field "color" D.string)
-                makeGradient =
-                    D.map2
-                        (\stops orientationStr ->
-                            { stops = stops
-                            , orientation =
-                                case orientationStr of
-                                    "horizontal" -> Fluid.Horizontal
-                                    "vertical" -> Fluid.Vertical
-                                    _ -> Fluid.Vertical
-                            }
-                        )
-                        (D.field "stops" <| D.list makeGradientStop)
-                        (D.field "orientation" <| D.string)
                 makeOrigin =
                     D.map2
                         Vec2.vec2
@@ -609,7 +579,7 @@ layerModelDecoder kind =
                             }
                         )
                         (D.field "balls" <| D.list makeBall)
-                        (D.field "gradient" <| D.maybe <| makeGradient)
+                        (D.field "gradient" <| D.maybe <| Gradient.decode)
                         (D.field "origin" <| D.maybe <| makeOrigin)
                 makeSize =
                     D.map2 Tuple.pair
@@ -637,7 +607,7 @@ layerModelDecoder kind =
                     )
 
         M.Background ->
-            Background.decoder
+            Background.decode
                 |> D.map M.BackgroundModel
         -- TODO: add parsing other models here
         _ -> D.succeed <| M.initLayerModel kind -- FIXME: Fail to decode if layer is unknown, but don't fail if it just has empty model
