@@ -1,5 +1,6 @@
 module Layer.Background exposing
     ( Model
+    , Mode(..)
     , init
     , view
     , encode
@@ -17,8 +18,11 @@ import Math.Vector2 as Vec2 exposing (..)
 
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
+import Svg.Attributes as S exposing (style)
 
 import Viewport exposing (Viewport)
+
+import Gradient as G exposing (..)
 
 
 type alias Color = String
@@ -26,8 +30,7 @@ type alias Color = String
 
 type Mode
     = Fill Color
-    | VerticalGradient { top : Color, bottom : Color }
-    | HorizontalGradient { left : Color, right : Color }
+    | Gradient G.Gradient
 
 
 type alias Model =
@@ -58,12 +61,12 @@ view viewport model =
 
 renderBackground : ( Int, Int ) ->  Mode -> Float -> Svg msg
 renderBackground ( w, h ) mode opacity =
-    case mode of
-        Fill color ->
-            svg
-                [ width  <| String.fromInt w
-                , height <| String.fromInt h
-                ]
+    svg
+        [ width  <| String.fromInt w
+        , height <| String.fromInt h
+        ]
+        (case mode of
+            Fill color ->
                 [ rect
                     [ x "0"
                     , y "0"
@@ -71,13 +74,44 @@ renderBackground ( w, h ) mode opacity =
                     , height <| String.fromInt h
                     , fill color
                     ]
-                    []
+                    [ ]
                 ]
-        _ -> svg [] []
+            Gradient gradient ->
+                [ defs
+                    [ ]
+                    [ linearGradient
+                        [ id "x-gradient-background"
+                        , x1 "0%"
+                        , y1 "0%"
+                        , x2 (if gradient.orientation == G.Horizontal then "100%" else "0%")
+                        , y2 (if gradient.orientation == G.Horizontal then "0%" else "100%")
+                        ]
+                        (gradient.stops
+                            |> List.map
+                                (\( sOffset, sColor ) ->
+                                    stop
+                                        [ offset <| String.fromFloat sOffset
+                                        , stopColor sColor
+                                        ]
+                                        [ ]
+                                )
+                        )
+                    ]
+                , rect
+                    [ x "0"
+                    , y "0"
+                    , width <| String.fromInt w
+                    , height <| String.fromInt h
+                    , fill "url(#x-gradient-background)"
+                    ]
+                    [ ]
+                ]
+        )
 
 
 encode : Model -> E.Value
-encode _ = E.object []
+encode _ =
+    E.object []
 
 
 decode : D.Decoder Model

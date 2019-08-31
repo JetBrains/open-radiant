@@ -45,8 +45,9 @@ import TronGui as Gui
 import Viewport exposing (Viewport)
 import RenderQueue as RQ
 
-import Controls
+-- import Controls
 import Navigation as Nav
+import Gradient as Gradient
 
 import Layer.Background as Background
 import Layer.Lorenz as Lorenz
@@ -116,30 +117,47 @@ init flags url navKey =
 
 initialLayers : AppMode -> List ( LayerKind, String, LayerModel )
 initialLayers mode =
---    [ ( Fss, "Lower Layer", FssModel FSS.init )
---    , ( Fss, "Mid Layer", FssModel FSS.init )
---    , ( Fss, "Top layer"
---      , let
---            fssModel = FSS.init
---        in
---            { fssModel
---            | renderMode = FSS.PartialLines
---            , shareMesh = True
---            } |> FssModel
---      )    , ( Cover, "Cover", CoverModel Cover.init )
---    ]
-    [ ( Cover, "Cover", CoverModel Cover.init )
-    , ( NativeMetaballs, "NativeMetaballs", NativeMetaballsModel NativeMetaballs.init )
-    , ( Background, "Background", BackgroundModel Background.init )
-    -- [ ( Fluid, "Fluid", FluidModel Fluid.init )
-    -- [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
-    -- [ ( FluidGrid, "FluidGrid", FluidGridModel FluidGrid.init )
-    ]
-    |> List.filter (\(kind, _, _) ->
-        case ( kind, mode ) of
-            ( Cover, Ads ) -> False
-            _ -> True
-    )
+    let
+        gradient =
+            { orientation = Gradient.Vertical
+            , stops =
+                [ ( 0, "#171717" )
+                , ( 0.8, "#eeeeee" )
+                , ( 1.0, "#ffffff" )
+                ]
+            }
+        layers =
+            [ ( Cover, "Cover", CoverModel Cover.init )
+            , ( NativeMetaballs, "NativeMetaballs", NativeMetaballsModel NativeMetaballs.init )
+            , ( Background, "Background"
+              , BackgroundModel
+                    { mode = Background.Gradient gradient
+                    , opacity = 1.0
+                    }
+              )
+            -- [ ( Fluid, "Fluid", FluidModel Fluid.init )
+            -- [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
+            -- [ ( FluidGrid, "FluidGrid", FluidGridModel FluidGrid.init )
+            -- [ ( Fss, "Lower Layer", FssModel FSS.init )
+            -- , ( Fss, "Mid Layer", FssModel FSS.init )
+            -- , ( Fss, "Top layer"
+            -- , let
+            --       fssModel = FSS.init
+            --   in
+            --       { fssModel
+            --       | renderMode = FSS.PartialLines
+            --       , shareMesh = True
+            --       } |> FssModel
+            --  ), ( Cover, "Cover", CoverModel Cover.init )
+            -- ]
+            ]
+    in
+        layers
+            |> List.filter (\(kind, _, _) ->
+                case ( kind, mode ) of
+                    ( Cover, Ads ) -> False
+                    _ -> True
+            )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -1092,11 +1110,11 @@ ensurePositive (x, y) =
     then Just (x, y) else Nothing
 
 
-mapControls : Model -> Controls.Msg -> Msg
-mapControls model controlsMsg =
-    case controlsMsg of
-        Controls.Configure cfg -> Configure 0 (LorenzModel cfg)
-        Controls.Rotate th -> Rotate th
+-- mapControls : Model -> Controls.Msg -> Msg
+-- mapControls model controlsMsg =
+--     case controlsMsg of
+--         Controls.Configure cfg -> Configure 0 (LorenzModel cfg)
+--         Controls.Rotate th -> Rotate th
 
 
 layerToHtml : Model -> Viewport {} -> Int -> LayerDef -> Html Msg
