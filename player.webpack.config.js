@@ -54,7 +54,7 @@ const config = {
               replace: 'case 2:'
             },
             {
-              search: /return (\w+)\((\w+)\.location\.href\)\.(\w+)\|\|P\(1\)/,
+              search: /return (\w+)\((\w+)\.location\.href\)\.(\w+)\s*\|\|\s*\w+\(1\)/,
               replace: function(match, x, y, z) {
                 const href = y + '.location.href';
                 const toLocalhost = '\'http://localhost:8080/\'+' + href + '.substring(' + href + '.indexOf(\'index.html\'))';
