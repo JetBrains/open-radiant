@@ -1,5 +1,6 @@
 module Layer.Fluid exposing
     ( Model
+    , StaticModel--, StaticModelWithGradients
     , Mesh
     , BallGroup
     , Base64Url(..)
@@ -13,12 +14,13 @@ module Layer.Fluid exposing
     , generator, gradientGenerator
     , generate, generateGradient, generateGradientsFor
     , defaultRange
-    , Variety(..), Orbit(..), Ranges
+    , Orbit(..), Ranges
     )
 
 
 import Array exposing (Array)
 import Random exposing (..)
+import Random.Extra as Random exposing (traverse)
 import Task
 
 import Animation exposing (..)
@@ -29,6 +31,8 @@ import Math.Vector2 as Vec2 exposing (..)
 
 import Algorithm.Base64.BMP exposing (encode24With)
 import Algorithm.Base64.Image exposing (..)
+import Algorithm.Gaussian as Gauss
+import Algorithm.Gaussian exposing (gaussian)
 
 import WebGL
 import WebGL.Settings exposing (Setting)
@@ -39,7 +43,11 @@ import Viewport exposing (Viewport)
 import Gradient exposing (..)
 
 import Model.Product as Product
+import Model.Product exposing (ColorId(..))
 import Model.Range exposing (..)
+
+
+defaultColors = [ "#f38038", "#ed3d7d", "#341f49" ]
 
 
 type alias Ball =
@@ -63,10 +71,24 @@ type alias BallGroup =
     }
 
 
+type alias StaticModel
+    = List
+        { balls : List
+            { radius : Float
+            , x : Float
+            , y : Float
+            }
+        , gradient : List
+            { color : ColorId
+            , stop : Float
+            }
+        }
+
+
 type alias Model =
     { groups : List BallGroup
     , forSize : Maybe ( Int, Int ) -- FIXME: if we always use the main window size for generating model, then it's the duplication
-    , variety : Variety
+    , variety : Gauss.Variety
     , orbit : Orbit
     }
 
@@ -85,6 +107,13 @@ type Base64Url = Base64Url String
 --     List Base64Url
 
 
+type Randomization
+    = RandomizeInitial Product.Palette StaticModel
+    -- | RandomizeDynamics Ranges Product.Palette Variety Orbit StaticModel
+    | RandomizeDynamics Ranges Product.Palette Gauss.Variety Orbit StaticModel
+    | RandomizeAll Ranges Product.Palette Gauss.Variety Orbit
+
+
 type alias Ranges =
     { groups : IntRange
     , balls : IntRange
@@ -97,11 +126,7 @@ type alias Ranges =
         }
     }
 
-
-type Variety = Variety Float -- 0.01..1 -- a.k.a Variance
 type Orbit = Orbit Float -- 0..1
-type Focus = Focus Float -- 0..1
-type Gaussian = Gaussian Float -- 0..1
 
 
 -- type FocusChange
@@ -117,7 +142,7 @@ init : Model
 init =
     { groups = [ ]
     , forSize = Nothing
-    , variety = Variety 0.5
+    , variety = Gauss.Variety 0.5
     , orbit = Orbit 0.5
     }
 
@@ -136,41 +161,41 @@ defaultRange =
     }
 
 
-gaussian : Float -> Focus -> Variety -> Gaussian
-gaussian x (Focus focus) (Variety variety) =
-    let
-        numerator = (x - focus) ^ 2
-        denominator = 2 * (variety ^ 2)
-    in
-        Gaussian <| e ^ (-1 * numerator / denominator)
+generator : ( Int, Int ) -> Randomization -> Random.Generator Model
+generator size randomization =
+    case randomization of
+        RandomizeInitial palette initialModel ->
+            generateFromInitialState size palette initialModel
+        RandomizeAll range palette variety orbit ->
+            generateEverything size range palette variety orbit
+        RandomizeDynamics range palette variety orbit model ->
+            generateDynamics size range palette variety orbit model
 
 
-generator : ( Int, Int ) -> Variety -> Orbit -> Product.Palette -> Ranges -> Random.Generator Model
-generator ( w, h ) variety orbit palette range =
+generateEverything
+    : ( Int, Int )
+    -> Ranges
+    -> Product.Palette
+    -> Gauss.Variety
+    -> Orbit
+    -> Random.Generator Model
+generateEverything ( w, h ) range palette variety orbit =
     let
-        generateGaussianX =
-            Random.float 0 1
-        applyGaussX gaussX value =
-            case gaussian gaussX (Focus value) variety of
-                (Gaussian gaussY) -> gaussY
-        gaussInIntRange inRange gaussX =
-            gaussInFloatRange inRange gaussX
-                |> Random.map floor
-        gaussInFloatRange { min, max } gaussX =
-            Random.float 0 1
-                |> Random.map (applyGaussX gaussX)
-                |> Random.map (\v -> min + (v * (max - min)) )
+        gaussInFloatRange fRange gaussX =
+            Gauss.inFloatRange gaussX variety fRange |> Gauss.unwrap
         generatePosition gaussX =
             Random.map2 vec2
-                (Random.float 0 <| toFloat w)
-                (Random.float 0 <| toFloat h)
+                -- (Random.float 0 <| toFloat w)
+                -- (Random.float 0 <| toFloat h)
+                (gaussX |> gaussInFloatRange (fRange 0 <| toFloat w))
+                (gaussX |> gaussInFloatRange (fRange 0 <| toFloat h))
         generateRadius = gaussInFloatRange range.radius
         generateSpeed = gaussInFloatRange range.speed
         generatePhase = gaussInFloatRange range.phase
         generateAmplitude gaussX =
             Random.map2 vec2
-                (gaussInFloatRange range.amplitude.x gaussX)
-                (gaussInFloatRange range.amplitude.y gaussX)
+                (gaussX |> gaussInFloatRange range.amplitude.x)
+                (gaussX |> gaussInFloatRange range.amplitude.y)
         generateGroup gaussX =
             randomIntInRange range.balls
                 |> Random.andThen
@@ -210,7 +235,7 @@ generator ( w, h ) variety orbit palette range =
                     )
         makeBall { center, radius } = Ball center radius
     in
-        generateGaussianX
+        Gauss.generateX
             |> Random.andThen
                 (\gaussX ->
                     randomIntInRange range.groups
@@ -226,6 +251,171 @@ generator ( w, h ) variety orbit palette range =
                 , variety = variety
                 , orbit = orbit
                 })
+
+
+generateFromInitialState
+    :  ( Int, Int )
+    -> Product.Palette
+    -- -> StaticModelWithGradients
+    -> StaticModel
+    -> Random.Generator Model
+generateFromInitialState ( w, h ) palette initialState =
+    let
+        -- [ color1, color2, color3 ] =
+        --     case palette of
+        --         [ c1, c2, c3 ]::_ -> [ c1, c2, c3 ]
+        speedRange = fRange 0.2 2.0
+        tRange = fRange 0 200
+        amplitudeRange =
+            { x = fRange -0.25 0.75
+            , y = fRange -0.25 0.25
+            }
+        originOffset = { x = 0.6, y = 0.5 }
+
+        generateBall { x, y, radius } =
+            Random.map4
+                (\speed t arcMultX arcMultY ->
+                    -- FIXME: apply the offset before passing the model,
+                    -- so it won't be that very different from generateDynamics
+                    { origin = vec2
+                        (originOffset.x * toFloat w + x)
+                        (originOffset.y * toFloat h + y)
+                    , radius = radius
+                    , speed = speed
+                    , phase = t
+                    , amplitude = vec2 arcMultX arcMultY
+                    }
+                )
+                (randomFloatInRange speedRange)
+                (randomFloatInRange tRange)
+                (randomFloatInRange amplitudeRange.x)
+                (randomFloatInRange amplitudeRange.y)
+
+        generateStop stop =
+            Random.constant
+                ( stop.stop
+                , Product.getPaletteColor stop.color palette
+                    |> Maybe.withDefault "#000000"
+                )
+
+        generateGroup source =
+            Random.map2
+                Tuple.pair
+                (Random.traverse generateBall source.balls)
+                (Random.traverse generateStop source.gradient
+                    |> Random.map
+                        (\stops ->
+                            { stops = stops
+                            , orientation = Vertical
+                            }
+                        )
+                )
+            |> Random.map
+                (\(balls, gradient) ->
+                    { balls = balls
+                    , origin = vec2 0 0 -- vec2 originOffset.x originOffset.y
+                    , textures = Nothing
+                    , gradient = Just gradient
+                    }
+                )
+
+    in
+        Gauss.generateX
+            |> Random.andThen
+                (\gaussX ->
+                    initialState
+                        |> Random.traverse generateGroup
+                        |> Random.map
+                                (\groups ->
+                                    { groups = groups
+                                    , forSize = Just ( w, h )
+                                    , variety = Gauss.Variety 0.5
+                                    , orbit = Orbit 0.5
+                                    }
+                                )
+                )
+
+
+
+-- TODO:
+-- getStatics : Model -> StaticModel
+-- getStatics model =
+
+
+generateDynamics
+     : ( Int, Int )
+    -> Ranges
+    -> Product.Palette
+    -> Gauss.Variety
+    -> Orbit
+    -> StaticModel
+    -> Random.Generator Model
+generateDynamics ( w, h ) range palette variety orbit staticModel =
+    let
+        -- [ color1, color2, color3 ] =
+        --     case palette of
+        --         [ c1, c2, c3 ]::_ -> [ c1, c2, c3 ]
+        gaussInFloatRange fRange gaussX =
+            Gauss.inFloatRange gaussX variety fRange |> Gauss.unwrap
+
+        generateBall gaussX { x, y, radius } =
+            Random.map4
+                (\speed t arcMultX arcMultY ->
+                    { origin = vec2 x y
+                    , radius = radius
+                    , speed = speed
+                    , phase = t
+                    , amplitude = vec2 arcMultX arcMultY
+                    }
+                )
+                (gaussX |> gaussInFloatRange range.speed)
+                (gaussX |> gaussInFloatRange range.phase)
+                (gaussX |> gaussInFloatRange range.amplitude.x)
+                (gaussX |> gaussInFloatRange range.amplitude.y)
+
+        generateStop stop =
+            Random.constant
+                ( stop.stop
+                , Product.getPaletteColor stop.color palette
+                    |> Maybe.withDefault "#000000"
+                )
+
+        generateGroup gaussX source =
+            Random.map2
+                Tuple.pair
+                (Random.traverse (generateBall gaussX) source.balls)
+                (Random.traverse generateStop source.gradient
+                    |> Random.map
+                        (\stops ->
+                            { stops = stops
+                            , orientation = Vertical
+                            }
+                        )
+                )
+            |> Random.map
+                (\(balls, gradient) ->
+                    { balls = balls
+                    , origin = vec2 0 0 -- vec2 originOffset.x originOffset.y
+                    , textures = Nothing
+                    , gradient = Just gradient
+                    }
+                )
+
+    in
+        Gauss.generateX
+            |> Random.andThen
+                (\gaussX ->
+                    staticModel
+                        |> Random.traverse (generateGroup gaussX)
+                        |> Random.map
+                                (\groups ->
+                                    { groups = groups
+                                    , forSize = Just ( w, h )
+                                    , variety = variety
+                                    , orbit = orbit
+                                    }
+                                )
+                )
 
 
 generate : (Model -> msg) -> Random.Generator Model -> Cmd msg

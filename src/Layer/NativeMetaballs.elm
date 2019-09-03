@@ -31,9 +31,6 @@ import Random
 import Random.Extra as Random exposing (traverse)
 
 
-defaultColors = [ "#f38038", "#ed3d7d", "#341f49" ]
-
-
 type alias Model = Fluid.Model
 
 
@@ -55,7 +52,6 @@ init =
         | variety = Variety 0.2
         , orbit = Orbit 0.25
         }
-
 
 
 -- export : Model -> PortModel
@@ -100,79 +96,7 @@ generator =
     Fluid.generator
 
 
-initialStateGenerator : ( Int, Int ) -> Product.Palette -> Random.Generator Model
-initialStateGenerator ( w, h ) palette =
-    let
-        -- [ color1, color2, color3 ] =
-        --     case palette of
-        --         [ c1, c2, c3 ]::_ -> [ c1, c2, c3 ]
-        speedRange = fRange 0.2 2.0
-        tRange = fRange 0 200
-        amplitudeRange =
-            { x = fRange -0.25 0.75
-            , y = fRange -0.25 0.25
-            }
-        originOffset = { x = 0.6, y = 0.5 }
-
-        generateBall { x, y, radius } =
-            Random.map4
-                (\speed t arcMultX arcMultY ->
-                    { origin = vec2
-                        (originOffset.x * toFloat w + x)
-                        (originOffset.y * toFloat h + y)
-                    , radius = radius
-                    , speed = speed
-                    , phase = t
-                    , amplitude = vec2 arcMultX arcMultY
-                    }
-                )
-                (randomFloatInRange speedRange)
-                (randomFloatInRange tRange)
-                (randomFloatInRange amplitudeRange.x)
-                (randomFloatInRange amplitudeRange.y)
-
-        generateStop stop =
-            Random.constant
-                ( stop.stop
-                , Product.getPaletteColor stop.color palette
-                    |> Maybe.withDefault "#000000"
-                )
-
-        generateGroup source =
-            Random.map2
-                Tuple.pair
-                (Random.traverse generateBall source.balls)
-                (Random.traverse generateStop source.gradient
-                    |> Random.map
-                        (\stops ->
-                            { stops = stops
-                            , orientation = Vertical
-                            }
-                        )
-                )
-            |> Random.map
-                (\(balls, gradient) ->
-                    { balls = balls
-                    , origin = vec2 0 0 -- vec2 originOffset.x originOffset.y
-                    , textures = Nothing
-                    , gradient = Just gradient
-                    }
-                )
-
-    in
-        initialGroups
-            |> Random.traverse generateGroup
-            |> Random.map
-                    (\groups ->
-                        { groups = groups
-                        , forSize = Just ( w, h )
-                        , variety = Variety 0.5
-                        , orbit = Orbit 0.5
-                        }
-                    )
-
-
-
+initialGroups : Fluid.StaticModel
 initialGroups =
     -- group 1
     [
