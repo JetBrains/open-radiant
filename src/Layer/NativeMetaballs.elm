@@ -5,8 +5,7 @@ module Layer.NativeMetaballs exposing
     -- , export
     , view
     , generate
-    , generator, initialStateGenerator
-    , Variety
+    , generator
     , Orbit
     )
 
@@ -24,8 +23,9 @@ import Model.Range exposing (..)
 import Layer.Fluid as Fluid exposing
     ( Model
     , generate, generator
-    , Variety(..), Orbit(..), Ranges
+    , Orbit(..), Ranges
     )
+import Algorithm.Gaussian  as Gaussian exposing (Variety(..))
 
 import Random
 import Random.Extra as Random exposing (traverse)
@@ -34,7 +34,6 @@ import Random.Extra as Random exposing (traverse)
 type alias Model = Fluid.Model
 
 
-type alias Variety = Fluid.Variety
 type alias Orbit = Fluid.Orbit
 
 
@@ -87,10 +86,7 @@ generate =
 
 generator
     :  ( Int, Int )
-    -> Fluid.Variety
-    -> Fluid.Orbit
-    -> Product.Palette
-    -> Fluid.Ranges
+    -> Fluid.Randomization
     -> Random.Generator Model
 generator =
     Fluid.generator

@@ -1,6 +1,7 @@
 module Layer.Fluid exposing
     ( Model
     , StaticModel--, StaticModelWithGradients
+    , Randomization(..)
     , Mesh
     , BallGroup
     , Base64Url(..)
@@ -66,8 +67,17 @@ type alias BallGroup =
             { gradient : TextureAndSize
             , data : TextureAndSize
             }
-    , gradient : Maybe Gradient
+    , gradient : Gradient
     , origin : Vec2
+    }
+
+
+type alias Model =
+    { groups : List BallGroup
+    , forSize : Maybe ( Int, Int ) -- FIXME: if we always use the main window size
+                                   -- for generating model, then it's the duplication
+    , variety : Gauss.Variety
+    , orbit : Orbit
     }
 
 
@@ -78,19 +88,11 @@ type alias StaticModel
             , x : Float
             , y : Float
             }
-        , gradient : List
-            { color : ColorId
+        , gradient : List -- FIXME: Gradient
+            { color : Color -- ColorId
             , stop : Float
             }
         }
-
-
-type alias Model =
-    { groups : List BallGroup
-    , forSize : Maybe ( Int, Int ) -- FIXME: if we always use the main window size for generating model, then it's the duplication
-    , variety : Gauss.Variety
-    , orbit : Orbit
-    }
 
 
 type alias Mesh = WebGL.Mesh Vertex
@@ -166,10 +168,10 @@ generator size randomization =
     case randomization of
         RandomizeInitial palette initialModel ->
             generateFromInitialState size palette initialModel
-        RandomizeAll range palette variety orbit ->
-            generateEverything size range palette variety orbit
         RandomizeDynamics range palette variety orbit model ->
             generateDynamics size range palette variety orbit model
+        RandomizeAll range palette variety orbit ->
+            generateEverything size range palette variety orbit
 
 
 generateEverything
@@ -215,7 +217,7 @@ generateEverything ( w, h ) range palette variety orbit =
                             |> Random.map
                                 (\gradient ->
                                     { balls = balls
-                                    , gradient = Just gradient
+                                    , gradient = gradient
                                     }
                                 )
                     )
@@ -294,8 +296,9 @@ generateFromInitialState ( w, h ) palette initialState =
         generateStop stop =
             Random.constant
                 ( stop.stop
-                , Product.getPaletteColor stop.color palette
-                    |> Maybe.withDefault "#000000"
+                , stop.color
+                -- , Product.getPaletteColor stop.color palette
+                --    |> Maybe.withDefault "#000000"
                 )
 
         generateGroup source =
@@ -315,7 +318,7 @@ generateFromInitialState ( w, h ) palette initialState =
                     { balls = balls
                     , origin = vec2 0 0 -- vec2 originOffset.x originOffset.y
                     , textures = Nothing
-                    , gradient = Just gradient
+                    , gradient = gradient
                     }
                 )
 
@@ -336,10 +339,24 @@ generateFromInitialState ( w, h ) palette initialState =
                 )
 
 
-
--- TODO:
--- getStatics : Model -> StaticModel
--- getStatics model =
+extractStatics : Model -> StaticModel
+extractStatics model =
+    model.groups
+        |> List.map (\group ->
+            { balls =
+                group.balls
+                   |> List.map (\ball ->
+                        { x = Vec2.getX ball.origin
+                        , y = Vec2.getY ball.origin
+                        , radius = ball.radius
+                        })
+            , gradient =
+                group.gradient.stops
+                    |> List.map (\s ->
+                        { stop = Tuple.first s
+                        , color = Tuple.second s
+                        })
+            })
 
 
 generateDynamics
@@ -376,8 +393,9 @@ generateDynamics ( w, h ) range palette variety orbit staticModel =
         generateStop stop =
             Random.constant
                 ( stop.stop
-                , Product.getPaletteColor stop.color palette
-                    |> Maybe.withDefault "#000000"
+                , stop.color
+                -- , Product.getPaletteColor stop.color palette
+                --    |> Maybe.withDefault "#000000"
                 )
 
         generateGroup gaussX source =
@@ -397,10 +415,9 @@ generateDynamics ( w, h ) range palette variety orbit staticModel =
                     { balls = balls
                     , origin = vec2 0 0 -- vec2 originOffset.x originOffset.y
                     , textures = Nothing
-                    , gradient = Just gradient
+                    , gradient = gradient
                     }
                 )
-
     in
         Gauss.generateX
             |> Random.andThen
@@ -506,7 +523,7 @@ generateGradientsFor putIntoMsg palette model =
                         List.map2
                             (\group gradient ->
                                 { group
-                                | gradient = Just gradient
+                                | gradient = gradient
                                 }
                             )
                             model.groups
@@ -613,15 +630,12 @@ applyProductToGradients product model =
                     |> Maybe.withDefault stop
 
         updateGroupGradient group =
+            let curGradient = group.gradient in
             { group
             | gradient =
-                Maybe.map
-                    (\gradient ->
-                        { gradient
-                        | stops = List.indexedMap updateStop gradient.stops
-                        }
-                    )
-                    group.gradient
+                { curGradient
+                | stops = List.indexedMap updateStop curGradient.stops
+                }
             }
 
     in
