@@ -575,12 +575,12 @@ update msg model =
             )
 
         RebuildMetaballs index metaballsModel ->
-            ( model |> rebuildMetaballs index metaballsModel
+            ( model |> updateMetaballsModel index metaballsModel
             , Cmd.none
             )
 
         UpdateNativeMetaballs index nativeMetaballsModel ->
-            ( model
+            ( model |> updateNativeMetaballsModel index nativeMetaballsModel
             , updateNativeMetaballs
                 { index = index
                 , size = getRuleSizeOrZeroes model.size
@@ -591,7 +591,7 @@ update msg model =
             )
 
         RebuildFluid index fluidModel ->
-            ( model |> rebuildFluid index fluidModel.groups
+            ( model |> updateFluidModel index fluidModel.groups
             , buildFluidGradientTextures
                 ( index
                 , IE.encodeLayerModel model.product <| FluidModel fluidModel
@@ -1315,8 +1315,8 @@ isNativeMetaballsLayer layerDef =
         _ -> Nothing
 
 
-rebuildMetaballs : LayerIndex -> Metaballs.Model -> Model -> Model
-rebuildMetaballs index newMetaballsModel model =
+updateMetaballsModel : LayerIndex -> Metaballs.Model -> Model -> Model
+updateMetaballsModel index newMetaballsModel model =
     model |> updateLayerWithItsModel
         index
         (\(layer, layerModel) ->
@@ -1329,8 +1329,22 @@ rebuildMetaballs index newMetaballsModel model =
         )
 
 
-rebuildFluid : LayerIndex -> List Fluid.BallGroup -> Model -> Model
-rebuildFluid index newGroups model =
+updateNativeMetaballsModel : LayerIndex -> NativeMetaballs.Model -> Model -> Model
+updateNativeMetaballsModel index newNativeMetaballsModel model =
+    model |> updateLayerWithItsModel
+        index
+        (\(layer, layerModel) ->
+            -- FIXME: why update model in two places??
+            ( layer
+            , case layerModel of
+                NativeMetaballsModel _ -> NativeMetaballsModel newNativeMetaballsModel
+                _ -> layerModel
+            )
+        )
+
+
+updateFluidModel : LayerIndex -> List Fluid.BallGroup -> Model -> Model
+updateFluidModel index newGroups model =
     model |> updateLayerWithItsModel
         index
         (\(layer, layerModel) ->
@@ -1525,7 +1539,6 @@ generateAllInitialNativeMetaballs model =
                         index)
 
 
--- FIXME: same as generateAllNativeMetaballs?
 updateAllNativeMetaballsWith : Model -> Cmd Msg
 updateAllNativeMetaballsWith model =
     let
@@ -1534,12 +1547,14 @@ updateAllNativeMetaballsWith model =
         |> forAllLayersOf
                 isNativeMetaballsLayer
                 (\index nmModel ->
-                    generateNativeMetaballs
+                    generateNativeMetaballsDynamics
                         model.size
                         nmModel.variety
                         nmModel.orbit
                         palette
-                        index)
+                        (Fluid.extractStatics nmModel)
+                        index
+                )
 
 
 generateNativeMetaballs
@@ -1569,6 +1584,23 @@ generateInitialNativeMetaballs size palette layerIdx =
             (NativeMetaballs.generator
                 (getRuleSizeOrZeroes size)
                 <| Fluid.RandomizeInitial palette NativeMetaballs.initial
+            )
+
+
+generateNativeMetaballsDynamics
+    :  SizeRule
+    -> Gaussian.Variety
+    -> Fluid.Orbit
+    -> Product.Palette
+    -> Fluid.StaticModel
+    -> LayerIndex
+    -> Cmd Msg
+generateNativeMetaballsDynamics size variety orbit palette curModel layerIdx =
+    NativeMetaballs.generate
+        (UpdateNativeMetaballs layerIdx)
+            (NativeMetaballs.generator
+                (getRuleSizeOrZeroes size)
+                <| Fluid.RandomizeDynamics Fluid.defaultRange palette variety orbit curModel
             )
 
 

@@ -13,7 +13,6 @@ function build(size, model, palette) {
 };
 
 function update(size, model, palette, prevMetaballs) {
-    //console.log('update', size, model, palette, prevMetaballs);
     if (prevMetaballs) prevMetaballs.stop();
     return {
         size,

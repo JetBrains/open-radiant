@@ -15,6 +15,7 @@ module Layer.Fluid exposing
     , generate, generateGradient, generateGradientsFor
     , defaultRange
     , Orbit(..), Ranges
+    , extractStatics
     )
 
 
@@ -343,6 +344,7 @@ generateDynamics ( w, h ) range palette variety orbit staticModel =
         -- [ color1, color2, color3 ] =
         --     case palette of
         --         [ c1, c2, c3 ]::_ -> [ c1, c2, c3 ]
+
         gaussInFloatRange fRange gaussX =
             Gauss.inFloatRange gaussX variety fRange |> Gauss.unwrap
 
