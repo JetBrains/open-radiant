@@ -104,7 +104,7 @@ type alias Segment =
 
 init : Model
 init =
-    { colors = []
+    { colors = Product.transparentPalette
     , groups = []
     }
 
@@ -382,14 +382,7 @@ toCircles t (w, h) model =
 view : Viewport {} -> Float -> Float -> ( Int, Int ) -> Model -> Html a
 view vp t dt mousePos model =
     let
-        { colorOne, colorTwo, colorThree } =
-            case Product.getPalette product of
-            -- FIXME: use product from the model
-                cOne::cTwo::cThree::_ ->
-                    { colorOne = cOne, colorTwo = cTwo, colorThree = cThree }
-                _ ->
-                    { colorOne = "#000000", colorTwo = "#000000", colorThree = "#000000" }
-        -- _ = Debug.log "t" t
+        (Product.Palette colorOne colorTwo colorThree) = Product.getPalette product
         groupsCount = List.length model.groups
         ( w, h ) = ( V2.getX vp.size, V2.getY vp.size )
         (Scene groups) = scene t ( w, h ) mousePos <| toCircles t ( w, h ) model

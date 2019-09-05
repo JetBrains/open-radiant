@@ -23,6 +23,8 @@ import Json.Decode.Pipeline as D exposing (required, optional, hardcoded)
 import Json.Decode.Extra as D exposing (andMap)
 import Json.Encode as E exposing (encode, Value, string, int, float, bool, list, object)
 
+import Algorithm.Gaussian as Gaussian
+
 import Model.WebGL.Blend as WGLBlend
 import Model.Html.Blend as HtmlBlend
 
@@ -38,7 +40,7 @@ import Model.AppMode as Mode
 import Model.Layer as M
 import Model.SizeRule as SizeRule
 import Model.Error as M
-import Model.Product as Product exposing (Product, encode, decode)
+import Model.Product as Product exposing (Product, encode, decode, encodeGradient, decodeGradient)
 import Model.Range exposing (..)
 
 import TronGui as GUI
@@ -131,8 +133,8 @@ webglOrHtml layerDef =
         M.HtmlLayer _ _ -> "html"
 
 
-encodeLayerDef : M.LayerDef -> E.Value
-encodeLayerDef layerDef =
+encodeLayerDef : Product -> M.LayerDef -> E.Value
+encodeLayerDef product layerDef =
     E.object
         [ ( "kind", encodeKind layerDef.kind )
         , ( "blend",
@@ -152,15 +154,15 @@ encodeLayerDef layerDef =
                     HtmlBlend.encode htmlBlend |> E.string
           )
         , ( "isOn", layerDef.on |> E.bool )
-        , ( "model", encodeLayerModel layerDef.model )
+        , ( "model", encodeLayerModel product layerDef.model )
         , ( "name", layerDef.name |> E.string )
         , ( "webglOrHtml", webglOrHtml layerDef |> E.string )
         -- , ( "mesh", E.string "" )
         ]
 
 
-encodeLayerModel : M.LayerModel -> E.Value
-encodeLayerModel layerModel =
+encodeLayerModel : Product -> M.LayerModel -> E.Value
+encodeLayerModel product layerModel =
     case layerModel of
         M.BackgroundModel bgModel ->
             Background.encode bgModel
@@ -204,11 +206,11 @@ encodeLayerModel layerModel =
                 encodeGroup group =
                     E.object
                         [ ( "balls", E.list encodeBall group.balls )
-                        , ( "gradient"
-                            , group.gradient
-                                |> Maybe.map Gradient.encode
-                                |> Maybe.withDefault E.null
-                            )
+                        , ( "gradient" ,
+                                Product.encodeGradient
+                                    (Product.getPalette product)
+                                    group.gradient
+                          )
                         , ( "origin"
                             , E.object
                             [ ( "x", E.float <| Vec2.getX group.origin )
@@ -223,12 +225,12 @@ encodeLayerModel layerModel =
                         fluidModel.forSize
                             |> Maybe.map encodeSize
                             |> Maybe.withDefault E.null)
-                , ( "variety", E.float <| case fluidModel.variety of Fluid.Variety v -> v)
+                , ( "variety", E.float <| case fluidModel.variety of Gaussian.Variety v -> v)
                 , ( "orbit", E.float <| case fluidModel.orbit of Fluid.Orbit v -> v)
                 ] |> E.object
         M.NativeMetaballsModel
             nativeMetaballsModel ->
-                encodeLayerModel <| M.FluidModel nativeMetaballsModel
+                encodeLayerModel product <| M.FluidModel nativeMetaballsModel
         _ -> [ ( "layer-model", E.string "do-not-exists" ) ] |> E.object
         -- FIXME: fail for unknown layer kinds, but don't fail if layer just has empty model
 
@@ -240,7 +242,7 @@ encodeModel_ model =
         , ( "mode", E.string <| Mode.encode model.mode )
         , ( "theta", E.float model.theta )
         , ( "omega", E.float model.omega )
-        , ( "layers", E.list encodeLayerDef model.layers )
+        , ( "layers", E.list (encodeLayerDef model.product) model.layers )
         -- , ( "layers", E.list (List.filterMap
         --         (\layer -> Maybe.map encodeLayer layer) model.layers) )
         -- for b/w compatibility, we also encode size as numbers, but sizeRule is what should matter
@@ -253,6 +255,7 @@ encodeModel_ model =
         , ( "palette",
             model.product
                 |> Product.getPalette
+                |> Product.encodePalette
                 |> E.list E.string )
         , ( "product", model.product |> Product.encode |> E.string )
         ]
@@ -269,21 +272,26 @@ encodePortModel model =
     , now = model.now
     , theta = model.theta
     , omega = model.omega
-    , layers = List.map encodePortLayer model.layers
+    , layers = List.map (encodePortLayer model.product) model.layers
     , size = SizeRule.getRuleSize model.size |> Maybe.withDefault ( -1, -1 )
     , sizeRule = SizeRule.encode model.size |> Just
     , origin = model.origin
     , mouse = model.mouse
-    , palette = model.product |> Product.getPalette
+    , palette = model.product |> Product.getPalette |> Product.encodePalette
     , product = model.product |> Product.encode
     }
 
 
-decodePortModel : Nav.Key -> M.CreateLayer -> M.PortModel -> Result (List ModelDecodeError) M.Model
-decodePortModel navKey createLayer portModel =
+decodePortModel
+    :  Nav.Key
+    -> M.CreateLayer
+    -> Product
+    -> M.PortModel
+    -> Result (List ModelDecodeError) M.Model
+decodePortModel navKey createLayer product portModel =
     let
         couldBeDecodedLayers =
-            List.map (decodePortLayer createLayer) portModel.layers
+            List.map (decodePortLayer createLayer product) portModel.layers
         extractLayerDecodeErrors res =
             case res of
                 Ok layer -> Nothing
@@ -339,8 +347,8 @@ decodePortModel navKey createLayer portModel =
 
 
 
-encodePortLayer : M.LayerDef -> M.PortLayerDef
-encodePortLayer layerDef =
+encodePortLayer : Product -> M.LayerDef -> M.PortLayerDef
+encodePortLayer product layerDef =
     { kind = M.encodeKind layerDef.kind
     , isOn = layerDef.on
     , webglOrHtml = webglOrHtml layerDef
@@ -352,19 +360,23 @@ encodePortLayer layerDef =
                 ( Nothing, HtmlBlend.encode htmlBlend |> Just )
     , name = layerDef.name
     , model = layerDef.model
-        |> encodeLayerModel
+        |> encodeLayerModel product
         |> E.encode 2
     }
 
 
-decodePortLayer : M.CreateLayer -> M.PortLayerDef -> Result (List LayerDecodeError) M.LayerDef
-decodePortLayer createLayer portLayerDef  =
+decodePortLayer
+    :  M.CreateLayer
+    -> Product
+    -> M.PortLayerDef
+    -> Result (List LayerDecodeError) M.LayerDef
+decodePortLayer createLayer product portLayerDef  =
     M.decodeKind portLayerDef.kind
         |> Result.mapError KindDecodeFailed
         |> Result.andThen
             (\kind ->
                 portLayerDef.model
-                    |> D.decodeString (layerModelDecoder kind)
+                    |> D.decodeString (layerModelDecoder kind product)
                     |> Result.map (\layerModel -> ( kind, layerModel ))
                     |> Result.mapError LayerModelDecodeFailed
             )
@@ -436,8 +448,8 @@ maybeToDecoder failureReason maybe =
         Nothing -> D.fail failureReason
 
 
-layerDefDecoder : M.CreateLayer -> D.Decoder M.LayerDef
-layerDefDecoder createLayer =
+layerDefDecoder : M.CreateLayer -> Product -> D.Decoder M.LayerDef
+layerDefDecoder createLayer product =
     let
         createLayerDef kindStr layerModelStr name isOn blendStr =
             M.decodeKind kindStr
@@ -445,7 +457,7 @@ layerDefDecoder createLayer =
                 |> D.andThen
                     (\kind ->
                         layerModelStr
-                            |> D.decodeString (layerModelDecoder kind)
+                            |> D.decodeString (layerModelDecoder kind product)
                             |> resultToDecoder_ D.errorToString
                             |> D.map (\layerModel -> ( kind, layerModel ))
                     )
@@ -486,8 +498,8 @@ layerDefDecoder createLayer =
             |> D.andThen identity
 
 
-layerModelDecoder : M.LayerKind -> D.Decoder M.LayerModel
-layerModelDecoder kind =
+layerModelDecoder : M.LayerKind -> Product -> D.Decoder M.LayerModel
+layerModelDecoder kind product =
     case kind of
         M.Fss ->
             let
@@ -543,7 +555,7 @@ layerModelDecoder kind =
                     |> D.andMap (D.field "iris" D.float)
                     |> D.andThen identity
         M.MirroredFss ->
-            layerModelDecoder M.Fss
+            layerModelDecoder M.Fss product
         M.Fluid ->
             let
                 range = Fluid.defaultRange
@@ -574,12 +586,13 @@ layerModelDecoder kind =
                         (\balls gradient origin ->
                             { balls = balls
                             , textures = Nothing
-                            , gradient = gradient
+                            , gradient = gradient |> Maybe.withDefault Product.emptyGradient
                             , origin = origin |> Maybe.withDefault (Vec2.vec2 0 0)
                             }
                         )
                         (D.field "balls" <| D.list makeBall)
-                        (D.field "gradient" <| D.maybe <| Gradient.decode)
+                        (D.field "gradient"
+                            <| D.maybe <| Product.decodeGradient (Product.getPalette product))
                         (D.field "origin" <| D.maybe <| makeOrigin)
                 makeSize =
                     D.map2 Tuple.pair
@@ -590,7 +603,7 @@ layerModelDecoder kind =
                     (\groups forSize variety orbit ->
                         { groups = groups
                         , forSize = forSize
-                        , variety = variety |> Maybe.withDefault 0.5 |> Fluid.Variety
+                        , variety = variety |> Maybe.withDefault 0.5 |> Gaussian.Variety
                         , orbit = orbit |> Maybe.withDefault 0.5 |> Fluid.Orbit
                         })
                     (D.field "groups" <| D.list makeGroup)
@@ -599,7 +612,7 @@ layerModelDecoder kind =
                     (D.maybe <| D.field "orbit" D.float)
                     |> D.map M.FluidModel
         M.NativeMetaballs ->
-            layerModelDecoder M.Fluid |>
+            layerModelDecoder M.Fluid product |>
                 D.map (\layerModel ->
                     case layerModel of
                         M.FluidModel fluidModel -> M.NativeMetaballsModel fluidModel
@@ -627,7 +640,7 @@ modelDecoder navKey currentMode createLayer createGui =
             origin
             mouse
             now
-            productStr =
+            product =
             let
                 initialModel = M.init navKey currentMode [] createLayer createGui
                 sizeResult =
@@ -639,8 +652,8 @@ modelDecoder navKey currentMode createLayer createGui =
             in
                 sizeResult
                     |> resultToDecoder
-                    |> D.map2
-                        (\product size ->
+                    |> D.map
+                        (\size ->
                             { initialModel
                             | background = background
                             , theta = theta
@@ -654,7 +667,6 @@ modelDecoder navKey currentMode createLayer createGui =
                             --, palette = Product.getPalette product
                             }
                         )
-                        (Product.decode productStr |> resultToDecoder)
 
     in
         -- case maybeSizeRule of
@@ -662,18 +674,24 @@ modelDecoder navKey currentMode createLayer createGui =
         --     Nothing -> case maybeSize of
         --         Just (w, h) -> M.Custom w h
         --         Nothing -> SizeRule.default
-        D.succeed createModel
-            |> D.andMap (D.field "background" D.string)
-            |> D.andMap (D.field "theta" D.float)
-            |> D.andMap (D.field "omega" D.float)
-            |> D.andMap (D.field "layers" (layerDefDecoder createLayer |> D.list))
-            |> D.andMap (D.maybe (D.field "size" intPairDecoder))
-            |> D.andMap (D.maybe (D.field "sizeRule" D.string))
-            |> D.andMap (D.field "origin" intPairDecoder)
-            |> D.andMap (D.field "mouse" intPairDecoder)
-            |> D.andMap (D.field "now" D.float)
-            |> D.andMap (D.field "product" D.string)
+        D.field "product" D.string
+            |> D.map (Product.decode >> resultToDecoder)
             |> D.andThen identity
+            |> D.andThen
+            (\product ->
+                D.succeed createModel
+                    |> D.andMap (D.field "background" D.string)
+                    |> D.andMap (D.field "theta" D.float)
+                    |> D.andMap (D.field "omega" D.float)
+                    |> D.andMap (D.field "layers" (layerDefDecoder createLayer product |> D.list))
+                    |> D.andMap (D.maybe (D.field "size" intPairDecoder))
+                    |> D.andMap (D.maybe (D.field "sizeRule" D.string))
+                    |> D.andMap (D.field "origin" intPairDecoder)
+                    |> D.andMap (D.field "mouse" intPairDecoder)
+                    |> D.andMap (D.field "now" D.float)
+                    |> D.andMap (D.succeed product)
+                    |> D.andThen identity
+            )
 
 
 decodeModel

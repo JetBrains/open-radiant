@@ -12,19 +12,29 @@ module Model.Product exposing
     , getCoverTextSize
     , getId
     , ProductId
-    , Palette
+    , Palette(..)
     , Color
+    , transparentPalette
     , getPalette
     , getPaletteColor
     , paletteToList
-    , paletteToArray
+    , encodePalette
+    , decodePalette
+    -- , paletteToArray
     , applyPalette
+    , emptyGradient
+    , encodeGradient
+    , decodeGradient
     )
 
 
 import Array exposing (..)
 
+import Json.Encode as E exposing (..)
+import Json.Decode as D exposing (..)
+
 import Gradient as Generic exposing (Gradient)
+import Gradient as GenericGradient exposing (encode, decode)
 import Gradient as Gradient exposing (Orientation)
 
 
@@ -32,7 +42,7 @@ type alias Color = String
 type alias ProductId = Int
 
 
-type Palette = Palette Color Color Color
+type Palette = Palette Color Color Color -- TODO: include (Maybe Product)?
 
 
 type alias Gradient =
@@ -45,6 +55,7 @@ type ColorId
     = ColorI
     | ColorII
     | ColorIII
+    -- TODO: Unknown
 
 
 type Product
@@ -75,6 +86,10 @@ type Product
 
 default : Product
 default = JetBrains
+
+
+transparentPalette : Palette
+transparentPalette = Palette "rgba(0,0,0,0)" "rgba(0,0,0,0)" "rgba(0,0,0,0)"
 
 
 allProducts : List Product
@@ -320,10 +335,10 @@ getPaletteColor colorId (Palette color1 color2 color3) =
 
 
 applyPalette
-    :  Gradient
-    -> Palette
+    :  Palette
+    -> Gradient
     -> Generic.Gradient
-applyPalette gradient palette =
+applyPalette palette gradient =
     { stops =
         gradient.stops |>
             List.map
@@ -332,10 +347,60 @@ applyPalette gradient palette =
     }
 
 
+-- TODO: convert just stops, not the whole gradient
+fromGenericGradient
+    :  Palette
+    -> Generic.Gradient
+    -> Gradient
+fromGenericGradient (Palette c1 c2 c3) { stops, orientation } =
+    let
+        loadColor colorStr =
+            if (colorStr == c1) then ColorI
+            else if (colorStr == c2) then ColorII
+            else if (colorStr == c3) then ColorIII
+            else ColorI
+    in
+        { stops =
+            stops |> List.map (Tuple.mapSecond loadColor)
+        , orientation = orientation
+        }
+
+
 paletteToList : Palette -> List Color
 paletteToList (Palette c1 c2 c3) =
     [ c1, c2, c3 ]
 
 
-paletteToArray : Palette -> Array Color
-paletteToArray = paletteToList >> Array.fromList
+-- paletteToArray : Palette -> Array Color
+-- paletteToArray = paletteToList >> Array.fromList
+
+
+decodePalette : List String -> Palette
+decodePalette colors =
+    case colors of
+        c1::c2::c3:: _ -> Palette c1 c2 c3
+        _ -> transparentPalette
+
+
+encodePalette : Palette -> List Color
+encodePalette = paletteToList
+
+
+emptyGradient : Gradient
+emptyGradient =
+    { stops = []
+    , orientation = Gradient.Horizontal
+    }
+
+
+decodeGradient : Palette -> D.Decoder Gradient
+decodeGradient palette =
+    GenericGradient.decode
+        |> D.map (fromGenericGradient palette)
+
+
+encodeGradient : Palette -> Gradient -> E.Value
+encodeGradient palette gradient =
+    gradient
+        |> applyPalette palette
+        |> GenericGradient.encode

@@ -21,6 +21,8 @@ import Url exposing (..)
 
 import WebGL.Texture exposing (Texture)
 
+import Algorithm.Gaussian as Gaussian exposing (Variety)
+
 import Model.Layer exposing (..)
 import Model.AppMode exposing (..)
 import Model.Error exposing (..)
@@ -100,7 +102,7 @@ type Msg
     | RequestNewFluid LayerIndex
     | RebuildFluid LayerIndex Fluid.Model
     | RegenerateFluidGradients LayerIndex
-    | ChangeFluidVariety LayerIndex Fluid.Variety
+    | ChangeFluidVariety LayerIndex Gaussian.Variety
     | ChangeFluidOrbit LayerIndex Fluid.Orbit
     | RequestNewFluidGrid LayerIndex
     | RebuildFluidGrid LayerIndex FluidGrid.Model
@@ -109,7 +111,7 @@ type Msg
         LayerIndex
         (List { gradient : Fluid.TextureAndSize, data : Fluid.TextureAndSize })
     | UpdateNativeMetaballs LayerIndex NativeMetaballs.Model
-    | ChangeNativeMetaballsVariety LayerIndex NativeMetaballs.Variety
+    | ChangeNativeMetaballsVariety LayerIndex Gaussian.Variety
     | ChangeNativeMetaballsOrbit LayerIndex NativeMetaballs.Orbit
     | Randomize
     | ApplyRandomizer PortModel

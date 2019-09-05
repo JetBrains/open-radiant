@@ -6,6 +6,7 @@ module Gradient exposing
     , Orientation(..)
     , encode
     , decode
+    , none
     )
 
 
@@ -32,6 +33,13 @@ type alias Stop =
 
 
 type alias Stops = List Stop
+
+
+none : Gradient
+none =
+    { stops = []
+    , orientation = Horizontal
+    }
 
 
 encode : Gradient -> E.Value

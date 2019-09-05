@@ -196,4 +196,14 @@ initialGroups =
             , { color = ColorI,   stop = 1.0 }
             ]
         }
-    ]
+    ] |> List.map
+        (\group ->
+            { balls = group.balls
+            , gradient =
+                { stops =
+                    group.gradient
+                        |> List.map (\s -> ( s.stop, s.color ))
+                , orientation = Vertical
+                }
+            }
+        )
