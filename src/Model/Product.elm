@@ -1,12 +1,9 @@
 module Model.Product exposing
     ( Product(..)
     , ColorId(..)
+    , Gradient
     , default
     , allProducts
-    , Palette
-    , Color
-    , getPalette
-    , getPaletteColor
     , getName
     , decode
     , encode
@@ -15,14 +12,33 @@ module Model.Product exposing
     , getCoverTextSize
     , getId
     , ProductId
+    , Palette
+    , Color
+    , getPalette
+    , getPaletteColor
+    , paletteToList
+    , paletteToArray
+    , applyPalette
     )
+
+
+import Array exposing (..)
+
+import Gradient as Generic exposing (Gradient)
+import Gradient as Gradient exposing (Orientation)
 
 
 type alias Color = String
 type alias ProductId = Int
 
 
-type alias Palette = List Color
+type Palette = Palette Color Color Color
+
+
+type alias Gradient =
+    { stops: List ( Float, ColorId )
+    , orientation: Gradient.Orientation
+    }
 
 
 type ColorId
@@ -96,44 +112,6 @@ allProducts =
 
 -- layerTwoConfig.lights.ambient = [ '#000000', '#4b4e76' ];
 -- layerOneConfig.lights.diffuse = [ '#000000', '#fb4e76' ];
-
-getPalette : Product -> Palette
-getPalette product =
-    case product of
-        JetBrains -> [ "#ad3259",  "#aa48ff", "#ffdb00" ]
-        IntelliJ -> [ "#0b67cc",  "#fc31fe", "#ffd08d" ]
-        PhpStorm ->  [ "#b345f1", "#765af8", "#ff318c" ]
-        PyCharm -> [ "#09f58f", "#ed8b00", "#ffe400" ]
-        RubyMine -> [ "#e52763", "#8f41cd", "#ea7211" ]
-        WebStorm -> [ "#00cdd7", "#2086d7", "#fff045" ]
-        CLion -> [ "#22d88f", "#029de0", "#ed358c" ]
-        DataGrip -> [ "#22d88f", "#9775f8", "#ff59e6" ]
-        AppCode -> [ "#247ce6", "#00daf0", "#1ddf93" ]
-        GoLand -> [ "#0670c7", "#ea4fff", "#3bea62" ]
-        ReSharper -> [ "#c21456", "#e14ce3", "#fdbc2c" ]
-        ReSharperCpp ->  [ "#fdbc2c", "#e14ce3", "#c21456" ]
-        DotCover -> [ "#ff7500", "#7866ff", "#e343e6" ]
-        DotMemory -> [ "#ffbd00", "#7866ff", "#e343e6" ]
-        DotPeek -> [ "#00caff", "#7866ff", "#e343e6" ]
-        DotTrace -> [ "#fc1681", "#786bfb", "#e14ce3" ]
-        Rider -> [ "#c90f5e", "#077cfb", "#fdb60d" ]
-        TeamCity -> [ "#0cb0f2", "#905cfb", "#3bea62" ]
-        YouTrack -> [ "#0cb0f2", "#905cfb", "#ff318c" ]
-        Upsource -> [ "#22b1ef", "#9062f7", "#fd8224" ]
-        Hub -> [ "#00b8f1", "#9758fb", "#ffee45" ]
-        Kotlin -> [ "#22b1ef", "#9062f7", "#fd8224" ]
-        MPS -> [ "#0b8fff", "#21d789", "#ffdc52" ]
-
-
-getPaletteColor : ColorId -> Palette -> Maybe Color
-getPaletteColor colorId palette =
-    case colorId of
-        ColorI   -> List.head palette
-        ColorII  -> List.tail palette
-                        |> Maybe.andThen List.head
-        ColorIII -> List.tail palette
-                        |> Maybe.andThen List.tail
-                        |> Maybe.andThen List.head
 
 
 getName : Product -> String
@@ -302,3 +280,62 @@ twoLetterCode product =
         Hub -> "HB_"
         Kotlin -> "KT_"
         MPS -> "MPS_"
+
+
+getPalette : Product -> Palette
+getPalette product =
+    let p = Palette in
+    case product of
+        JetBrains -> p "#ad3259" "#aa48ff" "#ffdb00"
+        IntelliJ ->  p "#0b67cc" "#fc31fe" "#ffd08d"
+        PhpStorm ->  p "#b345f1" "#765af8" "#ff318c"
+        PyCharm ->   p "#09f58f" "#ed8b00" "#ffe400"
+        RubyMine ->  p "#e52763" "#8f41cd" "#ea7211"
+        WebStorm ->  p "#00cdd7" "#2086d7" "#fff045"
+        CLion ->     p "#22d88f" "#029de0" "#ed358c"
+        DataGrip ->  p "#22d88f" "#9775f8" "#ff59e6"
+        AppCode ->   p "#247ce6" "#00daf0" "#1ddf93"
+        GoLand ->    p "#0670c7" "#ea4fff" "#3bea62"
+        ReSharper -> p "#c21456" "#e14ce3" "#fdbc2c"
+        ReSharperCpp -> p "#fdbc2c" "#e14ce3" "#c21456"
+        DotCover ->  p "#ff7500" "#7866ff" "#e343e6"
+        DotMemory -> p "#ffbd00" "#7866ff" "#e343e6"
+        DotPeek ->   p "#00caff" "#7866ff" "#e343e6"
+        DotTrace ->  p "#fc1681" "#786bfb" "#e14ce3"
+        Rider ->     p "#c90f5e" "#077cfb" "#fdb60d"
+        TeamCity ->  p "#0cb0f2" "#905cfb" "#3bea62"
+        YouTrack ->  p "#0cb0f2" "#905cfb" "#ff318c"
+        Upsource ->  p "#22b1ef" "#9062f7" "#fd8224"
+        Hub ->       p "#00b8f1" "#9758fb" "#ffee45"
+        Kotlin ->    p "#22b1ef" "#9062f7" "#fd8224"
+        MPS ->       p "#0b8fff" "#21d789" "#ffdc52"
+
+
+getPaletteColor : ColorId -> Palette -> Color
+getPaletteColor colorId (Palette color1 color2 color3) =
+    case colorId of
+        ColorI   -> color1
+        ColorII  -> color2
+        ColorIII -> color3
+
+
+applyPalette
+    :  Gradient
+    -> Palette
+    -> Generic.Gradient
+applyPalette gradient palette =
+    { stops =
+        gradient.stops |>
+            List.map
+                (Tuple.mapSecond <| \c -> getPaletteColor c palette)
+    , orientation = gradient.orientation
+    }
+
+
+paletteToList : Palette -> List Color
+paletteToList (Palette c1 c2 c3) =
+    [ c1, c2, c3 ]
+
+
+paletteToArray : Palette -> Array Color
+paletteToArray = paletteToList >> Array.fromList

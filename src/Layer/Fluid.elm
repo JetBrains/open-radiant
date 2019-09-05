@@ -6,7 +6,6 @@ module Layer.Fluid exposing
     , BallGroup
     , Base64Url(..)
     , TextureAndSize
-    , applyProductToGradients
     , remapTo
     , makeEntities
     , build
@@ -67,7 +66,7 @@ type alias BallGroup =
             { gradient : TextureAndSize
             , data : TextureAndSize
             }
-    , gradient : Gradient
+    , gradient : Product.Gradient
     , origin : Vec2
     }
 
@@ -88,10 +87,7 @@ type alias StaticModel
             , x : Float
             , y : Float
             }
-        , gradient : List -- FIXME: Gradient
-            { color : Color -- ColorId
-            , stop : Float
-            }
+        , gradient : Product.Gradient
         }
 
 
@@ -213,7 +209,7 @@ generateEverything ( w, h ) range palette variety orbit =
                     )
                 |> Random.andThen
                     (\balls ->
-                        gradientGenerator palette
+                        gradientGenerator
                             |> Random.map
                                 (\gradient ->
                                     { balls = balls
@@ -293,23 +289,18 @@ generateFromInitialState ( w, h ) palette initialState =
                 (randomFloatInRange amplitudeRange.x)
                 (randomFloatInRange amplitudeRange.y)
 
-        generateStop stop =
-            Random.constant
-                ( stop.stop
-                , stop.color
-                -- , Product.getPaletteColor stop.color palette
-                --    |> Maybe.withDefault "#000000"
-                )
+        generateStop prevStop =
+            Random.constant prevStop
 
         generateGroup source =
             Random.map2
                 Tuple.pair
                 (Random.traverse generateBall source.balls)
-                (Random.traverse generateStop source.gradient
+                (Random.traverse generateStop source.gradient.stops
                     |> Random.map
                         (\stops ->
                             { stops = stops
-                            , orientation = Vertical
+                            , orientation = source.gradient.orientation
                             }
                         )
                 )
@@ -337,26 +328,6 @@ generateFromInitialState ( w, h ) palette initialState =
                                     }
                                 )
                 )
-
-
-extractStatics : Model -> StaticModel
-extractStatics model =
-    model.groups
-        |> List.map (\group ->
-            { balls =
-                group.balls
-                   |> List.map (\ball ->
-                        { x = Vec2.getX ball.origin
-                        , y = Vec2.getY ball.origin
-                        , radius = ball.radius
-                        })
-            , gradient =
-                group.gradient.stops
-                    |> List.map (\s ->
-                        { stop = Tuple.first s
-                        , color = Tuple.second s
-                        })
-            })
 
 
 generateDynamics
@@ -390,23 +361,18 @@ generateDynamics ( w, h ) range palette variety orbit staticModel =
                 (gaussX |> gaussInFloatRange range.amplitude.x)
                 (gaussX |> gaussInFloatRange range.amplitude.y)
 
-        generateStop stop =
-            Random.constant
-                ( stop.stop
-                , stop.color
-                -- , Product.getPaletteColor stop.color palette
-                --    |> Maybe.withDefault "#000000"
-                )
+        generateStop prevStop =
+            Random.constant prevStop
 
         generateGroup gaussX source =
             Random.map2
                 Tuple.pair
                 (Random.traverse (generateBall gaussX) source.balls)
-                (Random.traverse generateStop source.gradient
+                (Random.traverse generateStop source.gradient.stops
                     |> Random.map
                         (\stops ->
                             { stops = stops
-                            , orientation = Vertical
+                            , orientation = source.gradient.orientation
                             }
                         )
                 )
@@ -439,12 +405,13 @@ generate : (Model -> msg) -> Random.Generator Model -> Cmd msg
 generate = Random.generate
 
 
+-- FIXME: Could be simplified using Product.ColorI, Product.ColorII, Product.ColorIII
 gradientGenerator
-    :  Product.Palette
-    -> Random.Generator Gradient
-gradientGenerator palette =
+    :  Random.Generator Product.Gradient
+gradientGenerator =
     let
         -- _ = Debug.log "palette" palette
+        palette = [ ColorI, ColorII, ColorIII ]
         paletteLen = List.length palette
         -- loopedPalette = [ 0, 1, 2, 3, 2, 1 ] -- just remember indices?
         loopedPalette = palette ++ (palette |> List.drop 1 |> List.reverse |> List.drop 1)
@@ -460,7 +427,7 @@ gradientGenerator palette =
                         in
                             ( stop
                             , Array.get loopedPaletteIndex loopedPaletteArray
-                                |> Maybe.withDefault ""
+                                |> Maybe.withDefault ColorI
                             )
                     )
 
@@ -506,10 +473,11 @@ gradientGenerator palette =
             generateOrientation
 
 
-generateGradient : (Gradient -> msg) -> Random.Generator Gradient -> Cmd msg
+generateGradient : (Product.Gradient -> msg) -> Random.Generator Product.Gradient -> Cmd msg
 generateGradient = Random.generate
 
 
+-- FIXME: maybe not needed anymore
 generateGradientsFor : (Model -> msg) -> Product.Palette -> Model -> Cmd msg
 generateGradientsFor putIntoMsg palette model =
     let
@@ -530,7 +498,22 @@ generateGradientsFor putIntoMsg palette model =
                             gradients
                     }
             )
-            (Random.list groupsCount <| gradientGenerator palette)
+            (Random.list groupsCount <| gradientGenerator)
+
+
+extractStatics : Model -> StaticModel
+extractStatics model =
+    model.groups
+        |> List.map (\group ->
+            { balls =
+                group.balls
+                   |> List.map (\ball ->
+                        { x = Vec2.getX ball.origin
+                        , y = Vec2.getY ball.origin
+                        , radius = ball.radius
+                        })
+            , gradient = group.gradient
+            })
 
 
 remapTo : ( Int, Int ) -> Model -> Model
@@ -614,32 +597,6 @@ injectTextures textures model =
             { group | textures = Just texturePair }
     in
         { model | groups = List.map2 addTexture model.groups textures }
-
-
-applyProductToGradients : Product.Product -> Model -> Model
-applyProductToGradients product model =
-    let
-        newProductPalette = Product.getPalette product |> Array.fromList
-
-        updateStop index stop =
-            let
-                paletteIndex = modBy (Array.length newProductPalette) index
-            in
-                Array.get paletteIndex newProductPalette
-                    |> Maybe.map (\color -> Tuple.mapSecond (always color) stop)
-                    |> Maybe.withDefault stop
-
-        updateGroupGradient group =
-            let curGradient = group.gradient in
-            { group
-            | gradient =
-                { curGradient
-                | stops = List.indexedMap updateStop curGradient.stops
-                }
-            }
-
-    in
-        { model | groups = List.map updateGroupGradient model.groups }
 
 
 makeEntity

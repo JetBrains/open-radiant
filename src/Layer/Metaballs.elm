@@ -48,7 +48,7 @@ type alias Model =
     { colors: Product.Palette
     , groups: List GroupSource
     }
-    
+
 
 type alias ModelGenerator = Random.Generator Model
 
