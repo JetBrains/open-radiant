@@ -19,6 +19,8 @@ import Html.Events as Events exposing (onInput)
 import Json.Decode as D
 import Json.Encode as E
 
+import Algorithm.Gaussian as Gaussian
+
 import WebGL exposing (Mesh, Option)
 import WebGL.Settings.Blend as B
 import WebGL.Settings exposing (sampleAlphaToCoverage)
@@ -282,9 +284,7 @@ update msg model =
                                         buildFluidGradientTextures
                                             ( layerIndex
                                             , fluidModel
-                                                |> Fluid.applyProductToGradients
-                                                                    decodedModel.product
-                                                |> FluidModel |> IE.encodeLayerModel
+                                                |> FluidModel |> IE.encodeLayerModel decodedModel.product
                                             )
                                     )
                                     decodedModel
@@ -442,8 +442,7 @@ update msg model =
                                 (\layerIndex fluidModel ->
                                     buildFluidGradientTextures
                                         ( layerIndex
-                                        , Fluid.applyProductToGradients product fluidModel
-                                            |> FluidModel |> IE.encodeLayerModel
+                                        , fluidModel |> FluidModel |> IE.encodeLayerModel product
                                         )
                                 )
                         else Cmd.none
@@ -585,8 +584,9 @@ update msg model =
             , updateNativeMetaballs
                 { index = index
                 , size = getRuleSizeOrZeroes model.size
-                , palette = Product.getPalette model.product
-                , layerModel = IE.encodeLayerModel <| NativeMetaballsModel nativeMetaballsModel
+                , palette = Product.getPalette model.product |> Product.encodePalette
+                , layerModel = NativeMetaballsModel nativeMetaballsModel
+                        |> IE.encodeLayerModel model.product
                 }
             )
 
@@ -594,7 +594,7 @@ update msg model =
             ( model |> rebuildFluid index fluidModel.groups
             , buildFluidGradientTextures
                 ( index
-                , IE.encodeLayerModel <| FluidModel fluidModel
+                , IE.encodeLayerModel model.product <| FluidModel fluidModel
                 )
             )
 
@@ -735,7 +735,7 @@ update msg model =
             )
 
         ApplyRandomizer portModel ->
-            case IE.decodePortModel model.navKey createLayer portModel of
+            case IE.decodePortModel model.navKey createLayer model.product portModel of
                 Ok decodedPortModel ->
                     ( decodedPortModel
                     , if hasFssLayers decodedPortModel
@@ -955,12 +955,12 @@ subscriptions model =
             (\{ layer } -> RequestNewFluid layer)
         , changeFluidVariety
             (\{ layer, value } ->
-                ChangeFluidVariety layer (Fluid.Variety value))
+                ChangeFluidVariety layer (Gaussian.Variety value))
         , changeFluidOrbit
             (\{ layer, value } -> ChangeFluidOrbit layer (Fluid.Orbit value))
         , changeNativeMetaballsVariety
             (\{ layer, value } ->
-                ChangeNativeMetaballsVariety layer (Fluid.Variety value))
+                ChangeNativeMetaballsVariety layer (Gaussian.Variety value))
         , changeNativeMetaballsOrbit
             (\{ layer, value } -> ChangeNativeMetaballsOrbit layer (Fluid.Orbit value))
         , applyRandomizer ApplyRandomizer
@@ -1280,6 +1280,41 @@ hasFluidGridLayers model
     = True -- FIXME: implement, think that on Bang (where it is called) initialLayers could not exist yet
 
 
+isFluidLayer : LayerDef -> Maybe Fluid.Model
+isFluidLayer layerDef =
+    case layerDef.model of
+        FluidModel fluidModel -> Just fluidModel
+        _ -> Nothing
+
+
+isLayerFss : LayerDef -> Maybe FSS.Model
+isLayerFss layerDef =
+    case layerDef.model of
+        FssModel fssModel -> Just fssModel
+        _ -> Nothing
+
+
+isFluidGridLayer : LayerDef -> Maybe FluidGrid.Model
+isFluidGridLayer layerDef =
+    case layerDef.model of
+        FluidGridModel fluidGridModel -> Just fluidGridModel
+        _ -> Nothing
+
+
+isMetaballLayer : LayerDef -> Maybe Metaballs.Model
+isMetaballLayer layerDef =
+    case layerDef.model of
+        MetaballsModel metaballsModel -> Just metaballsModel
+        _ -> Nothing
+
+
+isNativeMetaballsLayer : LayerDef -> Maybe NativeMetaballs.Model
+isNativeMetaballsLayer layerDef =
+    case layerDef.model of
+        NativeMetaballsModel nativeMetaballsModel -> Just nativeMetaballsModel
+        _ -> Nothing
+
+
 rebuildMetaballs : LayerIndex -> Metaballs.Model -> Model -> Model
 rebuildMetaballs index newMetaballsModel model =
     model |> updateLayerWithItsModel
@@ -1375,10 +1410,6 @@ forAllLayersOf isRequiredLayer performWhat model =
 rebuildAllFssLayersWith : Model -> Cmd Msg
 rebuildAllFssLayersWith model =
     let
-        isLayerFss layerDef =
-            case layerDef.model of
-                FssModel fssModel -> Just fssModel
-                _ -> Nothing
         rebuildPotentialFss index fssModel =
             requestFssRebuild
                 { layer = index
@@ -1404,7 +1435,6 @@ forAllFluidLayers modifyFluidModel default composeList model =
         |> composeList
 
 
-
 commandForAllFluidLayers : (Int -> Fluid.Model -> Cmd Msg) -> Model -> Cmd Msg
 commandForAllFluidLayers modifyFluidModel model =
     forAllFluidLayers
@@ -1422,10 +1452,6 @@ generateAllMetaballs : Model -> Cmd Msg
 generateAllMetaballs model =
     let
         palette = model.product |> Product.getPalette
-        isMetaballLayer layerDef =
-            case layerDef.model of
-                MetaballsModel metaballsModel -> Just metaballsModel
-                _ -> Nothing
     in model
         |> forAllLayersOf
                 isMetaballLayer
@@ -1445,10 +1471,6 @@ generateAllFluid model =
     let
         -- _ = Debug.log "product for palette" model.product
         productPalette = Product.getPalette model.product
-        isFluidLayer layerDef =
-            case layerDef.model of
-                FluidModel fluidModel -> Just fluidModel
-                _ -> Nothing
     in model
         |> forAllLayersOf
                 isFluidLayer
@@ -1463,13 +1485,7 @@ generateAllFluid model =
 
 generateAllFluidGrids : Model -> Cmd Msg
 generateAllFluidGrids model =
-    let
-        -- _ = Debug.log "product for palette" model.product
-        isFluidGridLayer layerDef =
-            case layerDef.model of
-                FluidGridModel fluidGridModel -> Just fluidGridModel
-                _ -> Nothing
-    in model
+    model
         |> forAllLayersOf
                 isFluidGridLayer
                 (\index fModel ->
@@ -1482,10 +1498,6 @@ generateAllNativeMetaballs : Model -> Cmd Msg
 generateAllNativeMetaballs model =
     let
         palette = model.product |> Product.getPalette
-        isNativeMetaballsLayer layerDef =
-            case layerDef.model of
-                NativeMetaballsModel nativeMetaballsModel -> Just nativeMetaballsModel
-                _ -> Nothing
     in model
         |> forAllLayersOf
                 isNativeMetaballsLayer
@@ -1503,10 +1515,6 @@ generateAllInitialNativeMetaballs : Model -> Cmd Msg
 generateAllInitialNativeMetaballs model =
     let
         palette = model.product |> Product.getPalette
-        isNativeMetaballsLayer layerDef =
-            case layerDef.model of
-                NativeMetaballsModel nativeMetaballsModel -> Just nativeMetaballsModel
-                _ -> Nothing
     in model
         |> forAllLayersOf
                 isNativeMetaballsLayer
@@ -1522,10 +1530,6 @@ updateAllNativeMetaballsWith : Model -> Cmd Msg
 updateAllNativeMetaballsWith model =
     let
         palette = model.product |> Product.getPalette
-        isNativeMetaballsLayer layerDef =
-            case layerDef.model of
-                NativeMetaballsModel nativeMetaballsModel -> Just nativeMetaballsModel
-                _ -> Nothing
     in model
         |> forAllLayersOf
                 isNativeMetaballsLayer
@@ -1540,7 +1544,7 @@ updateAllNativeMetaballsWith model =
 
 generateNativeMetaballs
     :  SizeRule
-    -> Fluid.Variety
+    -> Gaussian.Variety
     -> Fluid.Orbit
     -> Product.Palette
     -> LayerIndex
@@ -1550,10 +1554,7 @@ generateNativeMetaballs size variety orbit palette layerIdx =
         (UpdateNativeMetaballs layerIdx)
             (NativeMetaballs.generator
                 (getRuleSizeOrZeroes size)
-                variety
-                orbit
-                palette
-                Fluid.defaultRange
+                <| Fluid.RandomizeAll Fluid.defaultRange palette variety orbit
             )
 
 
@@ -1565,9 +1566,9 @@ generateInitialNativeMetaballs
 generateInitialNativeMetaballs size palette layerIdx =
     NativeMetaballs.generate
         (UpdateNativeMetaballs layerIdx)
-            (NativeMetaballs.initialStateGenerator
+            (NativeMetaballs.generator
                 (getRuleSizeOrZeroes size)
-                palette
+                <| Fluid.RandomizeInitial palette NativeMetaballs.initial
             )
 
 
@@ -1577,10 +1578,6 @@ regenerateFluidGradients model =
     let
         -- _ = Debug.log "product for palette" model.product
         productPalette = Product.getPalette model.product
-        isFluidLayer layerDef =
-            case layerDef.model of
-                FluidModel fluidModel -> Just fluidModel
-                _ -> Nothing
     in model
         |> forAllLayersOf
                 isFluidLayer
@@ -1588,16 +1585,19 @@ regenerateFluidGradients model =
                     generateFluidGradients productPalette index fModel)
 
 
-generateFluid : SizeRule -> Fluid.Variety -> Fluid.Orbit -> Product.Palette -> LayerIndex -> Cmd Msg
+generateFluid
+    :  SizeRule
+    -> Gaussian.Variety
+    -> Fluid.Orbit
+    -> Product.Palette
+    -> LayerIndex
+    -> Cmd Msg
 generateFluid size variety orbit palette layerIdx =
     Fluid.generate
         (RebuildFluid layerIdx)
             (Fluid.generator
                 (getRuleSizeOrZeroes size)
-                variety
-                orbit
-                palette
-                Fluid.defaultRange
+                <| Fluid.RandomizeAll Fluid.defaultRange palette variety orbit
             )
 
 

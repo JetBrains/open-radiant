@@ -2,6 +2,7 @@ module Layer.NativeMetaballs exposing
     ( Model
     -- , PortModel
     , init
+    , initial
     -- , export
     , view
     , generate
@@ -92,8 +93,8 @@ generator =
     Fluid.generator
 
 
-initialGroups : Fluid.StaticModel
-initialGroups =
+initial : Fluid.StaticModel
+initial =
     -- group 1
     [
         { balls =
