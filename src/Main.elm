@@ -123,9 +123,9 @@ initialLayers mode =
         gradient =
             { orientation = Gradient.Vertical
             , stops =
-                [ ( 0, "#171717" )
-                , ( 0.8, "#eeeeee" )
-                , ( 1.0, "#ffffff" )
+                [ ( 0, "#000000" )
+                , ( 0.8, "#202020" )
+                , ( 1.0, "#000000" )
                 ]
             }
         layers =
