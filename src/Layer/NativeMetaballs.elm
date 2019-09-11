@@ -72,10 +72,10 @@ defaultRange =
     { groups = iRange 1 10
     , balls = iRange 4 50
     , radius = fRange 50 100
-    , speed = fRange 20 200
+    , speed = fRange 150 250
     , phase = fRange 0 360 -- Maybe useless
     , amplitude =
-        { x = fRange -50 50
+        { x = fRange -30 30
         , y = fRange -10 10
         }
     }

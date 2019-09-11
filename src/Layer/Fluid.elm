@@ -150,11 +150,11 @@ defaultRange : Ranges
 defaultRange =
     { groups = iRange 1 10
     , balls = iRange 4 50
-    , radius = fRange 10 100
-    , speed = fRange 100 200
+    , radius = fRange 50 100
+    , speed = fRange 150 250
     , phase = fRange 0 360 -- Maybe useless
     , amplitude =
-        { x = fRange -50 50
+        { x = fRange -30 30
         , y = fRange -10 10
         }
     }
@@ -164,7 +164,7 @@ generator : ( Int, Int ) -> Randomization -> Random.Generator Model
 generator size randomization =
     case randomization of
         RandomizeInitial palette initialModel ->
-            generateFromInitialState size palette initialModel
+            generateFromInitialState size defaultRange palette initialModel
         RandomizeDynamics range palette variety orbit model ->
             generateDynamics size range palette variety orbit model
         RandomizeAll range palette variety orbit ->
@@ -254,21 +254,16 @@ generateEverything ( w, h ) range palette variety orbit =
 
 generateFromInitialState
     :  ( Int, Int )
+    -> Ranges    
     -> Product.Palette
     -- -> StaticModelWithGradients
     -> StaticModel
     -> Random.Generator Model
-generateFromInitialState ( w, h ) palette initialState =
+generateFromInitialState ( w, h ) range palette initialState =
     let
         -- [ color1, color2, color3 ] =
         --     case palette of
         --         [ c1, c2, c3 ]::_ -> [ c1, c2, c3 ]
-        speedRange = fRange 0.2 2.0
-        tRange = fRange 0 200
-        amplitudeRange =
-            { x = fRange -0.25 0.75
-            , y = fRange -0.25 0.25
-            }
         originOffset = { x = 0.6, y = 0.5 }
 
         generateBall { x, y, radius } =
@@ -285,10 +280,10 @@ generateFromInitialState ( w, h ) palette initialState =
                     , amplitude = vec2 arcMultX arcMultY
                     }
                 )
-                (randomFloatInRange speedRange)
-                (randomFloatInRange tRange)
-                (randomFloatInRange amplitudeRange.x)
-                (randomFloatInRange amplitudeRange.y)
+                (randomFloatInRange range.speed)
+                (randomFloatInRange range.phase)
+                (randomFloatInRange range.amplitude.x)
+                (randomFloatInRange range.amplitude.y)
 
         generateStop prevStop =
             Random.constant prevStop
