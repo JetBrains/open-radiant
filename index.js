@@ -411,6 +411,8 @@ setTimeout(() => {
                     { app.ports.changeNativeMetaballsVariety.send({ layer: index, value }); }
                 , changeNativeMetaballsOrbit : index => value =>
                     { app.ports.changeNativeMetaballsOrbit.send({ layer: index, value }); }
+                , switchBackgroundStop : (layerIndex, stopIndex) => value => 
+                    { app.ports.switchBackgroundStop.send({ layer: layerIndex, stopIndex, value }); }
                 , resize: (presetCode) =>
                     { app.ports.resize.send({
                         presetCode, viewport: [ window.innerWidth, window.innerHeight ]

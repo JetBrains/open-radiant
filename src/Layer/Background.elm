@@ -6,6 +6,9 @@ module Layer.Background exposing
     , view
     , encode
     , decode
+    , switchStop
+    , indexToStopId
+    , boolToStopState
     )
 
 
@@ -35,6 +38,12 @@ type alias Color = String
 type StopState 
     = On 
     | Off
+
+
+type StopId 
+    = StopI 
+    | StopII
+    | StopIII    
 
 
 type Mode
@@ -167,6 +176,28 @@ gradientToSvg ( w, h ) gradientId { stops, orientation } =
             [ ]
         ]
 
+switchStop : StopId -> StopState -> Mode -> Mode
+switchStop stopIndex value curMode =
+    case curMode of
+        Fill _ -> curMode
+        StopStates stop1 stop2 stop3 ->
+            StopStates 
+                (if stopIndex == StopI then value else stop1)
+                (if stopIndex == StopII then value else stop2)
+                (if stopIndex == StopIII then value else stop3) 
+
+
+indexToStopId : Int -> StopId
+indexToStopId index = 
+    case index of
+        0 -> StopI
+        1 -> StopII
+        2 -> StopIII
+        _ -> StopI 
+
+
+boolToStopState : Bool -> StopState
+boolToStopState v = if v then On else Off          
 
 
 encode : Model -> E.Value
@@ -189,7 +220,7 @@ encode model =
                 StopStates stop1 stop2 stop3 ->
                     E.object
                         [ 
-                            ( "stop-states"
+                            ( "stopStates"
                             , E.list encodeStopState [ stop1, stop2, stop3 ] 
                             ) 
                         ]
@@ -216,7 +247,7 @@ decodeMode =
                 ( Nothing, Nothing ) -> defaultMode
         )
         (D.maybe <| D.field "color" D.string)
-        (D.maybe <| D.field "stop-states" <| D.list D.string)
+        (D.maybe <| D.field "stopStates" <| D.list D.string)
 
 
 decode : D.Decoder Model

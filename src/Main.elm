@@ -838,6 +838,32 @@ update msg model =
                     )
             else ( model, Cmd.none )
 
+        SwitchBackgroundStop layerIndex stopIndex value ->
+            if hasBackgroundLayers model then
+                let
+                    newModel =
+                        model |> updateLayerDef layerIndex
+                            (\layerDef ->
+                                case layerDef.model of
+                                    BackgroundModel bgModel ->
+                                        { layerDef
+                                        | model =
+                                            BackgroundModel 
+                                                { bgModel 
+                                                | mode = Background.switchStop 
+                                                            (Background.indexToStopId stopIndex)
+                                                            (Background.boolToStopState value) 
+                                                            bgModel.mode
+                                                }
+                                        }
+                                    _ -> layerDef
+                            )
+                in
+                    ( newModel
+                    , Cmd.none
+                    )
+            else ( model, Cmd.none )            
+
         -- UpdateNativeMetaballs layerIndex ->
         --     ( model
         --     , NativeMetaballs.prepare model.product
@@ -964,6 +990,9 @@ subscriptions model =
                 ChangeNativeMetaballsVariety layer (Gaussian.Variety value))
         , changeNativeMetaballsOrbit
             (\{ layer, value } -> ChangeNativeMetaballsOrbit layer (Fluid.Orbit value))
+        , switchBackgroundStop
+            (\{ layer, stopIndex, value } -> 
+                SwitchBackgroundStop layer stopIndex value)            
         , applyRandomizer ApplyRandomizer
         , import_ Import
         , pause (\_ -> Pause)
@@ -1278,6 +1307,11 @@ hasFssLayers model
 
 hasFluidGridLayers : Model -> Bool
 hasFluidGridLayers model
+    = True -- FIXME: implement, think that on Bang (where it is called) initialLayers could not exist yet
+
+
+hasBackgroundLayers : Model -> Bool
+hasBackgroundLayers model
     = True -- FIXME: implement, think that on Bang (where it is called) initialLayers could not exist yet
 
 
@@ -1772,6 +1806,13 @@ port changeNativeMetaballsOrbit :
       , value : Float
       }
     -> msg) -> Sub msg
+
+port switchBackgroundStop :
+    ( { layer : LayerIndex
+      , stopIndex : Int 
+      , value : Bool
+      }
+    -> msg) -> Sub msg     
 
 -- OUTGOING PORTS
 

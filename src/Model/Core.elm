@@ -113,6 +113,7 @@ type Msg
     | UpdateNativeMetaballs LayerIndex NativeMetaballs.Model
     | ChangeNativeMetaballsVariety LayerIndex Gaussian.Variety
     | ChangeNativeMetaballsOrbit LayerIndex NativeMetaballs.Orbit
+    | SwitchBackgroundStop LayerIndex Int Bool -- StopIndex and StopState
     | Randomize
     | ApplyRandomizer PortModel
     | SavePng

@@ -93,6 +93,13 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
         this['variety'+index] = layer.model.variety;
         this['orbit'+index] = layer.model.orbit;
       }
+
+      if (is.background(layer)) {
+        const stopStates = layer.model.value.stopStates || [];
+        this['stop1'+index] = stopStates[0] == "on";
+        this['stop2'+index] = stopStates[1] == "on";
+        this['stop3'+index] = stopStates[2] == "on";
+      }
     });
 
     //this.customSize = sizePresetSet['browser'];
@@ -322,6 +329,15 @@ function start(document, model, constants, funcs) {
             ? funcs.changeFluidOrbit(index)
             : funcs.changeNativeMetaballsOrbit(index));
       }
+      if (is.background(layer)) {
+        const stop1 = folder.add(config, 'stop1' + index).name('stop1');
+        const stop2 = folder.add(config, 'stop2' + index).name('stop2');        
+        const stop3 = folder.add(config, 'stop3' + index).name('stop3');     
+        const switchStop = funcs.switchBackgroundStop;
+        stop1.onFinishChange(switchStop(index, 1));
+        stop2.onFinishChange(switchStop(index, 2));
+        stop3.onFinishChange(switchStop(index, 3));   
+      }
     }
 
     const gui = new dat.GUI(/*{ load: JSON }*/);
@@ -337,7 +353,7 @@ function start(document, model, constants, funcs) {
     sizePreset.onFinishChange(funcs.resize);
 
     layers.concat([]).reverse().forEach((layer, revIndex) => {
-      if ((mode == 'prod') && (layer.name == 'Cover')) return;
+      // if ((mode == 'prod') && (layer.name == 'Cover')) return;
 
       const index = layers.length - 1 - revIndex;
       //const folder = gui.addFolder('Layer ' + index + ' (' + layer.kind + ')');
