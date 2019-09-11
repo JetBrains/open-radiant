@@ -1,6 +1,7 @@
 module Layer.Background exposing
     ( Model
     , Mode(..)
+    , StopState(..)
     , init
     , view
     , encode
@@ -22,15 +23,23 @@ import Svg.Attributes as S exposing (style)
 
 import Viewport exposing (Viewport)
 
+import Model.Product as Product exposing (..)
+
 import Gradient as G exposing (..)
+import Gradient as Gradient exposing (decode)
 
 
 type alias Color = String
 
 
+type StopState 
+    = On 
+    | Off
+
+
 type Mode
     = Fill Color
-    | Gradient G.Gradient
+    | StopStates StopState StopState StopState
 
 
 type alias Model =
@@ -50,8 +59,8 @@ init =
     }
 
 
-view : Viewport {} -> Model -> Html msg
-view viewport model =
+view : Viewport {} -> Product.Palette -> Model -> Html msg
+view viewport palette model =
     let
         ( w, h ) =
             ( Vec2.getX viewport.size
@@ -59,58 +68,105 @@ view viewport model =
             )
     in
         div [ H.class "background-layer layer" ]
-            [ renderBackground ( floor w, floor h ) model.mode model.opacity
+            [ renderBackground ( floor w, floor h ) model.mode model.opacity palette
+            
             ]
 
 
-renderBackground : ( Int, Int ) ->  Mode -> Float -> Svg msg
-renderBackground ( w, h ) mode opacity =
+renderBackground : ( Int, Int ) ->  Mode -> Float -> Palette -> Svg msg
+renderBackground size mode opacity palette =
+    createGradient (darken palette) mode 
+        |> gradientToSvg size "x-gradient-background"
+
+
+darken : Palette -> Palette
+darken (Palette c1 c2 c3) =
+    Palette c1 c2 c3       
+
+
+createGradient : Palette -> Mode -> G.Gradient
+createGradient (Palette c1 c2 c3) mode =
+    { orientation = G.Vertical
+    , stops = 
+        case mode of
+            StopStates stop1 stop2 stop3 ->
+                case ( stop1, stop2, stop3 ) of
+                    ( On, On, On ) ->
+                        [ ( 0, c1 )
+                        , ( 0.5, c2 )
+                        , ( 1, c3 )
+                        ]
+                    ( On, On, Off ) ->
+                        [ ( 0, c1 )
+                        , ( 1, c2 )
+                        ]  
+                    ( On, Off, On ) ->
+                        [ ( 0, c1 )
+                        , ( 1, c3 )
+                        ]
+                    ( On, Off, Off ) ->
+                        [ ( 0, c1 )
+                        , ( 1, c1 )
+                        ]
+                    ( Off, On, On ) ->
+                        [ ( 0, c2 )
+                        , ( 1, c3 )
+                        ]
+                    ( Off, On, Off ) ->
+                        [ ( 0, c2 )
+                        , ( 1, c2 )
+                        ]  
+                    ( Off, Off, On ) ->
+                        [ ( 0, c3 )
+                        , ( 1, c3 )
+                        ]
+                    ( Off, Off, Off ) ->
+                        [ ( 0, "#000000" )
+                        , ( 0.8, "#202020" )
+                        , ( 1.0, "#000000" )
+                        ]                                                        
+            Fill color -> 
+                [ ( 0, color )
+                , ( 1, color )
+                ]
+    }
+
+
+gradientToSvg : ( Int, Int ) -> String -> G.Gradient -> Svg msg
+gradientToSvg ( w, h ) gradientId { stops, orientation } =
+    let
+        convertStop (offsetVal, colorVal) 
+            = stop 
+                [ offset <| String.fromFloat offsetVal, stopColor colorVal ] 
+                [ ]
+    in
     svg
         [ width  <| String.fromInt w
         , height <| String.fromInt h
         ]
-        (case mode of
-            Fill color ->
-                [ rect
-                    [ x "0"
-                    , y "0"
-                    , width <| String.fromInt w
-                    , height <| String.fromInt h
-                    , fill color
-                    ]
-                    [ ]
+        [ defs
+            [ ]
+            [ linearGradient
+                [ id gradientId
+                , x1 "0%"
+                , y1 "0%"
+                -- , x2 "0%"
+                -- , y2 "100%"                            
+                , x2 <| if orientation == G.Horizontal then "100%" else "0%"
+                , y2 <| if orientation == G.Horizontal then "0%" else "100%"
                 ]
-            Gradient gradient ->
-                [ defs
-                    [ ]
-                    [ linearGradient
-                        [ id "x-gradient-background"
-                        , x1 "0%"
-                        , y1 "0%"
-                        , x2 (if gradient.orientation == G.Horizontal then "100%" else "0%")
-                        , y2 (if gradient.orientation == G.Horizontal then "0%" else "100%")
-                        ]
-                        (gradient.stops
-                            |> List.map
-                                (\( sOffset, sColor ) ->
-                                    stop
-                                        [ offset <| String.fromFloat sOffset
-                                        , stopColor sColor
-                                        ]
-                                        [ ]
-                                )
-                        )
-                    ]
-                , rect
-                    [ x "0"
-                    , y "0"
-                    , width <| String.fromInt w
-                    , height <| String.fromInt h
-                    , fill "url(#x-gradient-background)"
-                    ]
-                    [ ]
-                ]
-        )
+                <| List.map convertStop stops    
+            ]
+        , rect
+            [ x "0"
+            , y "0"
+            , width <| String.fromInt w
+            , height <| String.fromInt h
+            , fill <| "url(#" ++ gradientId ++ ")"
+            ]
+            [ ]
+        ]
+
 
 
 encode : Model -> E.Value
@@ -119,15 +175,24 @@ encode model =
         encodeMode =
             case model.mode of
                 Fill _ -> E.string "fill"
-                Gradient _ -> E.string "gradient"
+                StopStates _ _ _ -> E.string "gradient"
+        encodeStopState state = 
+            E.string <| 
+                case state of
+                    On -> "on"
+                    Off -> "off"         
         encodeValue =
             case model.mode of
                 Fill color ->
                     E.object
                         [ ( "color", E.string color ) ]
-                Gradient gradient ->
+                StopStates stop1 stop2 stop3 ->
                     E.object
-                        [ ( "gradient", G.encode gradient ) ]
+                        [ 
+                            ( "stop-states"
+                            , E.list encodeStopState [ stop1, stop2, stop3 ] 
+                            ) 
+                        ]
     in
         E.object
             [ ( "opacity", E.float model.opacity )
@@ -136,26 +201,32 @@ encode model =
             ]
 
 
+decodeMode : D.Decoder Mode
+decodeMode =
+    D.map2
+        (\maybeColor maybeStopsState ->
+            case ( maybeColor, maybeStopsState ) of
+                ( Just color, _ ) -> Fill color
+                ( _, Just (stop1::stop2::stop3::_) ) -> 
+                    StopStates
+                        (if stop1 == "on" then On else Off)
+                        (if stop2 == "on" then On else Off)
+                        (if stop3 == "on" then On else Off)
+                ( _, Just _ ) -> defaultMode                        
+                ( Nothing, Nothing ) -> defaultMode
+        )
+        (D.maybe <| D.field "color" D.string)
+        (D.maybe <| D.field "stop-states" <| D.list D.string)
+
+
 decode : D.Decoder Model
 decode =
-    let
-        makeValue
-            = D.map2
-                (\maybeColor maybeGradient ->
-                    case ( maybeColor, maybeGradient ) of
-                        ( Just color, _ ) -> Fill color
-                        ( _, Just gradient ) -> Gradient gradient
-                        ( Nothing, Nothing ) -> defaultMode
-                )
-                (D.maybe <| D.field "color" D.string)
-                (D.maybe <| D.field "gradient" G.decode)
-    in
-        D.map3
-            (\opacity mode modeValue ->
-                { opacity = opacity
-                , mode = modeValue -- TODO: ensure mode string corresponds to value?
-                }
-            )
-            (D.field "opacity" D.float)
-            (D.field "mode" D.string)
-            (D.field "value" makeValue)
+    D.map3
+        (\opacity mode modeValue ->
+            { opacity = opacity
+            , mode = modeValue -- TODO: ensure mode string corresponds to value?
+            }
+        )
+        (D.field "opacity" D.float)
+        (D.field "mode" D.string)
+        (D.field "value" decodeMode)

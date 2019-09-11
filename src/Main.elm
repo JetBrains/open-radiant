@@ -52,6 +52,7 @@ import Navigation as Nav
 import Gradient as Gradient
 
 import Layer.Background as Background
+import Layer.Background exposing (Mode(..), StopState(..))
 import Layer.Lorenz as Lorenz
 import Layer.Fractal as Fractal
 import Layer.Voronoi as Voronoi
@@ -133,7 +134,7 @@ initialLayers mode =
             , ( NativeMetaballs, "NativeMetaballs", NativeMetaballsModel NativeMetaballs.init )
             , ( Background, "Background"
               , BackgroundModel
-                    { mode = Background.Gradient gradient
+                    { mode = StopStates On On On
                     , opacity = 1.0
                     }
               )
@@ -1123,7 +1124,7 @@ layerToHtml model viewport index layerDef =
         HtmlLayer htmlLayer htmlBlend ->
             case ( htmlLayer, layerDef.model ) of
                 ( BackgroundLayer, BackgroundModel bgModel ) ->
-                    Background.view viewport bgModel
+                    Background.view viewport (Product.getPalette model.product) bgModel
                 ( CoverLayer, _ ) ->
                     Cover.view
                         model.mode
