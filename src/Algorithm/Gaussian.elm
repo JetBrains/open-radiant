@@ -15,11 +15,12 @@ map f = \(Gaussian v) -> Gaussian <| f v
 
 gaussian : X -> Focus -> Variety -> Gaussian
 gaussian (X x) (Focus focus) (Variety variety) =
-    let
-        numerator = (x - focus) ^ 2
-        denominator = 2 * (variety ^ 2)
-    in
-        Gaussian <| e ^ (-1 * numerator / denominator)
+    -- let
+    --     numerator = (x - focus) ^ 2
+    --     denominator = 2 * (variety ^ 2)
+    -- in
+    --     Gaussian <| e ^ (-1 * numerator / denominator)
+    Gaussian focus
 
 
 generateX : Random.Generator X

@@ -8,6 +8,7 @@ module Layer.NativeMetaballs exposing
     , generate
     , generator
     , Orbit
+    , defaultRange
     )
 
 
@@ -49,8 +50,8 @@ init =
     let fluidDefault = Fluid.init
     in
         { fluidDefault
-        | variety = Variety 0.2
-        , orbit = Orbit 0.25
+        | variety = Variety 1000.0
+        , orbit = Orbit 0.5
         }
 
 
@@ -66,8 +67,8 @@ view _ =
     H.canvas [ H.id "native-metaballs-0"] [] -- FIXME: use actual layer index
 
 
-initalRange : Fluid.Ranges
-initalRange =
+defaultRange : Fluid.Ranges
+defaultRange =
     { groups = iRange 1 10
     , balls = iRange 4 50
     , radius = fRange 50 100

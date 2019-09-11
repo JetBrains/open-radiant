@@ -121,14 +121,6 @@ init flags url navKey =
 initialLayers : AppMode -> List ( LayerKind, String, LayerModel )
 initialLayers mode =
     let
-        gradient =
-            { orientation = Gradient.Vertical
-            , stops =
-                [ ( 0, "#000000" )
-                , ( 0.8, "#202020" )
-                , ( 1.0, "#000000" )
-                ]
-            }
         layers =
             [ ( Cover, "Cover", CoverModel Cover.init )
             , ( NativeMetaballs, "NativeMetaballs", NativeMetaballsModel NativeMetaballs.init )
@@ -1604,7 +1596,7 @@ generateNativeMetaballs size variety orbit palette layerIdx =
         (UpdateNativeMetaballs layerIdx)
             (NativeMetaballs.generator
                 (getRuleSizeOrZeroes size)
-                <| Fluid.RandomizeAll Fluid.defaultRange palette variety orbit
+                <| Fluid.RandomizeAll NativeMetaballs.defaultRange palette variety orbit
             )
 
 
@@ -1635,7 +1627,7 @@ generateNativeMetaballsDynamics size variety orbit palette curModel layerIdx =
         (UpdateNativeMetaballs layerIdx)
             (NativeMetaballs.generator
                 (getRuleSizeOrZeroes size)
-                <| Fluid.RandomizeDynamics Fluid.defaultRange palette variety orbit curModel
+                <| Fluid.RandomizeDynamics NativeMetaballs.defaultRange palette variety orbit curModel
             )
 
 
