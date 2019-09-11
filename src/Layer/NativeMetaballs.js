@@ -295,7 +295,7 @@ function m(target, width, height, model, colors_) {
 
       this.handleMouseMove = function (x, y) {
         mousePosition.x = x - (window.innerWidth - width ) / 2;
-        mousePosition.y = y;
+        mousePosition.y = window.innerHeight - y;
       }
 
 
