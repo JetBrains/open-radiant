@@ -20,6 +20,7 @@ module Model.Product exposing
     , paletteToList
     , encodePalette
     , decodePalette
+    , mapPalette
     -- , paletteToArray
     , applyPalette
     , emptyGradient
@@ -43,6 +44,11 @@ type alias ProductId = Int
 
 
 type Palette = Palette Color Color Color -- TODO: include (Maybe Product)?
+
+
+mapPalette : (Color -> Color) -> Palette -> Palette
+mapPalette f (Palette c1 c2 c3) =
+    Palette (f c1) (f c2) (f c3)
 
 
 type alias Gradient =

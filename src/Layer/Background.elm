@@ -31,6 +31,10 @@ import Model.Product as Product exposing (..)
 import Gradient as G exposing (..)
 import Gradient as Gradient exposing (decode)
 
+import Color
+import Color.Convert as Color exposing (..)
+import Color.Manipulate as Color exposing (..)
+
 
 type alias Color = String
 
@@ -89,8 +93,8 @@ renderBackground size mode opacity palette =
 
 
 darken : Palette -> Palette
-darken (Palette c1 c2 c3) =
-    Palette c1 c2 c3       
+darken p =
+    p |> Product.mapPalette (Color.hexToColor >> Result.withDefault (Color.rgb 0 0 0) >> Color.darken 0.2 >> Color.colorToHex) 
 
 
 createGradient : Palette -> Mode -> G.Gradient
