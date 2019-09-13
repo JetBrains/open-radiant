@@ -126,7 +126,7 @@ initialLayers mode =
             , ( NativeMetaballs, "NativeMetaballs", NativeMetaballsModel NativeMetaballs.init )
             , ( Background, "Background"
               , BackgroundModel
-                    { mode = StopStates On On On
+                    { mode = StopStates On On Off
                     , opacity = 1.0
                     }
               )

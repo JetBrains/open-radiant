@@ -330,13 +330,13 @@ function start(document, model, constants, funcs) {
             : funcs.changeNativeMetaballsOrbit(index));
       }
       if (is.background(layer)) {
-        const stop1 = folder.add(config, 'stop1' + index).name('stop1');
-        const stop2 = folder.add(config, 'stop2' + index).name('stop2');        
-        const stop3 = folder.add(config, 'stop3' + index).name('stop3');     
+        const stop1 = folder.add(config, 'stop1' + index).name('heaven');
+        const stop2 = folder.add(config, 'stop2' + index).name('dragons');        
+        const stop3 = folder.add(config, 'stop3' + index).name('earth');     
         const switchStop = funcs.switchBackgroundStop;
-        stop1.onFinishChange(switchStop(index, 1));
-        stop2.onFinishChange(switchStop(index, 2));
-        stop3.onFinishChange(switchStop(index, 3));   
+        stop1.onFinishChange(switchStop(index, 0));
+        stop2.onFinishChange(switchStop(index, 1));
+        stop3.onFinishChange(switchStop(index, 2));   
       }
     }
 

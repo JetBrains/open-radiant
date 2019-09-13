@@ -36,6 +36,7 @@ import Color.Convert as Color exposing (..)
 import Color.Manipulate as Color exposing (..)
 
 
+
 type alias Color = String
 
 
@@ -88,13 +89,17 @@ view viewport palette model =
 
 renderBackground : ( Int, Int ) ->  Mode -> Float -> Palette -> Svg msg
 renderBackground size mode opacity palette =
-    createGradient (darken palette) mode 
+    createGradient (adjust palette) mode 
         |> gradientToSvg size "x-gradient-background"
 
 
-darken : Palette -> Palette
-darken p =
-    p |> Product.mapPalette (Color.hexToColor >> Result.withDefault (Color.rgb 0 0 0) >> Color.darken 0.2 >> Color.colorToHex) 
+adjust : Palette -> Palette
+adjust p =
+    p |> Product.mapPalette (Color.hexToColor
+       >> Result.withDefault (Color.black)
+       >> Color.darken 0.25
+       >> Color.saturate 1.0
+       >> Color.colorToHex) 
 
 
 createGradient : Palette -> Mode -> G.Gradient
@@ -106,7 +111,7 @@ createGradient (Palette c1 c2 c3) mode =
                 case ( stop1, stop2, stop3 ) of
                     ( On, On, On ) ->
                         [ ( 0, c1 )
-                        , ( 0.5, c2 )
+                        , ( 0.7, c2 )
                         , ( 1, c3 )
                         ]
                     ( On, On, Off ) ->
@@ -135,7 +140,7 @@ createGradient (Palette c1 c2 c3) mode =
                         ]
                     ( Off, Off, Off ) ->
                         [ ( 0, "#000000" )
-                        , ( 0.8, "#202020" )
+                        , ( 0.7, "#202020" )
                         , ( 1.0, "#000000" )
                         ]                                                        
             Fill color -> 
