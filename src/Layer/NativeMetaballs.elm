@@ -17,20 +17,23 @@ import Html.Attributes as H
 
 import Math.Vector2 as Vec2 exposing (..)
 
+import Random
+import Random.Extra as Random exposing (traverse)
+
+import Algorithm.Gaussian  as Gaussian exposing (Variety(..))
 import Gradient exposing (Orientation(..))
 
 import Model.Product as Product
 import Model.Product exposing (ColorId(..))
 import Model.Range exposing (..)
+import Model.Html.Blend as Blend
+
 import Layer.Fluid as Fluid exposing
     ( Model
     , generate, generator
     , Orbit(..), Ranges
     )
-import Algorithm.Gaussian  as Gaussian exposing (Variety(..))
 
-import Random
-import Random.Extra as Random exposing (traverse)
 
 
 type alias Model = Fluid.Model
@@ -62,9 +65,13 @@ init =
 --     }
 
 
-view : Model -> H.Html a
-view _ =
-    H.canvas [ H.id "native-metaballs-0"] [] -- FIXME: use actual layer index
+view : Blend.Blend -> Model -> H.Html a
+view blend _ =
+    H.canvas
+        [ H.id "native-metaballs-0"
+        , H.style "mix-blend-mode" <| Blend.encode blend
+        ]
+        [] -- FIXME: use actual layer index
 
 
 defaultRange : Fluid.Ranges

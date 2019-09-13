@@ -840,11 +840,11 @@ update msg model =
                                     BackgroundModel bgModel ->
                                         { layerDef
                                         | model =
-                                            BackgroundModel 
-                                                { bgModel 
-                                                | mode = Background.switchStop 
+                                            BackgroundModel
+                                                { bgModel
+                                                | mode = Background.switchStop
                                                             (Background.indexToStopId stopIndex)
-                                                            (Background.boolToStopState value) 
+                                                            (Background.boolToStopState value)
                                                             bgModel.mode
                                                 }
                                         }
@@ -854,7 +854,7 @@ update msg model =
                     ( newModel
                     , Cmd.none
                     )
-            else ( model, Cmd.none )            
+            else ( model, Cmd.none )
 
         -- UpdateNativeMetaballs layerIndex ->
         --     ( model
@@ -983,8 +983,8 @@ subscriptions model =
         , changeNativeMetaballsOrbit
             (\{ layer, value } -> ChangeNativeMetaballsOrbit layer (Fluid.Orbit value))
         , switchBackgroundStop
-            (\{ layer, stopIndex, value } -> 
-                SwitchBackgroundStop layer stopIndex value)            
+            (\{ layer, stopIndex, value } ->
+                SwitchBackgroundStop layer stopIndex value)
         , applyRandomizer ApplyRandomizer
         , import_ Import
         , pause (\_ -> Pause)
@@ -1156,7 +1156,7 @@ layerToHtml model viewport index layerDef =
                 ( MetaballsLayer, MetaballsModel metaballsModel ) ->
                     Metaballs.view viewport model.now model.timeShift model.mouse metaballsModel
                 ( NativeMetaballsLayer, NativeMetaballsModel nativeMetaballsModel ) ->
-                    NativeMetaballs.view nativeMetaballsModel
+                    NativeMetaballs.view htmlBlend nativeMetaballsModel
                 ( FluidGridLayer, FluidGridModel fluidGridModel ) ->
                     FluidGrid.view fluidGridModel
                 ( CanvasLayer, _ ) ->
@@ -1801,10 +1801,10 @@ port changeNativeMetaballsOrbit :
 
 port switchBackgroundStop :
     ( { layer : LayerIndex
-      , stopIndex : Int 
+      , stopIndex : Int
       , value : Bool
       }
-    -> msg) -> Sub msg     
+    -> msg) -> Sub msg
 
 -- OUTGOING PORTS
 
