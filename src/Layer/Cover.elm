@@ -52,8 +52,8 @@ view mode product ( w, h ) ( x, y ) blend =
             , style "color" "white"
             ]
         ( if (mode == Production) || (mode == Player) || (mode == TronUi Production) then
-            [ productName product ( centerX, centerY ) blend scale
-            , logo ( logoX, logoY ) Blend.Normal scale
+            [ productName product ( centerX, centerY ) blend ( 0.8 * scale )
+            , logo ( logoX, logoY ) Blend.Normal ( 0.6 * scale )
             ]
           else
             [
