@@ -850,6 +850,29 @@ update msg model =
                     , Cmd.none
                     )
             else ( model, Cmd.none )
+        
+        SwitchGradientOrientation layerIndex orientation ->
+            if hasBackgroundLayers model then
+                let
+                    newModel =
+                        model |> updateLayerDef layerIndex
+                            (\layerDef ->
+                                case layerDef.model of
+                                    BackgroundModel bgModel ->
+                                        { layerDef
+                                        | model =
+                                            BackgroundModel
+                                                { bgModel
+                                                | orientation = orientation
+                                                }
+                                        }
+                                    _ -> layerDef
+                            )
+                in
+                    ( newModel
+                    , Cmd.none
+                    )
+            else ( model, Cmd.none )            
 
         -- UpdateNativeMetaballs layerIndex ->
         --     ( model
@@ -980,6 +1003,11 @@ subscriptions model =
         , switchBackgroundStop
             (\{ layer, stopIndex, value } ->
                 SwitchBackgroundStop layer stopIndex value)
+        , switchGradientOrientation
+            (\{ layer, orientation } ->
+                SwitchGradientOrientation layer 
+                    <| Gradient.decodeOrientation orientation
+            )
         , applyRandomizer ApplyRandomizer
         , import_ Import
         , pause (\_ -> Pause)
@@ -1800,6 +1828,13 @@ port switchBackgroundStop :
       , value : Bool
       }
     -> msg) -> Sub msg
+
+port switchGradientOrientation :
+    ( 
+        { layer: LayerIndex
+        , orientation : String
+        }
+    -> msg) -> Sub msg    
 
 -- OUTGOING PORTS
 

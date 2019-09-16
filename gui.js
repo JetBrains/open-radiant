@@ -63,7 +63,7 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
               layer.blend[0].color || [ 1, 0, 0, 0 ]; // FIXME: get RGBA components
         }
       } else { // webglOrHtml != 'webgl'
-        this['layer' + index + 'Blend'] = layer.blend[1] || 'normal';
+          this['layer' + index + 'Blend'] = layer.blend[1] || 'normal';
       }
 
       this['visible' + index] = true;
@@ -95,7 +95,10 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
       }
 
       if (is.background(layer)) {
-        const stopStates = layer.model.value.stopStates || [];
+        console.log (layer);
+        const stopStates = layer.model.stops || [];
+        const gradientType = layer.model.orientation || "linear";
+        this['isRadial'+index] = gradientType == "radial";
         this['stop1'+index] = stopStates[0] == "on";
         this['stop2'+index] = stopStates[1] == "on";
         this['stop3'+index] = stopStates[2] == "on";
@@ -314,6 +317,8 @@ function start(document, model, constants, funcs) {
         });
       }
       if (is.fluid(layer) || is.nativeMetaballs(layer)) {
+        const visibitySwitch = folder.add(config, 'visible' + index).name('visible');
+        visibitySwitch.onFinishChange(val => switchLayer(index, val));
         folder.add(config, 'bang' + index).name('bang');
         if (is.fluid(layer)) {
           folder.add(config, 'rebuildGradients' + index).name('regenerate gradients');
@@ -336,7 +341,9 @@ function start(document, model, constants, funcs) {
         const switchStop = funcs.switchBackgroundStop;
         stop1.onFinishChange(switchStop(index, 0));
         stop2.onFinishChange(switchStop(index, 1));
-        stop3.onFinishChange(switchStop(index, 2));   
+        stop3.onFinishChange(switchStop(index, 2)); 
+        const gradientType = folder.add(config, 'isRadial' + index).name('radial');
+        gradientType.onFinishChange(funcs.switchBackgroundGradientType(index));
       }
     }
 
@@ -359,8 +366,7 @@ function start(document, model, constants, funcs) {
       //const folder = gui.addFolder('Layer ' + index + ' (' + layer.kind + ')');
       const folder = gui.addFolder(layer.name.toLowerCase());
 
-      const visibitySwitch = folder.add(config, 'visible' + index).name('visible');
-      visibitySwitch.onFinishChange(val => switchLayer(index, val));
+
 
       addLayerProps(folder, config, layer, index);
       if (layer.webglOrHtml == 'webgl') {

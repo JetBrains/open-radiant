@@ -6,6 +6,7 @@ module Gradient exposing
     , Orientation(..)
     , encode
     , decode
+    , decodeOrientation
     , none
     )
 
@@ -75,13 +76,17 @@ decode =
         D.map2
             (\stops orientationStr ->
                 { stops = stops
-                , orientation =
-                    case orientationStr of
-                        "horizontal" -> Horizontal
-                        "vertical" -> Vertical
-                        "radial" -> Radial
-                        _ -> Vertical
+                , orientation = decodeOrientation orientationStr
                 }
             )
             (D.field "stops" <| D.list makeGradientStop)
             (D.field "orientation" <| D.string)
+
+
+decodeOrientation : String -> Orientation
+decodeOrientation orientationStr =
+    case orientationStr of
+        "horizontal" -> Horizontal
+        "vertical" -> Vertical
+        "radial" -> Radial
+        _ -> Vertical

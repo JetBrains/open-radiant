@@ -9,6 +9,8 @@ module Layer.Background exposing
     , switchStop
     , indexToStopId
     , boolToStopState
+    , defaultOrientation
+    , decodeOrientation
     )
 
 
@@ -66,7 +68,7 @@ defaultOrientation = Vertical
 
 
 defaultStops : StopStates
-defaultStops = StopStates On On On
+defaultStops = StopStates On On Off
 
 
 init : Model

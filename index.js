@@ -413,6 +413,9 @@ setTimeout(() => {
                     { app.ports.changeNativeMetaballsOrbit.send({ layer: index, value }); }
                 , switchBackgroundStop : (layerIndex, stopIndex) => value => 
                     { app.ports.switchBackgroundStop.send({ layer: layerIndex, stopIndex, value }); }
+                , switchBackgroundGradientType : (layerIndex) => isRadial => 
+                    { const orientation = isRadial ? 'radial' : 'vertical';
+                      app.ports.switchGradientOrientation.send({ layer: layerIndex, orientation }); }                    
                 , resize: (presetCode) =>
                     { app.ports.resize.send({
                         presetCode, viewport: [ window.innerWidth, window.innerHeight ]

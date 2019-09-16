@@ -39,6 +39,8 @@ import Layer.NativeMetaballs as NativeMetaballs
 import Layer.Fluid as Fluid
 import Layer.FluidGrid as FluidGrid
 
+import Gradient exposing (..)
+
 import Gui.Gui as Gui
 
 
@@ -114,6 +116,7 @@ type Msg
     | ChangeNativeMetaballsVariety LayerIndex Gaussian.Variety
     | ChangeNativeMetaballsOrbit LayerIndex NativeMetaballs.Orbit
     | SwitchBackgroundStop LayerIndex Int Bool -- StopIndex and StopState
+    | SwitchGradientOrientation LayerIndex Gradient.Orientation
     | Randomize
     | ApplyRandomizer PortModel
     | SavePng
