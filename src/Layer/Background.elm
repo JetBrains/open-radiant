@@ -143,8 +143,8 @@ createGradient (Palette c1 c2 c3) (StopStates stop1 stop2 stop3) orientation =
                 ]
             ( Off, Off, Off ) ->
                 [ ( 0, "#000000" )
-                , ( 0, "#202020" )
-                , ( 1.0, "#000000" )
+                , ( 0.5, "#171717" )
+                , ( 1.0, "#202020" )
                 ]
     }
 
