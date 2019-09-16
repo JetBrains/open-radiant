@@ -1,7 +1,7 @@
 module Layer.Background exposing
     ( Model
-    , Mode(..)
     , StopState(..)
+    , StopStates(..)
     , init
     , view
     , encode
@@ -51,29 +51,27 @@ type StopId
     | StopIII    
 
 
-type Mode
-    = Fill Color
-    | StopStates StopState StopState StopState
+type StopStates = StopStates StopState StopState StopState
 
 
 type alias Model =
-    { mode : Mode
+    { stops : StopStates
     , opacity : Float
     , orientation: Orientation
     }
-
-
-defaultMode : Mode
-defaultMode = Fill "#171717"
 
 
 defaultOrientation : Orientation
 defaultOrientation = Vertical
 
 
+defaultStops : StopStates
+defaultStops = StopStates On On On
+
+
 init : Model
 init =
-    { mode = defaultMode
+    { stops = defaultStops
     , opacity = 1.0
     , orientation = defaultOrientation
     }
@@ -88,14 +86,13 @@ view viewport palette model =
             )
     in
         div [ H.class "background-layer layer" ]
-            [ renderBackground ( floor w, floor h ) model.mode model.opacity palette model.orientation
-            
+            [ renderBackground ( floor w, floor h ) model.stops model.opacity palette model.orientation
             ]
 
 
-renderBackground : ( Int, Int ) ->  Mode -> Float -> Palette -> Orientation -> Svg msg
-renderBackground size mode opacity palette orientation =
-    createGradient (adjust palette) mode orientation 
+renderBackground : ( Int, Int ) -> StopStates -> Float -> Palette -> Orientation -> Svg msg
+renderBackground size stops opacity palette orientation =
+    createGradient (adjust palette) stops orientation 
         |> gradientToSvg size "x-gradient-background"
 
 
@@ -108,50 +105,44 @@ adjust p =
        >> Color.colorToHex) 
 
 
-createGradient : Palette -> Mode -> Orientation -> G.Gradient
-createGradient (Palette c1 c2 c3) mode orientation =
+createGradient : Palette -> StopStates -> Orientation -> G.Gradient
+createGradient (Palette c1 c2 c3) (StopStates stop1 stop2 stop3) orientation =
     { orientation = orientation
     , stops = 
-        case mode of
-            StopStates stop1 stop2 stop3 ->
-                case ( stop1, stop2, stop3 ) of
-                    ( On, On, On ) ->
-                        [ ( 0, c1 )
-                        , ( 0.7, c2 )
-                        , ( 1, c3 )
-                        ]
-                    ( On, On, Off ) ->
-                        [ ( 0, c1 )
-                        , ( 1, c2 )
-                        ]  
-                    ( On, Off, On ) ->
-                        [ ( 0, c1 )
-                        , ( 1, c3 )
-                        ]
-                    ( On, Off, Off ) ->
-                        [ ( 0, c1 )
-                        , ( 1, c1 )
-                        ]
-                    ( Off, On, On ) ->
-                        [ ( 0, c2 )
-                        , ( 1, c3 )
-                        ]
-                    ( Off, On, Off ) ->
-                        [ ( 0, c2 )
-                        , ( 1, c2 )
-                        ]  
-                    ( Off, Off, On ) ->
-                        [ ( 0, c3 )
-                        , ( 1, c3 )
-                        ]
-                    ( Off, Off, Off ) ->
-                        [ ( 0, "#000000" )
-                        , ( 0, "#202020" )
-                        , ( 1.0, "#000000" )
-                        ]                                                        
-            Fill color -> 
-                [ ( 0, color )
-                , ( 1, color )
+        case ( stop1, stop2, stop3 ) of
+            ( On, On, On ) ->
+                [ ( 0, c1 )
+                , ( 0.7, c2 )
+                , ( 1, c3 )
+                ]
+            ( On, On, Off ) ->
+                [ ( 0, c1 )
+                , ( 1, c2 )
+                ]  
+            ( On, Off, On ) ->
+                [ ( 0, c1 )
+                , ( 1, c3 )
+                ]
+            ( On, Off, Off ) ->
+                [ ( 0, c1 )
+                , ( 1, c1 )
+                ]
+            ( Off, On, On ) ->
+                [ ( 0, c2 )
+                , ( 1, c3 )
+                ]
+            ( Off, On, Off ) ->
+                [ ( 0, c2 )
+                , ( 1, c2 )
+                ]  
+            ( Off, Off, On ) ->
+                [ ( 0, c3 )
+                , ( 1, c3 )
+                ]
+            ( Off, Off, Off ) ->
+                [ ( 0, "#000000" )
+                , ( 0, "#202020" )
+                , ( 1.0, "#000000" )
                 ]
     }
 
@@ -197,15 +188,12 @@ gradientToSvg ( w, h ) gradientId { stops, orientation } =
             [ ]
         ]
 
-switchStop : StopId -> StopState -> Mode -> Mode
-switchStop stopIndex value curMode =
-    case curMode of
-        Fill _ -> curMode
-        StopStates stop1 stop2 stop3 ->
-            StopStates 
-                (if stopIndex == StopI then value else stop1)
-                (if stopIndex == StopII then value else stop2)
-                (if stopIndex == StopIII then value else stop3) 
+switchStop : StopId -> StopState -> StopStates -> StopStates
+switchStop stopIndex value (StopStates stop1 stop2 stop3) =
+    StopStates 
+        (if stopIndex == StopI then value else stop1)
+        (if stopIndex == StopII then value else stop2)
+        (if stopIndex == StopIII then value else stop3) 
 
 
 indexToStopId : Int -> StopId
@@ -224,83 +212,64 @@ boolToStopState v = if v then On else Off
 encode : Model -> E.Value
 encode model =
     let
-        encodeMode =
-            case model.mode of
-                Fill _ -> E.string "fill"
-                StopStates _ _ _ -> E.string "gradient"
         encodeStopState state = 
             E.string <| 
                 case state of
                     On -> "on"
                     Off -> "off"         
-        encodeValue =
-            case model.mode of
-                Fill color ->
-                    E.object
-                        [ ( "color", E.string color ) ]
-                StopStates stop1 stop2 stop3 ->
-                    E.object
-                        [ 
-                            ( "stopStates"
-                            , E.list encodeStopState [ stop1, stop2, stop3 ] 
-                            ) 
-                        ]
-        encodeOrientation =
+        encodeStopStates (StopStates stop1 stop2 stop3) =
+            E.list encodeStopState [ stop1, stop2, stop3 ] 
+        encodeOrientation orientation =
             E.string <| 
-                case model.orientation of
+                case orientation of
                     Vertical -> "vertical"
                     Horizontal -> "horizontal"
                     Radial -> "radial"                
     in
         E.object
             [ ( "opacity", E.float model.opacity )
-            , ( "mode", encodeMode )
-            , ( "value", encodeValue )
-            , ( "orientation", encodeOrientation )
+            , ( "stops", encodeStopStates model.stops )
+            , ( "orientation", encodeOrientation model.orientation )
             ]
 
 
-decodeMode : D.Decoder Mode
-decodeMode =
-    D.map2
-        (\maybeColor maybeStopsState ->
-            case ( maybeColor, maybeStopsState ) of
-                ( Just color, _ ) -> Fill color
-                ( _, Just (stop1::stop2::stop3::_) ) -> 
-                    StopStates
-                        (if stop1 == "on" then On else Off)
-                        (if stop2 == "on" then On else Off)
-                        (if stop3 == "on" then On else Off)
-                ( _, Just _ ) -> defaultMode                        
-                ( Nothing, Nothing ) -> defaultMode
-        )
-        (D.maybe <| D.field "color" D.string)
-        (D.maybe <| D.field "stopStates" <| D.list D.string)
+decodeStops : D.Decoder StopStates
+decodeStops =
+    D.list D.string 
+        |> D.map 
+            (\stopStatesList ->
+                case stopStatesList of 
+                    (stop1::stop2::stop3::_) ->
+                        StopStates
+                            (if stop1 == "on" then On else Off)
+                            (if stop2 == "on" then On else Off)
+                            (if stop3 == "on" then On else Off)
+                    _ -> defaultStops 
+            )
 
 
 decodeOrientation : D.Decoder Orientation
 decodeOrientation = 
-    D.map
-        (\string ->
-            case string of
-                "vertical" -> Vertical
-                "horizontal" -> Horizontal
-                "radial" -> Radial
-                _ -> defaultOrientation
-        ) 
-        D.string                       
+    D.string 
+        |> D.map
+            (\string ->
+                case string of
+                    "vertical" -> Vertical
+                    "horizontal" -> Horizontal
+                    "radial" -> Radial
+                    _ -> defaultOrientation
+            ) 
 
 
 decode : D.Decoder Model
 decode =
-    D.map4
-        (\opacity mode modeValue orientation ->
+    D.map3
+        (\opacity stops orientation ->
             { opacity = opacity
-            , mode = modeValue -- TODO: ensure mode string corresponds to value?
+            , stops = stops
             , orientation = orientation
             }
         )
         (D.field "opacity" D.float)
-        (D.field "mode" D.string)
-        (D.field "value" decodeMode)
+        (D.field "stops" decodeStops)
         (D.field "orientation" decodeOrientation)

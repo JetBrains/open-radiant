@@ -52,7 +52,7 @@ import Navigation as Nav
 import Gradient as Gradient
 
 import Layer.Background as Background
-import Layer.Background exposing (Mode(..), StopState(..))
+import Layer.Background exposing (StopState(..), StopStates(..))
 import Layer.Lorenz as Lorenz
 import Layer.Fractal as Fractal
 import Layer.Voronoi as Voronoi
@@ -124,13 +124,7 @@ initialLayers mode =
         layers =
             [ ( Cover, "Cover", CoverModel Cover.init )
             , ( NativeMetaballs, "NativeMetaballs", NativeMetaballsModel NativeMetaballs.init )
-            , ( Background, "Background"
-              , BackgroundModel
-                    { mode = StopStates On On Off
-                    , opacity = 1.0
-                    , orientation = Gradient.Vertical
-                    }
-              )
+            , ( Background, "Background", BackgroundModel Background.init )
             -- [ ( Fluid, "Fluid", FluidModel Fluid.init )
             -- [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
             -- [ ( FluidGrid, "FluidGrid", FluidGridModel FluidGrid.init )
@@ -843,10 +837,10 @@ update msg model =
                                         | model =
                                             BackgroundModel
                                                 { bgModel
-                                                | mode = Background.switchStop
+                                                | stops = Background.switchStop
                                                             (Background.indexToStopId stopIndex)
                                                             (Background.boolToStopState value)
-                                                            bgModel.mode
+                                                            bgModel.stops
                                                 }
                                         }
                                     _ -> layerDef
