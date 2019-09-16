@@ -394,6 +394,7 @@ function m(target, width, height, model, colors_) {
                 }
 
                 float delta = 0.0, alpha = 1.0;
+               // vec4 color = vec4(1.0);
                 vec4 color = texture2D(uColorSampler, gl_FragCoord.xy / uResolution.xy);
 
                 #ifdef GL_OES_standard_derivatives

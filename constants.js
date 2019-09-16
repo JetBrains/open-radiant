@@ -112,7 +112,24 @@ const BLEND_FACTORS_IDS =
 
 
 const HTML_BLENDS =
-  [ 'normal', 'overlay' ];
+  [ 'normal'
+    , 'overlay'
+    , 'screen'
+    , 'difference'
+    , 'exclusion'
+    , 'soft-light'
+    , 'hue'
+    , 'multiply'
+    , 'darken'
+    , 'lighten'
+    , 'color-dodge'
+    , 'color-burn'
+    , 'hard-light'
+    , 'saturation'
+    , 'color'
+    , 'luminosity'
+  ];
+
 
 
 const RENDER_MODES =
