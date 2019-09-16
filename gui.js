@@ -63,7 +63,9 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
               layer.blend[0].color || [ 1, 0, 0, 0 ]; // FIXME: get RGBA components
         }
       } else { // webglOrHtml != 'webgl'
-          this['layer' + index + 'Blend'] = layer.blend[1] || 'normal';
+          if (!is.background(layer)) {
+            this['layer' + index + 'Blend'] = layer.blend[1] || 'normal';
+          }
       }
 
       this['visible' + index] = true;
@@ -372,7 +374,9 @@ function start(document, model, constants, funcs) {
       if (layer.webglOrHtml == 'webgl') {
         addWebGLBlend(folder, config, layer, index);
       } else {
-        addHtmlBlend(folder, config, layer, index);
+        if (!is.background(layer)) {
+          addHtmlBlend(folder, config, layer, index);
+        }
       }
     });
 
