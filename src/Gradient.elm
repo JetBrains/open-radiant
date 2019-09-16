@@ -20,6 +20,7 @@ type alias Color = String
 type Orientation
     = Horizontal
     | Vertical
+    | Radial
 
 
 type alias Gradient =
@@ -57,6 +58,7 @@ encode { orientation, stops } =
                 case orientation of
                     Horizontal -> E.string "horizontal"
                     Vertical -> E.string "vertical"
+                    Radial -> E.string "radial"
                 )
             ]
 
@@ -77,6 +79,7 @@ decode =
                     case orientationStr of
                         "horizontal" -> Horizontal
                         "vertical" -> Vertical
+                        "radial" -> Radial
                         _ -> Vertical
                 }
             )

@@ -128,6 +128,7 @@ initialLayers mode =
               , BackgroundModel
                     { mode = StopStates On On Off
                     , opacity = 1.0
+                    , orientation = Gradient.Vertical
                     }
               )
             -- [ ( Fluid, "Fluid", FluidModel Fluid.init )
