@@ -41,7 +41,7 @@ view mode product ( w, h ) ( x, y ) blend =
     in
         div
             [ class "cover-layer"
-            , style "mix-blend-mode" <| Blend.encode blend
+            --, style "mix-blend-mode" <| Blend.encode blend
             , style "position" "absolute"
             , style "top" "0px"
             , style "left" "0px"
@@ -53,7 +53,7 @@ view mode product ( w, h ) ( x, y ) blend =
             ]
         ( if (mode == Production) || (mode == Player) || (mode == TronUi Production) then
             [ productName product ( centerX, centerY ) blend scale
-            , logo ( logoX, logoY ) blend scale
+            , logo ( logoX, logoY ) Blend.Normal scale
             ]
           else
             [
