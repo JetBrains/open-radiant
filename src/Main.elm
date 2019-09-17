@@ -825,6 +825,31 @@ update msg model =
                     )
             else ( model, Cmd.none )
 
+        ChangeNativeMetaballsEffects index change ->
+            if hasNativeMetaballsLayers model then
+                let
+                    newModel =
+                        model |> updateLayerDef index
+                            (\layerDef ->
+                                case layerDef.model of
+                                    NativeMetaballsModel nmModel ->
+                                        { layerDef
+                                        | model =
+                                            NativeMetaballsModel { nmModel | effects = Fluid.applyEffectsChange change nmModel.effects }
+                                        }
+                                    _ -> layerDef
+                            )
+                    encodedChange = Fluid.encodeEffectsChange change
+                in
+                    ( newModel
+                    , sendNativeMetaballsEffects
+                        { index = index
+                        , subject = encodedChange.subject
+                        , value = encodedChange.value
+                        }
+                    )
+            else ( model, Cmd.none )            
+
         SwitchBackgroundStop layerIndex stopIndex value ->
             if hasBackgroundLayers model then
                 let
@@ -1000,6 +1025,16 @@ subscriptions model =
                 ChangeNativeMetaballsVariety layer (Gaussian.Variety value))
         , changeNativeMetaballsOrbit
             (\{ layer, value } -> ChangeNativeMetaballsOrbit layer (Fluid.Orbit value))
+        , changeNativeMetaballsEffects
+            (\{ layer, subject, value } -> 
+                let 
+                    change = 
+                        case subject of
+                            "blur" -> Fluid.ChangeBlur value 
+                            "fat" -> Fluid.ChangeFat value                         
+                            "ring" -> Fluid.ChangeRing value
+                            _ -> Fluid.ChangeNothing
+                in ChangeNativeMetaballsEffects layer change)            
         , switchBackgroundStop
             (\{ layer, stopIndex, value } ->
                 SwitchBackgroundStop layer stopIndex value)
@@ -1772,6 +1807,8 @@ port shiftColor : ({ value: FSS.ColorShiftPatch, layer: LayerIndex } -> msg) -> 
 
 port changeOpacity : ({ value: FSS.Opacity, layer: LayerIndex } -> msg) -> Sub msg
 
+port changeNativeMetaballsEffects : ({ subject: String, value: Float, layer: LayerIndex } -> msg) -> Sub msg
+
 port resize :
     ({ presetCode: Maybe SizePresetCode
      , viewport: (Int, Int)
@@ -1883,4 +1920,11 @@ port updateNativeMetaballs :
     , size: (Int, Int)
     , layerModel : E.Value
     , palette: List String
+    } -> Cmd msg
+
+
+port sendNativeMetaballsEffects :
+    { index: LayerIndex
+    , subject: String
+    , value: Float
     } -> Cmd msg

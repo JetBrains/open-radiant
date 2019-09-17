@@ -112,9 +112,10 @@ type Msg
     | ApplyFluidTextures
         LayerIndex
         (List { gradient : Fluid.TextureAndSize, data : Fluid.TextureAndSize })
-    | UpdateNativeMetaballs LayerIndex NativeMetaballs.Model
+    | UpdateNativeMetaballs LayerIndex NativeMetaballs.Model -- called when random model was generated in any way
     | ChangeNativeMetaballsVariety LayerIndex Gaussian.Variety
     | ChangeNativeMetaballsOrbit LayerIndex NativeMetaballs.Orbit
+    | ChangeNativeMetaballsEffects LayerIndex Fluid.EffectsChange
     | SwitchBackgroundStop LayerIndex Int Bool -- StopIndex and StopState
     | SwitchGradientOrientation LayerIndex Gradient.Orientation
     | Randomize

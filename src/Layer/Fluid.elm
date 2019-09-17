@@ -2,6 +2,7 @@ module Layer.Fluid exposing
     ( Model
     , StaticModel--, StaticModelWithGradients
     , Randomization(..)
+    , Effects, EffectsChange(..)
     , Mesh
     , BallGroup
     , Base64Url(..)
@@ -14,6 +15,7 @@ module Layer.Fluid exposing
     , generator, gradientGenerator
     , generate, generateGradient, generateGradientsFor
     , defaultRange, defaultEffects , defaultOrbit, defaultVariety
+    , applyEffectsChange, encodeEffectsChange
     , Orbit(..), Ranges
     , extractStatics
     )
@@ -70,6 +72,13 @@ type alias BallGroup =
 
 
 type alias Effects = { blur : Float, fat : Float, ring : Float }
+
+
+type EffectsChange 
+    = ChangeBlur Float
+    | ChangeFat Float
+    | ChangeRing Float      
+    | ChangeNothing
 
 
 type alias Model =
@@ -526,6 +535,24 @@ extractStatics model =
                         })    
             , gradient = group.gradient            
             })
+
+
+applyEffectsChange : EffectsChange -> Effects -> Effects
+applyEffectsChange change effects = 
+    case change of 
+        ChangeBlur v -> { effects | blur = v }
+        ChangeFat v -> { effects | fat = v }
+        ChangeRing v -> { effects | ring = v }
+        ChangeNothing -> effects
+
+
+encodeEffectsChange : EffectsChange -> { subject : String, value : Float }
+encodeEffectsChange change =
+    case change of 
+        ChangeBlur v -> { subject = "blur", value = v }
+        ChangeFat v -> { subject = "fat", value = v }
+        ChangeRing v -> { subject = "ring", value = v }
+        ChangeNothing -> { subject = "nothing", value = -1.0 }
 
 
 remapTo : ( Int, Int ) -> Model -> Model

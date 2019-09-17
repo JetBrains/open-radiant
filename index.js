@@ -253,6 +253,10 @@ const updateOrInitNativeMetaballs = (size, layerModel, palette, index) => {
     }
 };
 
+const updateNativeMetaballsEffects = (subject, value, index) => { 
+
+}
+
 const convertRanges = r =>
     {
         return {
@@ -411,6 +415,8 @@ setTimeout(() => {
                     { app.ports.changeNativeMetaballsVariety.send({ layer: index, value }); }
                 , changeNativeMetaballsOrbit : index => value =>
                     { app.ports.changeNativeMetaballsOrbit.send({ layer: index, value }); }
+                , changeNativeMetaballsEffects : (index, subject) => value =>
+                    { app.ports.changeNativeMetaballsEffects.send({ layer: index, subject, value }); }
                 , switchBackgroundStop : (layerIndex, stopIndex) => value => 
                     { app.ports.switchBackgroundStop.send({ layer: layerIndex, stopIndex, value }); }
                 , switchBackgroundGradientType : (layerIndex) => isRadial => 
@@ -475,6 +481,10 @@ setTimeout(() => {
     app.ports.updateNativeMetaballs.subscribe(({ index, size, layerModel, palette }) => {
         updateOrInitNativeMetaballs(size, layerModel, palette, index);
     });
+
+    app.ports.sendNativeMetaballsEffects.subscribe(({ index, subject, value }) => {
+        updateNativeMetaballsEffects(subject, value, index);
+    });    
 
     app.ports.bang.send(null);
 

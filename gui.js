@@ -94,6 +94,9 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
         }
         this['variety'+index] = layer.model.variety;
         this['orbit'+index] = layer.model.orbit;
+        this['blur'+index] = layer.model.effects.blur;
+        this['fat'+index] = layer.model.effects.fat;
+        this['ring'+index] = layer.model.effects.ring;
       }
 
       if (is.background(layer)) {
@@ -327,14 +330,23 @@ function start(document, model, constants, funcs) {
         }
         const variety = folder.add(config, 'variety' + index).name('variety').min(0.01).max(1).step(0.01);
         const orbit = folder.add(config, 'orbit' + index).name('orbit').min(0).max(1).step(0.05);
+        const blur = folder.add(config, 'blur' + index).name('blur').min(0).max(1).step(0.05);
+        const fat = folder.add(config, 'fat' + index).name('fat').min(0).max(1).step(0.05);
+        const ring = folder.add(config, 'ring' + index).name('ring').min(0).max(1).step(0.05);
         variety.onFinishChange(
           is.fluid(layer)
             ? funcs.changeFluidVariety(index)
             : funcs.changeNativeMetaballsVariety(index));
-            orbit.onFinishChange(
+        orbit.onFinishChange(
           is.fluid(layer)
             ? funcs.changeFluidOrbit(index)
             : funcs.changeNativeMetaballsOrbit(index));
+        blur.onFinishChange( 
+            funcs.changeNativeMetaballsEffects(index, 'blur'));
+        fat.onFinishChange( 
+          funcs.changeNativeMetaballsEffects(index, 'fat'));
+        ring.onFinishChange( 
+          funcs.changeNativeMetaballsEffects(index, 'ring'));                      
       }
       if (is.background(layer)) {
         const stop1 = folder.add(config, 'stop1' + index).name('heaven');
