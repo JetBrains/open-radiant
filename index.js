@@ -241,7 +241,7 @@ const updateOrInitNativeMetaballs = (size, layerModel, palette, index) => {
         allNativeMetaballs[index] = nativeMetaballsModel;
         const debouncedResize = timing.debounce(function(newSize) {
             const prev = allNativeMetaballs[index];
-            allNativeMetaballs[index] = nativeMetaballs.update(newSize, prev.model, prev.palette, prev.metaballs);
+            allNativeMetaballs[index] = nativeMetaballs.update(newSize, prev.model, prev.palette);
         }, 300);
         app.ports.requestWindowResize.subscribe((size) => {
             debouncedResize(size);
@@ -249,12 +249,22 @@ const updateOrInitNativeMetaballs = (size, layerModel, palette, index) => {
         //debouncedResize(size);
     } else {
         const prev = allNativeMetaballs[index];
-        allNativeMetaballs[index] = nativeMetaballs.update(size, layerModel, palette, prev.metaballs);
+        allNativeMetaballs[index] = nativeMetaballs.update(size, layerModel, palette, prev.stop);
     }
 };
 
 const updateNativeMetaballsEffects = (subject, value, index) => { 
-
+    if (allNativeMetaballs[index]) {
+        const prev = allNativeMetaballs[index];
+        if (subject == 'blur') {
+            prev.model.effects.blur = value;
+        } else if (subject == 'fat') {
+            prev.model.effects.fat = value;
+        } else if (subject == 'ring') {
+            prev.model.effects.ring = value;
+        }
+        allNativeMetaballs[index] = nativeMetaballs.update(prev.size, prev.model, prev.palette, prev.stop);    
+    }
 }
 
 const convertRanges = r =>

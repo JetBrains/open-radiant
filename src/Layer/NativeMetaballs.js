@@ -4,6 +4,10 @@ function m(target, width, height, model, colors_) {
 
     if (!model.groups.length) return;
 
+    const blur = model.effects.blur;
+    const fat = model.effects.fat;
+    const ring = model.effects.ring;
+
     let colors = colors_ || ['#341f49', '#f38038', '#ed3d7d'];
 
     let canvas;
@@ -217,7 +221,7 @@ function m(target, width, height, model, colors_) {
         resolutionUniform = getUniformLocation(program, 'uResolution');
         gl.uniform2f(resolutionUniform, gl.canvas.width, gl.canvas.height);
 
-        gl.uniform1f(gl.getUniformLocation(program, 'blur'), 0.0);
+        gl.uniform1f(gl.getUniformLocation(program, 'blur'), blur);
       }
 
 
@@ -450,7 +454,7 @@ function m(target, width, height, model, colors_) {
 
     }
 
-    return { width, height, stop };
+    return { size : [ width, height ], palette: colors, model, stop };
 
   };
 
