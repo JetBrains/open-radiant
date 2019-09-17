@@ -86,6 +86,7 @@ type Msg
     | MirrorOn LayerIndex
     | MirrorOff LayerIndex
     | Configure LayerIndex LayerModel
+    | TriggerFeelLucky
     | ChangeWGLBlend LayerIndex WGLBlend.Blend
     | AlterWGLBlend LayerIndex WGLBlend.BlendChange
     | ChangeHtmlBlend LayerIndex HtmlBlend.Blend

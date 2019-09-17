@@ -243,7 +243,7 @@ const updateOrInitNativeMetaballs = (size, layerModel, palette, index) => {
             const prev = allNativeMetaballs[index];
             // prev.resize(newSize);
             // prev.size = newSize;
-            allNativeMetaballs[index] = nativeMetaballs.update(newSize, prev);
+            allNativeMetaballs[index] = nativeMetaballs.update(newSize, prev, prev.stop);
         }, 300);
         app.ports.requestWindowResize.subscribe((size) => {
             debouncedResize(size);
@@ -251,7 +251,9 @@ const updateOrInitNativeMetaballs = (size, layerModel, palette, index) => {
         //debouncedResize(size);
     } else {
         const prev = allNativeMetaballs[index];
-        allNativeMetaballs[index] = nativeMetaballs.update(size, layerModel, palette, prev.stop);
+        prev.model = layerModel;
+        prev.palette = palette;
+        allNativeMetaballs[index] = nativeMetaballs.update(size, prev, prev.stop);
     }
 };
 
@@ -416,6 +418,8 @@ setTimeout(() => {
                     { app.ports.rotate.send(value); }
                 , applyRandomizer : value =>
                     { app.ports.applyRandomizer.send(prepareModelForImport(value)); }
+                , iFeelLucky : () => 
+                    { app.ports.iFeelLucky.send(null); }
                 , refreshFluid : (index) =>
                     { app.ports.refreshFluid.send({ layer: index }); }
                 , changeFluidVariety : index => value =>

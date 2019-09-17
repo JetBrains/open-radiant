@@ -7,11 +7,11 @@ function build(size, model, palette) {
         size[0], size[1], model, palette);
 };
 
-function update(size, prev) {
-    if (prev) prev.stop();
+function update(size, new_, prevStop) {
+    if (prevStop) prevStop();
     return nm(
         document.getElementById('native-metaballs-0'),  // FIXME: use actual layer
-        size[0], size[1], prev.model, prev.palette);
+        size[0], size[1], new_.model, new_.palette);
 };
 
 module.exports = {

@@ -115,7 +115,10 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
 
     //this.savePng = funcs.savePng;
     this.saveBatch = () => funcs.saveBatch(Object.values(sizePresetSet));
-    this.randomize = randomize(this);
+    // this.randomize = randomize(this); // FIXME: this way we updated FSS using "I feel lucky", consider returning it back in some way
+
+    this.randomize = () => funcs.iFeelLucky();
+
     // -------
     //this.timeShift = 0;
     // this.getSceneJson = funcs.getSceneJson;

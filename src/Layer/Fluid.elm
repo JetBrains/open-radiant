@@ -253,10 +253,19 @@ generateEverything ( w, h ) range palette variety orbit =
                                 }
                             )
                     )
+        generateEffects gaussX = 
+            Random.map3 
+                (\blur fat ring -> 
+                    { blur = blur, fat = fat, ring = ring }
+                )
+                (gaussX |> gaussInFloatRange (fRange 0 1))
+                (gaussX |> gaussInFloatRange (fRange 0 1))
+                (gaussX |> gaussInFloatRange (fRange 0 1))
+
         makeBall { center, radius } = Ball center radius
     in
         Gauss.generateX
-            |> Random.andThen
+            |> Random.andThen 
                 (\gaussX ->
                     randomIntInRange range.groups
                         |> Random.map (Tuple.pair gaussX)
@@ -264,13 +273,19 @@ generateEverything ( w, h ) range palette variety orbit =
             |> Random.andThen
                 (\( gaussX, numGroups ) ->
                     Random.list numGroups (generateGroup gaussX)
+                        |> Random.map (\groups -> ( gaussX, groups ))
                 )
-            |> Random.map (\groups ->
+            |> Random.andThen
+                (\( gaussX, groups ) -> 
+                    generateEffects gaussX
+                        |> Random.map (\effects -> ( groups, effects ))
+                )   
+            |> Random.map (\( groups, effects ) ->
                 { groups = groups
                 , forSize = Just ( w, h )
                 , variety = variety
                 , orbit = orbit
-                , effects = defaultEffects
+                , effects = effects
                 })
 
 

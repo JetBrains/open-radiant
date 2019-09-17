@@ -444,6 +444,9 @@ update msg model =
                     ]
                 )
 
+        TriggerFeelLucky ->               
+            ( model, generateAllNativeMetaballs model )
+
         Configure index _ ->
             ( model |> updateLayer index
                 (\layer curLayerModel ->
@@ -801,7 +804,7 @@ update msg model =
                             )
                 in
                     ( newModel
-                    , generateAllNativeMetaballs newModel -- FIXME: use actual index
+                    , updateAllNativeMetaballsWith newModel-- FIXME: use actual index
                     )
             else ( model, Cmd.none )
 
@@ -821,7 +824,7 @@ update msg model =
                             )
                 in
                     ( newModel
-                    , generateAllNativeMetaballs newModel -- FIXME: use actual index
+                    , updateAllNativeMetaballsWith newModel -- FIXME: use actual index
                     )
             else ( model, Cmd.none )
 
@@ -1034,7 +1037,9 @@ subscriptions model =
                             "fat" -> Fluid.ChangeFat value                         
                             "ring" -> Fluid.ChangeRing value
                             _ -> Fluid.ChangeNothing
-                in ChangeNativeMetaballsEffects layer change)            
+                in ChangeNativeMetaballsEffects layer change)
+        , iFeelLucky 
+            (\_ -> TriggerFeelLucky)
         , switchBackgroundStop
             (\{ layer, stopIndex, value } ->
                 SwitchBackgroundStop layer stopIndex value)
@@ -1621,7 +1626,7 @@ generateAllInitialNativeMetaballs model =
                     generateInitialNativeMetaballs
                         model.size
                         palette
-                        index)
+                        index)                
 
 
 updateAllNativeMetaballsWith : Model -> Cmd Msg
@@ -1808,6 +1813,8 @@ port shiftColor : ({ value: FSS.ColorShiftPatch, layer: LayerIndex } -> msg) -> 
 port changeOpacity : ({ value: FSS.Opacity, layer: LayerIndex } -> msg) -> Sub msg
 
 port changeNativeMetaballsEffects : ({ subject: String, value: Float, layer: LayerIndex } -> msg) -> Sub msg
+
+port iFeelLucky : (() -> msg) -> Sub msg
 
 port resize :
     ({ presetCode: Maybe SizePresetCode
