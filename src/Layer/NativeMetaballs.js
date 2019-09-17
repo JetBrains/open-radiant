@@ -28,8 +28,6 @@ function m(target, width, height, model, colors_) {
       // colorIII: colors[0]
     }
 
-    const stop = function() { isStopped = true };
-
     initialize(target, width, height);
 
     function initialize(target, width, height) {
@@ -85,7 +83,7 @@ function m(target, width, height, model, colors_) {
 
       resizeGL(gl);
 
-      step();
+      requestAnimationFrame(step);
     }
 
     function generateGradientTexture(colors, vertical, debug) {
@@ -121,9 +119,9 @@ function m(target, width, height, model, colors_) {
       return {x: randomFromTo(ranges.x), y: randomFromTo(ranges.y)}
     }
 
-    function onWindowResize(event) { // FIXME: use
-      canvas.width = canvas.clientWidth;
-      canvas.height = canvas.clientHeight;
+    function resize(size) {
+      canvas.width = size[0];
+      canvas.height = size[1];
 
 
       resizeGL(gl);
@@ -149,6 +147,14 @@ function m(target, width, height, model, colors_) {
         metaball.handleResize(displayWidth, displayHeight);
       });
     }
+
+    function updateEffects(effects) {
+      createdMetaballs.forEach(function (metaball) {
+        metaball.updateEffects(effects);
+      });
+    }
+
+    const stop = function() { isStopped = true };
 
     function step() {
       createdMetaballs.forEach(function (metaball) {
@@ -221,7 +227,9 @@ function m(target, width, height, model, colors_) {
         resolutionUniform = getUniformLocation(program, 'uResolution');
         gl.uniform2f(resolutionUniform, gl.canvas.width, gl.canvas.height);
 
-        gl.uniform1f(gl.getUniformLocation(program, 'blur'), blur);
+        gl.uniform1f(gl.getUniformLocation(program, 'uBlur'), blur);
+        gl.uniform1f(gl.getUniformLocation(program, 'uFat'), fat);
+        gl.uniform1f(gl.getUniformLocation(program, 'uRing'), ring);
       }
 
 
@@ -299,6 +307,13 @@ function m(target, width, height, model, colors_) {
         gl.uniform2f(resolutionUniform, width, height);
       }
 
+      this.updateEffects = function (effects) {
+        gl.useProgram(program);
+        gl.uniform1f(gl.getUniformLocation(program, 'uBlur'), effects.blur);
+        gl.uniform1f(gl.getUniformLocation(program, 'uFat'), effects.fat);
+        gl.uniform1f(gl.getUniformLocation(program, 'uRing'), effects.ring);
+      }      
+
       this.handleMouseMove = function (x, y) {
         mousePosition.x = x - (window.innerWidth - width ) / 2;
         mousePosition.y = window.innerHeight - y;
@@ -363,10 +378,15 @@ function m(target, width, height, model, colors_) {
             uniform vec3 metaballs[15];
             uniform vec2 uResolution;
             uniform sampler2D uColorSampler;
-            uniform float blur;
+            uniform float uBlur;
+            uniform float uFat;
+            uniform float uRing;
 
             float v = 0.0;
-          //  float blur = 1.0;
+            float blur = 1.0 - uBlur;
+            float fat = 1.0 - uFat;
+            float ring = 1.0 - uRing;
+
             float noise(vec2 seed, float time) {
                 float x = (seed.x / 3.14159 + 4.0) * (seed.y / 13.0 + 4.0) * ((fract(time) + 1.0) * 10.0);
                 return mod((mod(x, 13.0) + 1.0) * (mod(x, 123.0) + 1.0), 0.01) - 0.005;
@@ -454,11 +474,16 @@ function m(target, width, height, model, colors_) {
 
     }
 
-    return { size : [ width, height ], palette: colors, model, stop };
+    return { 
+      size : [ width, height ], 
+      palette: colors, 
+      model, 
+      stop, 
+      resize, 
+      update : m, 
+      updateEffects 
+    };
 
   };
 
-  module.exports = {
-    start: m,
-    update: m
-  };
+  module.exports = m;

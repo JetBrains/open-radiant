@@ -241,7 +241,9 @@ const updateOrInitNativeMetaballs = (size, layerModel, palette, index) => {
         allNativeMetaballs[index] = nativeMetaballsModel;
         const debouncedResize = timing.debounce(function(newSize) {
             const prev = allNativeMetaballs[index];
-            allNativeMetaballs[index] = nativeMetaballs.update(newSize, prev.model, prev.palette);
+            // prev.resize(newSize);
+            // prev.size = newSize;
+            allNativeMetaballs[index] = nativeMetaballs.update(newSize, prev);
         }, 300);
         app.ports.requestWindowResize.subscribe((size) => {
             debouncedResize(size);
@@ -263,7 +265,8 @@ const updateNativeMetaballsEffects = (subject, value, index) => {
         } else if (subject == 'ring') {
             prev.model.effects.ring = value;
         }
-        allNativeMetaballs[index] = nativeMetaballs.update(prev.size, prev.model, prev.palette, prev.stop);    
+        allNativeMetaballs[index].updateEffects(prev.model.effects);
+        //allNativeMetaballs[index] = nativeMetaballs.update(prev.size, prev);    
     }
 }
 
