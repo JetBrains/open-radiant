@@ -216,6 +216,8 @@ function m(target, width, height, model, colors_) {
 
         resolutionUniform = getUniformLocation(program, 'uResolution');
         gl.uniform2f(resolutionUniform, gl.canvas.width, gl.canvas.height);
+
+        gl.uniform1f(gl.getUniformLocation(program, 'blur'), 0.0);
       }
 
 
@@ -357,8 +359,10 @@ function m(target, width, height, model, colors_) {
             uniform vec3 metaballs[15];
             uniform vec2 uResolution;
             uniform sampler2D uColorSampler;
+            uniform float blur;
 
             float v = 0.0;
+          //  float blur = 1.0;
             float noise(vec2 seed, float time) {
                 float x = (seed.x / 3.14159 + 4.0) * (seed.y / 13.0 + 4.0) * ((fract(time) + 1.0) * 10.0);
                 return mod((mod(x, 13.0) + 1.0) * (mod(x, 123.0) + 1.0), 0.01) - 0.005;
@@ -400,8 +404,11 @@ function m(target, width, height, model, colors_) {
                 #ifdef GL_OES_standard_derivatives
                     delta = fwidth(v);
                     if ( v > delta) {
-                      alpha = smoothstep( 1.0 - delta, 1.0 + delta, v);
-                    }
+                      alpha = smoothstep( blur - delta, 1.0, v );
+                    } 
+                    // else {
+                    //   alpha = 0.4;
+                    // }
                 #else
 
                   if (v > 1.0) {

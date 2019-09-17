@@ -13,7 +13,7 @@ module Layer.Fluid exposing
     , loadTextures, injectTextures, packTextures
     , generator, gradientGenerator
     , generate, generateGradient, generateGradientsFor
-    , defaultRange
+    , defaultRange, defaultEffects , defaultOrbit, defaultVariety
     , Orbit(..), Ranges
     , extractStatics
     )
@@ -48,9 +48,6 @@ import Model.Product exposing (ColorId(..))
 import Model.Range exposing (..)
 
 
-defaultColors = [ "#f38038", "#ed3d7d", "#341f49" ]
-
-
 type alias Ball =
     { origin : Vec2
     , radius : Float
@@ -72,12 +69,16 @@ type alias BallGroup =
     }
 
 
+type alias Effects = { blur : Float, fat : Float, ring : Float }
+
+
 type alias Model =
     { groups : List BallGroup
     , forSize : Maybe ( Int, Int ) -- FIXME: if we always use the main window size
                                    -- for generating model, then it's the duplication
     , variety : Gauss.Variety
     , orbit : Orbit
+    , effects : Effects
     }
 
 
@@ -127,7 +128,6 @@ type alias Ranges =
 
 type Orbit = Orbit Float -- 0..1
 
-
 -- type FocusChange
 --     = GroupsCount Int
 --     | BallsCount Int
@@ -137,12 +137,24 @@ type Orbit = Orbit Float -- 0..1
 --     | AmplitudeY Float
 
 
+defaultEffects : Effects
+defaultEffects = { blur = 1.0, fat = 0.0, ring = 0.0 } 
+
+
+-- defaultColors = [ "#f38038", "#ed3d7d", "#341f49" ]
+
+
+defaultOrbit = Orbit 0.5
+defaultVariety = Gauss.Variety 0.5
+
+
 init : Model
 init =
     { groups = [ ]
     , forSize = Nothing
     , variety = Gauss.Variety 0.5
     , orbit = Orbit 0.5
+    , effects = defaultEffects
     }
 
 
@@ -249,6 +261,7 @@ generateEverything ( w, h ) range palette variety orbit =
                 , forSize = Just ( w, h )
                 , variety = variety
                 , orbit = orbit
+                , effects = defaultEffects
                 })
 
 
@@ -321,6 +334,7 @@ generateFromInitialState ( w, h ) range palette initialState =
                                     , forSize = Just ( w, h )
                                     , variety = Gauss.Variety 0.5
                                     , orbit = Orbit 0.5
+                                    , effects = defaultEffects
                                     }
                                 )
                 )
@@ -393,6 +407,7 @@ generateDynamics ( w, h ) range palette variety orbit staticModel =
                                     , forSize = Just ( w, h )
                                     , variety = variety
                                     , orbit = orbit
+                                    , effects = defaultEffects
                                     }
                                 )
                 )
@@ -501,15 +516,15 @@ generateGradientsFor putIntoMsg palette model =
 extractStatics : Model -> StaticModel
 extractStatics model =
     model.groups
-        |> List.map (\group ->
-            { balls =
+        |> List.map (\group ->  
+            { balls = 
                 group.balls
                    |> List.map (\ball ->
                         { x = Vec2.getX ball.origin
                         , y = Vec2.getY ball.origin
                         , radius = ball.radius
-                        })
-            , gradient = group.gradient
+                        })    
+            , gradient = group.gradient            
             })
 
 

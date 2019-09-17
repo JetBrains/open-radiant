@@ -227,6 +227,11 @@ encodeLayerModel product layerModel =
                             |> Maybe.withDefault E.null)
                 , ( "variety", E.float <| case fluidModel.variety of Gaussian.Variety v -> v)
                 , ( "orbit", E.float <| case fluidModel.orbit of Fluid.Orbit v -> v)
+                , ( "effects", E.object 
+                        [ ( "blur", E.float fluidModel.effects.blur )
+                        , ( "fat", E.float fluidModel.effects.fat )
+                        , ( "ring", E.float fluidModel.effects.ring )
+                        ])
                 ] |> E.object
         M.NativeMetaballsModel
             nativeMetaballsModel ->
@@ -599,17 +604,29 @@ layerModelDecoder kind product =
                         (D.field "width" D.int)
                         (D.field "height" D.int)
             in
-                D.map4
-                    (\groups forSize variety orbit ->
+                D.map5
+                    (\groups forSize variety orbit effects ->
                         { groups = groups
                         , forSize = forSize
-                        , variety = variety |> Maybe.withDefault 0.5 |> Gaussian.Variety
-                        , orbit = orbit |> Maybe.withDefault 0.5 |> Fluid.Orbit
+                        , variety = variety |> Maybe.map Gaussian.Variety |> Maybe.withDefault Fluid.defaultVariety
+                        , orbit = orbit |> Maybe.map Fluid.Orbit |> Maybe.withDefault Fluid.defaultOrbit
+                        , effects = effects |> Maybe.withDefault Fluid.defaultEffects
                         })
                     (D.field "groups" <| D.list makeGroup)
                     (D.maybe <| D.field "forSize" makeSize)
                     (D.maybe <| D.field "variety" D.float)
                     (D.maybe <| D.field "orbit" D.float)
+                    (D.maybe <| D.field "effects" 
+                        <| D.map3 
+                            (\blur fat ring ->
+                                { blur = blur
+                                , fat = fat
+                                , ring = ring
+                                }
+                            )
+                            (D.field "blur" D.float)
+                            (D.field "fat" D.float)
+                            (D.field "ring" D.float))
                     |> D.map M.FluidModel
         M.NativeMetaballs ->
             layerModelDecoder M.Fluid product |>
