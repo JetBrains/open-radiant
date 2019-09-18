@@ -91,15 +91,18 @@ type alias Model =
     }
 
 
-type alias StaticModel
-    = List
-        { balls : List
-            { radius : Float
-            , x : Float
-            , y : Float
+type alias StaticModel =
+    { groups :
+        List
+            { balls : List
+                { radius : Float
+                , x : Float
+                , y : Float
+                }
+            , gradient : Product.Gradient
             }
-        , gradient : Product.Gradient
-        }
+    , effects : Effects 
+    } 
 
 
 type alias Mesh = WebGL.Mesh Vertex
@@ -350,7 +353,7 @@ generateFromInitialState ( w, h ) range palette initialState =
         Gauss.generateX
             |> Random.andThen
                 (\gaussX ->
-                    initialState
+                    initialState.groups
                         |> Random.traverse generateGroup
                         |> Random.map
                                 (\groups ->
@@ -358,7 +361,7 @@ generateFromInitialState ( w, h ) range palette initialState =
                                     , forSize = Just ( w, h )
                                     , variety = Gauss.Variety 0.5
                                     , orbit = Orbit 0.5
-                                    , effects = defaultEffects
+                                    , effects = initialState.effects
                                     }
                                 )
                 )
@@ -423,7 +426,7 @@ generateDynamics ( w, h ) range palette variety orbit staticModel =
         Gauss.generateX
             |> Random.andThen
                 (\gaussX ->
-                    staticModel
+                    staticModel.groups
                         |> Random.traverse (generateGroup gaussX)
                         |> Random.map
                                 (\groups ->
@@ -431,7 +434,7 @@ generateDynamics ( w, h ) range palette variety orbit staticModel =
                                     , forSize = Just ( w, h )
                                     , variety = variety
                                     , orbit = orbit
-                                    , effects = defaultEffects
+                                    , effects = staticModel.effects
                                     }
                                 )
                 )
@@ -539,17 +542,20 @@ generateGradientsFor putIntoMsg palette model =
 
 extractStatics : Model -> StaticModel
 extractStatics model =
-    model.groups
+    { groups = 
+        model.groups
         |> List.map (\group ->  
             { balls = 
                 group.balls
-                   |> List.map (\ball ->
+                |> List.map (\ball ->
                         { x = Vec2.getX ball.origin
                         , y = Vec2.getY ball.origin
                         , radius = ball.radius
                         })    
             , gradient = group.gradient            
             })
+    , effects = model.effects
+    }
 
 
 applyEffectsChange : EffectsChange -> Effects -> Effects
