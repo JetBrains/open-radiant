@@ -147,7 +147,7 @@ type Orbit = Orbit Float -- 0..1
 
 
 defaultEffects : Effects
-defaultEffects = { blur = 0.0, fat = 0.0, ring = 0.0 } 
+defaultEffects = { blur = 0.0, fat = 0.2, ring = 0.0 } 
 
 
 -- defaultColors = [ "#f38038", "#ed3d7d", "#341f49" ]
@@ -176,7 +176,7 @@ defaultRange =
     , phase = fRange 0 360 -- Maybe useless
     , amplitude =
         { x = fRange -30 30
-        , y = fRange -10 10
+        , y = fRange -30 30
         }
     }
 

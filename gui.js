@@ -333,9 +333,9 @@ function start(document, model, constants, funcs) {
         }
         const variety = folder.add(config, 'variety' + index).name('variety').min(0.01).max(1).step(0.01);
         const orbit = folder.add(config, 'orbit' + index).name('orbit').min(0).max(1).step(0.05);
-        const blur = folder.add(config, 'blur' + index).name('blur').min(0).max(1).step(0.05);
-        const fat = folder.add(config, 'fat' + index).name('fat').min(0).max(1).step(0.05);
-        const ring = folder.add(config, 'ring' + index).name('ring').min(0).max(1).step(0.05);
+        const blur = folder.add(config, 'blur' + index).name('myopia').min(0).max(1).step(0.01);
+        const fat = folder.add(config, 'fat' + index).name('fat').min(0).max(1).step(0.01);
+        const ring = folder.add(config, 'ring' + index).name('x-ray').min(0).max(1).step(0.01);
         variety.onFinishChange(
           is.fluid(layer)
             ? funcs.changeFluidVariety(index)

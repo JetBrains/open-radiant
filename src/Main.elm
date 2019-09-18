@@ -123,7 +123,7 @@ initialLayers mode =
     let
         layers =
             [ ( Cover, "Cover", CoverModel Cover.init )
-            , ( NativeMetaballs, "NativeMetaballs", NativeMetaballsModel NativeMetaballs.init )
+            , ( NativeMetaballs, "Metaballs", NativeMetaballsModel NativeMetaballs.init )
             , ( Background, "Background", BackgroundModel Background.init )
             -- [ ( Fluid, "Fluid", FluidModel Fluid.init )
             -- [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
@@ -1107,28 +1107,29 @@ view model =
             then ( div
                 ([ "overlay-panel", "import-export-panel", "hide-on-space" ] |> List.map H.class)
                 [ div [ H.class "timeline-holder" ]
-                    [ span [ H.class "label past"] [ text "past" ]
-                    , input
-                        [ type_ "range"
-                        , class "timeline"
-                        , H.min "0"
-                        , H.max "100"
-                        , extractTimeShift model.timeShift |> H.value
-                        , Events.onInput (\v -> adaptTimeShift v |> TimeTravel)
-                        , Events.onMouseUp BackToNow
-                        ]
-                        []
-                    , span [ H.class "label", H.class "future" ] [ text "future" ]
+                    [ 
+                    --     span [ H.class "label past"] [ text "past" ]
+                    --    , input
+                    --     [ type_ "range"
+                    --     , class "timeline"
+                    --     , H.min "0"
+                    --     , H.max "100"
+                    --     , extractTimeShift model.timeShift |> H.value
+                    --     , Events.onInput (\v -> adaptTimeShift v |> TimeTravel)
+                    --     , Events.onMouseUp BackToNow
+                    --     ]
+                    --     []
+                    -- , span [ H.class "label", H.class "future" ] [ text "future" ]
                     ]
                 -- , input [ type_ "button", id "import-button", value "Import" ] [ text "Import" ]
                 -- , input [ type_ "button", onClick Export, value "Export" ] [ text "Export" ]
                 , input
                     [ type_ "button", class "export_html5"
-                    , Events.onClick ExportZip, value "warp in html5" ]
+                    , Events.onClick ExportZip, value "|> HTML5" ]
                     [ text "Export to html5.zip" ]
                 , input
                     [ type_ "button", class "export_png"
-                    , Events.onClick SavePng, value "blast to png" ]
+                    , Events.onClick SavePng, value "|> PNG" ]
                     [ text "Export to png" ]
                 , div [ H.class "spacebar_info" ] [ text "spacebar to hide controls, click to pause" ]
                 ]

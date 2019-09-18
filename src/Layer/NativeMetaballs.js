@@ -383,9 +383,7 @@ function m(target, width, height, model, colors_) {
             uniform float uRing;
 
             float v = 0.0;
-            float blur = 1.0 - uBlur;
-            float fat = 1.0 - uFat;
-            float ring = 1.0 - uRing;
+
 
             float noise(vec2 seed, float time) {
                 float x = (seed.x / 3.14159 + 4.0) * (seed.y / 13.0 + 4.0) * ((fract(time) + 1.0) * 10.0);
@@ -412,6 +410,10 @@ function m(target, width, height, model, colors_) {
                 return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
             }
 
+            float blur = 1.0 - uBlur;
+            float fat = 4.0 * uFat + 0.2;
+            float ring = 1.0 - uRing;
+
             void main(){
                vec2 cpos = gl_FragCoord.xy;
                for (int i = 0; i < NUM_METABALLS; i++) {
@@ -427,13 +429,23 @@ function m(target, width, height, model, colors_) {
 
                 #ifdef GL_OES_standard_derivatives
                     delta = fwidth(v);
-                    if ( v > delta) {
-                      alpha = smoothstep( blur - delta, 1.0, v );
-                    } 
-                    // else {
-                    //   alpha = 0.4;
+                    if ( v > delta && v < delta + 1.0 + 2.0 * ring ) {
+                      alpha = smoothstep( blur - delta, 1.0, v * fat );
+                    }
+
+                    else {
+                      alpha = 1.0 * ring + smoothstep(1.0, blur - delta,  1.0 );
+                      }
+
+
+                    // if ( v < delta + 2.1){
+                    //   alpha =  smoothstep( delta, 1.0, v * fat );
                     // }
-                #else
+                    // //  else {
+                    // //    alpha = 0.0;
+                    // //    }
+
+                #else 
 
                   if (v > 1.0) {
                       float l = length(color);
