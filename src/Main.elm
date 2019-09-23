@@ -123,8 +123,8 @@ initialLayers mode =
     let
         layers =
             [ ( Cover, "Cover", CoverModel Cover.init )
-            , ( NativeMetaballs, "Metaballs-1", NativeMetaballsModel NativeMetaballs.init )
-            , ( NativeMetaballs, "Metaballs-2", NativeMetaballsModel NativeMetaballs.init )
+            , ( NativeMetaballs, "Metaballs", NativeMetaballsModel NativeMetaballs.init )
+            , ( NativeMetaballs, "Mesaballs", NativeMetaballsModel NativeMetaballs.init )
             , ( Background, "Background", BackgroundModel Background.init )
             -- [ ( Fluid, "Fluid", FluidModel Fluid.init )
             -- [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
