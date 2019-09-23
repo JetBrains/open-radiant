@@ -101,6 +101,9 @@ generator =
     Fluid.generator
 
 
+groupOffset = { x = 0.65 / 2, y = 0.45 / 2 }
+
+
 initial : Fluid.StaticModel
 initial =
     { groups = 
@@ -152,6 +155,7 @@ initial =
                 , { color = ColorII,  stop = 0.6 }
                 , { color = ColorIII, stop = 0.7 }
                 ]
+
             }
         ,
         -- group 4
@@ -215,6 +219,7 @@ initial =
                             |> List.map (\s -> ( s.stop, s.color ))
                     , orientation = Vertical
                     }
+                , origin = groupOffset
                 }
             )
     , effects = Fluid.defaultEffects

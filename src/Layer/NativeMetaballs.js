@@ -55,12 +55,14 @@ function m(target, width, height, model, colors_) {
       displayWidth = Math.floor(gl.canvas.clientWidth);
       displayHeight = Math.floor(gl.canvas.clientHeight);
 
-
       const groups = model.groups.map(
         group => ({
           metaballs: group.balls.map(
             ball => ({
-              center: { x: group.origin.x + ball.x, y: group.origin.y + ball.y },
+              center: { 
+                x: (group.origin.x * displayWidth) + ball.x, 
+                y: (group.origin.y * displayHeight) + ball.y 
+              },
               radius: ball.r,
               speed: ball.speed / 300,
               t: ball.phase,
@@ -434,7 +436,7 @@ function m(target, width, height, model, colors_) {
                     }
 
                     else {
-                      alpha = 1.0 * ring + smoothstep(1.0, blur - delta,  1.0 );
+                      alpha = ring + smoothstep(1.0, blur - delta,  1.0 );
                       }
 
 

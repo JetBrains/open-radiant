@@ -100,6 +100,7 @@ type alias StaticModel =
                 , y : Float
                 }
             , gradient : Product.Gradient
+            , origin : { x : Float, y : Float }
             }
     , effects : Effects 
     } 
@@ -195,6 +196,13 @@ generator size randomization =
             generateEverything size range palette variety orbit
 
 
+generateOrigin : Random.Generator Vec2 
+generateOrigin = 
+    Random.map2 vec2
+        (Random.float 0.2 0.8)
+        (Random.float 0.2 0.8)           
+
+
 generateEverything
     : ( Int, Int )
     -> Ranges
@@ -244,9 +252,7 @@ generateEverything ( w, h ) range palette variety orbit =
                     )
                 |> Random.andThen
                     (\{ balls, gradient } ->
-                        Random.map2 vec2
-                            (Random.float 0 1)
-                            (Random.float 0 1)
+                        generateOrigin
                         |> Random.map
                             (\origin ->
                                 { balls = balls
@@ -304,16 +310,10 @@ generateFromInitialState ( w, h ) range palette initialState =
         -- [ color1, color2, color3 ] =
         --     case palette of
         --         [ c1, c2, c3 ]::_ -> [ c1, c2, c3 ]
-        originOffset = { x = 0.6, y = 0.5 }
-
         generateBall { x, y, radius } =
             Random.map4
                 (\speed t arcMultX arcMultY ->
-                    -- FIXME: apply the offset before passing the model,
-                    -- so it won't be that very different from generateDynamics
-                    { origin = vec2
-                        (originOffset.x * toFloat w + x)
-                        (originOffset.y * toFloat h + y)
+                    { origin = vec2 x y
                     , radius = radius
                     , speed = speed
                     , phase = t
@@ -343,7 +343,7 @@ generateFromInitialState ( w, h ) range palette initialState =
             |> Random.map
                 (\(balls, gradient) ->
                     { balls = balls
-                    , origin = vec2 0 0 -- vec2 originOffset.x originOffset.y
+                    , origin = vec2 source.origin.x source.origin.y
                     , textures = Nothing
                     , gradient = gradient
                     }
@@ -417,7 +417,7 @@ generateDynamics ( w, h ) range palette variety orbit staticModel =
             |> Random.map
                 (\(balls, gradient) ->
                     { balls = balls
-                    , origin = vec2 0 0 -- vec2 originOffset.x originOffset.y
+                    , origin = vec2 source.origin.x source.origin.y
                     , textures = Nothing
                     , gradient = gradient
                     }
@@ -552,7 +552,11 @@ extractStatics model =
                         , y = Vec2.getY ball.origin
                         , radius = ball.radius
                         })    
-            , gradient = group.gradient            
+            , gradient = group.gradient    
+            , origin = 
+                { x = Vec2.getX group.origin
+                , y = Vec2.getY group.origin 
+                }
             })
     , effects = model.effects
     }
