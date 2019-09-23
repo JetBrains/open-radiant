@@ -59,7 +59,7 @@ const import_ = (app, importedState) => {
             allNativeMetaballs[index] = nativeMetaballsModel;
             const debouncedResize = timing.debounce(function(newSize) {
                 const prev = allNativeMetaballs[index];
-                allNativeMetaballs[index] = nativeMetaballs.update(newSize, prev.model, prev.palette, prev.metaballs);
+                allNativeMetaballs[index] = nativeMetaballs.update(newSize, prev, prev.stop, index);
             }, 300);
             app.ports.requestWindowResize.subscribe((size) => {
                 debouncedResize(size);

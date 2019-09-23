@@ -1,16 +1,16 @@
 const nm = require('./src/Layer/NativeMetaballs.js');
 
-function build(size, model, palette) {
+function build(size, model, palette, index) {
     //console.log('build', size, model, palette);
     return nm(
-        document.getElementById('native-metaballs-0'),  // FIXME: use actual layer index
+        document.getElementById('native-metaballs-' + index),
         size[0], size[1], model, palette);
 };
 
-function update(size, new_, prevStop) {
+function update(size, new_, prevStop, index) {
     if (prevStop) prevStop();
     return nm(
-        document.getElementById('native-metaballs-0'),  // FIXME: use actual layer
+        document.getElementById('native-metaballs-' + index),
         size[0], size[1], new_.model, new_.palette);
 };
 

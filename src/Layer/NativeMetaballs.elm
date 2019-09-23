@@ -65,10 +65,10 @@ init =
 --     }
 
 
-view : Blend.Blend -> Model -> H.Html a
-view blend _ =
+view : Blend.Blend -> Int -> Model -> H.Html a
+view blend index _ =
     H.canvas
-        [ H.id "native-metaballs-0"
+        [ H.id <| "native-metaballs-" ++ String.fromInt index
         , H.style "mix-blend-mode" <| Blend.encode blend
         ]
         [] -- FIXME: use actual layer index

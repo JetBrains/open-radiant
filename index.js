@@ -237,13 +237,13 @@ prepareImportExport();
 
 const updateOrInitNativeMetaballs = (size, layerModel, palette, index) => {
     if (!allNativeMetaballs[index]) {
-        const nativeMetaballsModel = nativeMetaballs.build(size, layerModel, palette);
+        const nativeMetaballsModel = nativeMetaballs.build(size, layerModel, palette, index);
         allNativeMetaballs[index] = nativeMetaballsModel;
         const debouncedResize = timing.debounce(function(newSize) {
             const prev = allNativeMetaballs[index];
             // prev.resize(newSize);
             // prev.size = newSize;
-            allNativeMetaballs[index] = nativeMetaballs.update(newSize, prev, prev.stop);
+            allNativeMetaballs[index] = nativeMetaballs.update(newSize, prev, prev.stop, index);
         }, 300);
         app.ports.requestWindowResize.subscribe((size) => {
             debouncedResize(size);
@@ -253,7 +253,7 @@ const updateOrInitNativeMetaballs = (size, layerModel, palette, index) => {
         const prev = allNativeMetaballs[index];
         prev.model = layerModel;
         prev.palette = palette;
-        allNativeMetaballs[index] = nativeMetaballs.update(size, prev, prev.stop);
+        allNativeMetaballs[index] = nativeMetaballs.update(size, prev, prev.stop, index);
     }
 };
 
