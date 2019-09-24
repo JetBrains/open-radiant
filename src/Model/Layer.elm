@@ -1,275 +1,143 @@
-module Model.Layer exposing (..)
+module LayerDef exposing (..)
 
-import Model.Html.Blend as HtmlBlend
-import Model.WebGL.Blend as WGLBlend
-import WebGL.Settings.Blend as B
+import Html exposing (Html)
+import Html as H exposing (..)
 
-import Layer.Background as Background
-import Layer.Canvas as Canvas
--- import Layer.Cover as Cover
-import Layer.FSS as FSS
-import Layer.Lorenz as Lorenz
-import Layer.Fractal as Fractal
-import Layer.Voronoi as Voronoi
-import Layer.Template as Template
-import Layer.Vignette as Vignette
-import Layer.Metaballs as Metaballs
-import Layer.NativeMetaballs as NativeMetaballs
-import Layer.Fluid as Fluid
-import Layer.FluidGrid as FluidGrid
+import Dict
+import Dict exposing (Dict)
+
+import Json.Decode as D
+import Json.Encode as E
 
 
-type alias CreateLayer = LayerKind -> LayerModel -> Maybe Layer
-
-
-type alias LayerIndex = Int
+type Kind
+    = Html
+    | WebGL
+    | Canvas
+    | JS
 
 
 type LayerKind
-    = Background
-    | Lorenz
-    | Fractal
-    | Template
-    | Canvas
-    | Voronoi
-    | Fss
-    | MirroredFss
-    | Cover
-    | Vignette
-    | Metaballs
-    | NativeMetaballs
-    | Fluid
-    | FluidGrid
+    = KBackground
+    | KConver
 
 
--- type LayerBlend
---     = WGLB WGLBlend.Blend
---     | HTMLB HtmlBlend.Blend
+-- type alias CreateLayer model view msg =
+--     (String -> Maybe (LayerDef model view msg))
+
+
+type alias RadiantLayer = LayerDef LayerModel (Html Msg) Msg Blend
+
+
+type alias Registry =
+    Dict LayerKind RadiantLayer
+
+
+type alias Layers =
+    List ( Visibility, RadiantLayer )
+
+
+type alias LayerDef model view msg blend =
+    { id : String
+    , kind : Kind
+    , init : model
+    , encode : model -> E.Value
+    , decode : D.Decoder model
+    , update : msg -> model -> ( model, Cmd msg )
+    , view : model -> blend -> view
+    , subscribe : model -> Sub msg
+    }
+
+
+type alias Blend = String
+
+
+type Visibility
+    = Visible
+    | Hidden
 
 
 type LayerModel
-    = BackgroundModel Background.Model
-    | LorenzModel Lorenz.Model
-    | FractalModel Fractal.Model
-    | VoronoiModel Voronoi.Model
-    | FssModel FSS.Model
-    | TemplateModel Template.Model
-    | VignetteModel Vignette.Model
-    | MetaballsModel Metaballs.Model
-    | NativeMetaballsModel NativeMetaballs.Model
-    | CanvasModel Canvas.Model
-    | CoverModel {}
-    | FluidModel Fluid.Model
-    | FluidGridModel FluidGrid.Model
-
--- FIXME: Cover module needs Model module and so by importing it we form the cycle reference
-
-type WebGLLayer_
-    = LorenzLayer Lorenz.Mesh
-    | FractalLayer Fractal.Mesh
-    | VoronoiLayer Voronoi.Mesh
-    | TemplateLayer Template.Mesh
-    | FluidLayer Fluid.Mesh
-    | FssLayer (Maybe FSS.SerializedScene) FSS.Mesh
-    | MirroredFssLayer (Maybe FSS.SerializedScene) FSS.Mesh
-    | VignetteLayer
+    = Background ()
+    | Cover ()
 
 
-type HtmlLayer_
-    = BackgroundLayer
-    | CoverLayer
-    | MetaballsLayer
-    | NativeMetaballsLayer
-    | FluidGridLayer
-    | CanvasLayer
-    | NoContent -- TODO: get rid of `NoContent`?
+type Msg
+    = BackgroundMsg ()
+    | CoverMsg ()
 
 
-type Layer
-    = WebGLLayer WebGLLayer_ WGLBlend.Blend
-    | HtmlLayer HtmlLayer_ HtmlBlend.Blend
+registry : Registry
+registry = Dict.empty
 
 
--- `change` is needed since we store a sample layer model
--- to use for any layer in the main model
-type alias LayerDef =
-    { kind : LayerKind
-    , name : String
-    , layer : Layer
-    , model : LayerModel
-    , on : Bool
+layers : Layers
+layers = []
+
+
+adapt
+     : (model -> LayerModel)
+    -> (msg -> Msg)
+    -> (Kind -> view -> Html Msg)
+    -> (LayerModel -> Maybe model)
+    -> (Msg -> Maybe msg)
+    -> (Blend -> blend)
+    -> LayerDef model view msg blend
+    -> RadiantLayer
+adapt
+    convertModel
+    convertMsg
+    convertView
+    extractModel
+    extractMsg
+    convertBlend
+    source =
+    { id = source.id
+    , kind = source.kind
+    , init = convertModel source.init
+    , encode =
+        \layerModel ->
+            case extractModel layerModel of
+                Just m -> source.encode m
+                Nothing -> E.string <| "wrong encoder for " ++ source.id
+    , decode = source.decode |> D.map convertModel
+    , update =
+        \mainMsg layerModel ->
+            case ( extractMsg mainMsg, extractModel layerModel ) of
+                ( Just msg, Just model ) ->
+                    source.update msg model
+                        |> Tuple.mapFirst convertModel
+                        |> Tuple.mapSecond (Cmd.map convertMsg)
+                _ -> -- FIXME: return Maybe for the case when message / model doesn't match
+                    ( convertModel source.init
+                    , Cmd.none
+                    )
+    , view =
+        \layerModel blend ->
+            case extractModel layerModel of
+                Just model -> convertView source.kind <| source.view model <| convertBlend blend
+                Nothing -> H.div [] []
+    , subscribe =
+        \layerModel ->
+            case extractModel layerModel of
+                Just model -> source.subscribe model |> Sub.map convertMsg
+                Nothing -> Sub.none
     }
 
 
--- kinda Either, but for ports:
---    ( Just WebGLBlend, Nothing ) --> WebGL Blend
---    ( Nothing, Just String ) --> HTML Blend
---    ( Nothing, Nothing ) --> None
---    ( Just WebGLBlend, Just String ) --> ¯\_(ツ)_/¯
-type alias PortBlend =
-    ( Maybe WGLBlend.Blend, Maybe String )
+-- renderLayer : LayerModel -> Html Msg
+-- renderLayer layerModel =
+--     case layerModel of
+--         Background bgModel -> Background.view bgModel blend
 
 
-type alias PortLayerDef =
-    { kind : String
-    , blend : PortBlend
-    , webglOrHtml : String
-    , isOn : Bool
-    , name : String
-    , model : String
-    }
+-- updateLayer : Msg -> LayerModel -> LayerModel
+-- updateLayer msg layerModel =
+--     case ( msg, layerModel ) of
+--         ( BackgroundMsg bgMsg, Background bgModel ) ->
+--             Background.update bgMsg bgModel
 
 
-emptyLayer : Layer
-emptyLayer =
-    HtmlLayer NoContent HtmlBlend.default
-
-
-initLayerModel : LayerKind -> LayerModel
-initLayerModel kind =
-    case kind of
-        Background -> BackgroundModel Background.init
-        Lorenz -> LorenzModel Lorenz.init
-        Fractal -> FractalModel Fractal.init
-        Template -> TemplateModel Template.init
-        Canvas -> CanvasModel Canvas.init
-        Voronoi -> VoronoiModel Voronoi.init
-        Fss -> FssModel FSS.init
-        MirroredFss -> FssModel FSS.init
-        Cover -> CoverModel {}
-        Vignette -> VignetteModel Vignette.init
-        Metaballs -> MetaballsModel Metaballs.init
-        NativeMetaballs -> NativeMetaballsModel NativeMetaballs.init
-        Fluid -> FluidModel Fluid.init
-        FluidGrid -> FluidGridModel FluidGrid.init
-
-
-encodeKind : LayerKind -> String
-encodeKind kind =
-    case kind of
-        Background -> "bg"
-        Fss -> "fss"
-        MirroredFss -> "fss-mirror"
-        Lorenz -> "lorenz"
-        Fractal -> "fractal"
-        Template -> "template"
-        Canvas -> "canvas"
-        Voronoi -> "voronoi"
-        Cover -> "cover"
-        Vignette -> "vignette"
-        Metaballs -> "metaballs"
-        NativeMetaballs -> "native-metaballs"
-        Fluid -> "fluid"
-        FluidGrid -> "fluid-grid"
-
-
-decodeKind : String -> Result String LayerKind
-decodeKind layerTypeStr =
-    case layerTypeStr of
-        "bg" -> Ok Background
-        "fss" -> Ok Fss
-        "fss-mirror" -> Ok MirroredFss
-        "lorenz" -> Ok Lorenz
-        "fractal" -> Ok Fractal
-        "template" -> Ok Template
-        "voronoi" -> Ok Voronoi
-        "cover" -> Ok Cover
-        "vignette" -> Ok Vignette
-        "metaballs" -> Ok Metaballs
-        "native-metaballs" -> Ok NativeMetaballs
-        "fluid" -> Ok Fluid
-        "fluid-grid" -> Ok FluidGrid
-        _ -> Err layerTypeStr
-
-
-getBlendForPort : Layer -> PortBlend
-getBlendForPort layer =
-    ( case layer of
-        WebGLLayer _ webglBlend -> Just webglBlend
-        _ -> Nothing
-    , case layer of
-        HtmlLayer _ htmlBlend ->
-            HtmlBlend.encode htmlBlend |> Just
-        _ -> Nothing
-    )
-
-
-createLayer : LayerKind -> LayerModel -> Maybe Layer
-createLayer kind layerModel =
-    case ( kind, layerModel ) of
-        ( Background, BackgroundModel bgModel ) ->
-            Just <|
-                HtmlLayer
-                BackgroundLayer
-                HtmlBlend.default
-        ( Fss, FssModel fssModel ) ->
-            Just <|
-                WebGLLayer
-                ( FSS.build fssModel Nothing |> FssLayer Nothing )
-                WGLBlend.default
-        ( MirroredFss, FssModel fssModel ) ->
-            Just <|
-                WebGLLayer
-                ( FSS.build fssModel Nothing |> MirroredFssLayer Nothing )
-                WGLBlend.default
-                -- (WGLBlend.build
-                --    (B.customAdd, B.oneMinusSrcColor, B.oneMinusSrcColor)
-                --    (B.customAdd, B.srcColor, B.zero)
-                -- )
-        ( Lorenz, LorenzModel lorenzModel ) ->
-            Just <|
-                WebGLLayer
-                (Lorenz.build lorenzModel |> LorenzLayer)
-                WGLBlend.default
-        ( Template, TemplateModel templateModel ) ->
-            Just <|
-                WebGLLayer
-                ( Template.build templateModel |> TemplateLayer )
-                WGLBlend.default
-        ( Voronoi, VoronoiModel voronoiModel ) ->
-            Just <|
-                WebGLLayer
-                ( Voronoi.build voronoiModel |> VoronoiLayer )
-                WGLBlend.default
-        ( Fractal, FractalModel fractalModel ) ->
-            Just <|
-                WebGLLayer
-                ( Fractal.build fractalModel |> FractalLayer )
-                WGLBlend.default
-        ( Fluid, FluidModel fluidModel ) ->
-            Just <|
-                WebGLLayer
-                ( Fluid.build fluidModel |> FluidLayer )
-                (WGLBlend.build
-                    (B.customAdd, B.srcColor, B.one)
-                    (B.customAdd, B.one, B.zero) )
-        ( FluidGrid, _ ) ->
-            Just <|
-                HtmlLayer
-                FluidGridLayer
-                HtmlBlend.default
-        ( Vignette, _ ) ->
-            Just <|
-                WebGLLayer
-                VignetteLayer
-                (WGLBlend.build
-                    (B.customAdd, B.srcAlpha, B.oneMinusSrcAlpha)
-                    (B.customAdd, B.one, B.oneMinusSrcAlpha) )
-                -- WGLBlend.Blend Nothing (0, 1, 7) (0, 1, 7) |> VignetteLayer Vignette.init
-                -- VignetteLayer Vignette.init WGLBlend.default
-        ( Cover, _ ) ->
-            Just <|
-                HtmlLayer
-                CoverLayer
-                HtmlBlend.default
-        ( Metaballs, _ ) ->
-            Just <|
-                HtmlLayer
-                MetaballsLayer
-                HtmlBlend.default
-        ( NativeMetaballs, _ ) ->
-            Just <|
-                HtmlLayer
-                NativeMetaballsLayer
-                HtmlBlend.default
-        _ -> Nothing
+-- renderLayers : List LayerModel -> (LayerModel -> Html Msg) -> Html Msg
+-- renderLayers layerModels renderF =
+--     H.div [] <| List.map renderF layerModels
