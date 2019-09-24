@@ -4,6 +4,7 @@ import Html exposing (Html)
 import Html as H exposing (..)
 
 import Dict
+import Dict exposing (Dict)
 
 import Json.Decode as D
 import Json.Encode as E
@@ -16,33 +17,45 @@ type Kind
     | JS
 
 
-type alias CreateLayer model view msg =
-    (String -> Maybe (LayerDef model view msg))
+type LayerKind
+    = KBackground
+    | KConver
 
 
-type alias LayerRegistry model view msg =
-    Dict.Dict String (LayerDef model view msg)
+-- type alias CreateLayer model view msg =
+--     (String -> Maybe (LayerDef model view msg))
 
 
+type alias RadiantLayer = LayerDef LayerModel (Html Msg) Msg Blend
 
-type alias LayerDef model view msg =
+
+type alias Registry =
+    Dict LayerKind RadiantLayer
+
+
+type alias Layers =
+    List ( Visibility, RadiantLayer )
+
+
+type alias LayerDef model view msg blend =
     { id : String
     , kind : Kind
     , init : model
     , encode : model -> E.Value
     , decode : D.Decoder model
     , update : msg -> model -> ( model, Cmd msg )
-    , view : model -> Blend -> view
+    , view : model -> blend -> view
+    , subscribe : model -> Sub msg
     }
 
 
--- type alias Layers layer = List (Kind -> layer)
-
 type alias Blend = String
+
 
 type Visibility
     = Visible
     | Hidden
+
 
 type LayerModel
     = Background ()
@@ -54,8 +67,12 @@ type Msg
     | CoverMsg ()
 
 
-registry : LayerRegistry LayerModel (Html Msg) Msg
+registry : Registry
 registry = Dict.empty
+
+
+layers : Layers
+layers = []
 
 
 adapt
@@ -64,9 +81,17 @@ adapt
     -> (Kind -> view -> Html Msg)
     -> (LayerModel -> Maybe model)
     -> (Msg -> Maybe msg)
-    -> LayerDef model view msg
-    -> LayerDef LayerModel (Html Msg) Msg
-adapt convertModel convertMsg convertView extractModel extractMsg source =
+    -> (Blend -> blend)
+    -> LayerDef model view msg blend
+    -> RadiantLayer
+adapt
+    convertModel
+    convertMsg
+    convertView
+    extractModel
+    extractMsg
+    convertBlend
+    source =
     { id = source.id
     , kind = source.kind
     , init = convertModel source.init
@@ -90,8 +115,13 @@ adapt convertModel convertMsg convertView extractModel extractMsg source =
     , view =
         \layerModel blend ->
             case extractModel layerModel of
-                Just model -> convertView source.kind <| source.view model blend
+                Just model -> convertView source.kind <| source.view model <| convertBlend blend
                 Nothing -> H.div [] []
+    , subscribe =
+        \layerModel ->
+            case extractModel layerModel of
+                Just model -> source.subscribe model |> Sub.map convertMsg
+                Nothing -> Sub.none
     }
 
 
