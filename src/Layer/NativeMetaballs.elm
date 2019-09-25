@@ -101,14 +101,14 @@ generator =
     Fluid.generator
 
 
-groupOffset = { x = 0.65 / 2, y = 0.45 / 2 }
+groupOffset = { x = 0.65, y = 0.45 }
 
 
 initial : Fluid.StaticModel
 initial =
-    { groups = 
+    { groups =
         [
-            -- group 1            
+            -- group 1
             { balls =
                 [ { x = -50, y = 220,  radius = 50 }
                 , { x = -20, y = 85,   radius = 90 }
