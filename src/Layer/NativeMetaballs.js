@@ -6,6 +6,8 @@ function m(target, width, height, model, colors_) {
 
     //const pixelRatio = window.devicePixelRatio || 1;
 
+    console.log(model);
+
     const blur = model.effects.blur;
     const fat = model.effects.fat;
     const ring = model.effects.ring;
@@ -16,19 +18,24 @@ function m(target, width, height, model, colors_) {
     let gl;
     let displayWidth;
     let displayHeight;
+    let scale = 1;
     let createdMetaballs = [];
     let isStopped = false;
 
-    const defaults = {
+    //const defaults = {
       // speedRange: {min: 0.2, max: 2.0},
       // multArc: {x: {min: -.25, max: .75}, y: {min: -.25, max: .25}},
       // originOffset: {x: 0.6, y: 0.5},
-      originOffset: {x: 0, y: 0},
-      scale: 1 //width / 1500
+      //originOffset: {x: 0, y: 0},
+      //scale: 1 //width / 1500
       // colorI: colors[1],
       // colorII: colors[2],
       // colorIII: colors[0]
-    }
+    //}
+
+    /* function calculateScale(dWidth, dHeight) {
+      return dWidth / 1500; // (window.devicePixelRatio || 1)*
+    } */
 
     initialize(target, width, height);
 
@@ -56,6 +63,7 @@ function m(target, width, height, model, colors_) {
 
       displayWidth = Math.floor(gl.canvas.clientWidth);
       displayHeight = Math.floor(gl.canvas.clientHeight);
+      //scale = calculateScale(displayWidth, displayHeight);
 
       const groups = model.groups.map(
         group => ({
@@ -81,7 +89,7 @@ function m(target, width, height, model, colors_) {
       );
 
       groups.map(function (group) {
-        createdMetaballs.push(new Metaballs(gl, group, defaults.scale));
+        createdMetaballs.push(new Metaballs(gl, group, scale));
       });
 
       target.addEventListener('mousemove', onMouseMove);
@@ -145,6 +153,7 @@ function m(target, width, height, model, colors_) {
 
       displayWidth = Math.floor(gl.canvas.clientWidth);
       displayHeight = Math.floor(gl.canvas.clientHeight);
+      //scale = calculateScale(displayWidth, displayHeight);
 
       gl.viewport(0, 0, displayWidth, displayHeight);
 
