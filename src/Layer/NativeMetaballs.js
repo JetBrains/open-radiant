@@ -18,7 +18,9 @@ function m(target, width, height, model, colors_) {
     let gl;
     let displayWidth;
     let displayHeight;
-    let scale = 1;
+    // additional to the one in the Elm model
+    // since resize is not going through Elm
+    let scale = width / 1400;
     let createdMetaballs = [];
     let isStopped = false;
 
@@ -189,7 +191,7 @@ function m(target, width, height, model, colors_) {
         radiusMultiplier: 1.0,
         positionMultiplier: 1.0
       };
-      let mousePosition = {x: 0, y: 0};
+      let mousePosition = { x: 0, y: 0 };
 
       function initializeShader() {
 
