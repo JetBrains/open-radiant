@@ -6,8 +6,8 @@ module Model.Core exposing
     , initEmpty
     , getOrigin, adaptSize
     , extractTimeShift, adaptTimeShift
-    , getLayerModel, getLayerModels
-    , updateLayer, updateLayerDef, updateLayerBlend, updateLayerWithItsModel, updateAllLayerModels
+    -- , getLayerModel, getLayerModels
+    -- , updateLayer, updateLayerDef, updateLayerBlend, updateLayerWithItsModel, updateAllLayerModels
     , CreateGui
     , hasErrors, addError, addErrors
     , TimeDelta, Pos, Size
@@ -15,6 +15,7 @@ module Model.Core exposing
 
 import Array
 import Array exposing (Array)
+import Dict exposing (get)
 
 import Browser.Navigation as Nav
 import Url exposing (..)
@@ -32,6 +33,8 @@ import Model.Product as Product exposing (Product)
 import Model.Product
 import Model.WebGL.Blend as WGLBlend
 import Model.Html.Blend as HtmlBlend
+
+import Model.Layer as Layer exposing (Index)
 
 import Layer.FSS as FSS
 import Layer.Metaballs as Metaballs
@@ -81,44 +84,46 @@ type Msg
     | TriggerPause
     | HideControls
     | ChangeProduct Product
-    | TurnOn LayerIndex
-    | TurnOff LayerIndex
-    | MirrorOn LayerIndex
-    | MirrorOff LayerIndex
-    | Configure LayerIndex LayerModel
+    | TurnOn Layer.Index
+    | TurnOff Layer.Index
+    | MirrorOn Layer.Index
+    | MirrorOff Layer.Index
+    -- | Configure Layer.Index Layer.Model
     | TriggerFeelLucky
-    | ChangeWGLBlend LayerIndex WGLBlend.Blend
-    | AlterWGLBlend LayerIndex WGLBlend.BlendChange
-    | ChangeHtmlBlend LayerIndex HtmlBlend.Blend
-    | RebuildFss LayerIndex FSS.SerializedScene
-    --| RebuildOnClient LayerIndex FSS.SerializedScene
-    | ChangeFssRenderMode LayerIndex FSS.RenderMode
-    | ChangeFaces LayerIndex FSS.Faces
-    | AlterFaces LayerIndex FSS.FacesChange
-    | ChangeLightSpeed LayerIndex Int
-    | ChangeVignette LayerIndex FSS.Vignette
-    | ChangeIris LayerIndex FSS.Iris
-    | AlterAmplitude LayerIndex FSS.AmplitudeChange
-    | ShiftColor LayerIndex FSS.ColorShiftPatch
-    | ChangeOpacity LayerIndex FSS.Opacity
-    | RebuildMetaballs LayerIndex Metaballs.Model
-    | RequestNewFluid LayerIndex
-    | RebuildFluid LayerIndex Fluid.Model
-    | RegenerateFluidGradients LayerIndex
-    | ChangeFluidVariety LayerIndex Gaussian.Variety
-    | ChangeFluidOrbit LayerIndex Fluid.Orbit
-    | RequestNewFluidGrid LayerIndex
-    | RebuildFluidGrid LayerIndex FluidGrid.Model
-    | LoadFluidGradientTextures LayerIndex (List Fluid.Base64Url)
+    | ChangeWGLBlend Layer.Index WGLBlend.Blend
+    | AlterWGLBlend Layer.Index WGLBlend.BlendChange
+    | ChangeHtmlBlend Layer.Index HtmlBlend.Blend
+    --| ToFss Layer.Index FSS.Msg
+
+    | RebuildFss Layer.Index FSS.SerializedScene
+    --| RebuildOnClient Layer.Index FSS.SerializedScene
+    | ChangeFssRenderMode Layer.Index FSS.RenderMode
+    | ChangeFaces Layer.Index FSS.Faces
+    | AlterFaces Layer.Index FSS.FacesChange
+    | ChangeLightSpeed Layer.Index Int
+    | ChangeVignette Layer.Index FSS.Vignette
+    | ChangeIris Layer.Index FSS.Iris
+    | AlterAmplitude Layer.Index FSS.AmplitudeChange
+    | ShiftColor Layer.Index FSS.ColorShiftPatch
+    | ChangeOpacity Layer.Index FSS.Opacity
+    | RebuildMetaballs Layer.Index Metaballs.Model
+    | RequestNewFluid Layer.Index
+    | RebuildFluid Layer.Index Fluid.Model
+    | RegenerateFluidGradients Layer.Index
+    | ChangeFluidVariety Layer.Index Gaussian.Variety
+    | ChangeFluidOrbit Layer.Index Fluid.Orbit
+    | RequestNewFluidGrid Layer.Index
+    | RebuildFluidGrid Layer.Index FluidGrid.Model
+    | LoadFluidGradientTextures Layer.Index (List Fluid.Base64Url)
     | ApplyFluidTextures
-        LayerIndex
+        Layer.Index
         (List { gradient : Fluid.TextureAndSize, data : Fluid.TextureAndSize })
-    | UpdateNativeMetaballs LayerIndex NativeMetaballs.Model -- called when random model was generated in any way
-    | ChangeNativeMetaballsVariety LayerIndex Gaussian.Variety
-    | ChangeNativeMetaballsOrbit LayerIndex NativeMetaballs.Orbit
-    | ChangeNativeMetaballsEffects LayerIndex Fluid.EffectsChange
-    | SwitchBackgroundStop LayerIndex Int Bool -- StopIndex and StopState
-    | SwitchGradientOrientation LayerIndex Gradient.Orientation
+    | UpdateNativeMetaballs Layer.Index NativeMetaballs.Model -- called when random model was generated in any way
+    | ChangeNativeMetaballsVariety Layer.Index Gaussian.Variety
+    | ChangeNativeMetaballsOrbit Layer.Index NativeMetaballs.Orbit
+    | ChangeNativeMetaballsEffects Layer.Index Fluid.EffectsChange
+    | SwitchBackgroundStop Layer.Index Int Bool -- StopIndex and StopState
+    | SwitchGradientOrientation Layer.Index Gradient.Orientation
     | Randomize
     | ApplyRandomizer PortModel
     | SavePng
@@ -136,7 +141,7 @@ type alias Model = -- TODO: Result Error { ... }
     , fps : Int
     , theta : Float
     , omega : Float
-    , layers : List LayerDef
+    , layers : List Layer
     , size : SizeRule
     , origin : Pos
     , mouse : Pos
@@ -147,6 +152,7 @@ type alias Model = -- TODO: Result Error { ... }
     , errors : Errors
     , navKey : Nav.Key
     , url : Maybe Url
+    , registry : Layer.Registry
     -- voronoi : Voronoi.Config
     -- fractal : Fractal.Config
     -- , lights (taken from product)
@@ -173,16 +179,19 @@ type alias PortModel =
 init
     :  Nav.Key
     -> AppMode
-    -> List ( LayerKind, String, LayerModel )
-    -> CreateLayer
+    -> List Layer.Kind
     -> CreateGui
     -> Model
-init navKey appMode initialLayers createLayer createGui =
+init navKey appMode initialLayers createGui =
     let
         emptyModel = initEmpty navKey appMode
         modelWithLayers =
-            emptyModel
-                |> replaceLayers initialLayers createLayer
+            { emptyModel
+            | layers =
+                initialLayers
+                    |> List.map emptyModel.registry
+                    |> List.filterMap identity
+            }
     in
         { modelWithLayers
         | gui =
@@ -215,6 +224,7 @@ initEmpty navKey mode =
     , errors = Errors [ ]
     , navKey = navKey
     , url = Nothing
+    , registry = Layer.registry
     }
 
 
@@ -254,6 +264,7 @@ noticeResult_ addValue errorToString result model =
         Err errors -> model |> addErrors (errors |> List.map errorToString |> Errors)
 
 
+{-
 tryToCreateLayers
      : List ( LayerKind, String, LayerModel )
     -> CreateLayer
@@ -284,8 +295,10 @@ tryToCreateLayers source createLayer =
                     ( Err allErrors, Err layerError ) -> Err <| layerError :: allErrors
             )
             (Ok [])
+-}
 
 
+{-
 replaceLayers
      : List ( LayerKind, String, LayerModel )
     -> CreateLayer
@@ -300,23 +313,29 @@ replaceLayers source createLayer model =
                         "Failed to create layer: (" ++ String.fromInt index ++ ", "
                             ++ encodeKind kind ++ ") "
                             ++ name))
+-}
 
 
-getLayerModel : LayerIndex -> Model -> Maybe LayerModel
+{-
+getLayerModel : Layer.Index -> Model -> Maybe LayerModel
 getLayerModel index model =
     model.layers
         |> Array.fromList
         |> Array.get index
         |> Maybe.map .model
+-}
 
 
+{-
 getLayerModels : (LayerKind -> Bool) -> Model -> List LayerModel
 getLayerModels test model =
     model.layers
         |> List.filter (\layer -> True)
         |> List.map .model
+-}
 
 
+{-
 updateLayer
     :  Int
     -> (Layer -> LayerModel -> Layer)
@@ -328,8 +347,10 @@ updateLayer index f model =
             { layerDef
             | layer = f layerDef.layer layerDef.model
             })
+-}
 
 
+{-
 updateLayerDef
     :  Int
     -> (LayerDef -> LayerDef)
@@ -347,8 +368,10 @@ updateLayerDef index f model =
                     |> Array.toList
                 }
             Nothing -> model
+-}
 
 
+{-
 updateLayerWithItsModel
     :  Int
     -> (( Layer, LayerModel ) -> ( Layer, LayerModel ))
@@ -363,8 +386,10 @@ updateLayerWithItsModel index f model =
                     | layer = newLayer
                     , model = newModel
                     })
+-}
 
 
+{-
 updateAllLayerModels
     :  (Int -> LayerKind -> LayerModel -> LayerModel)
     -> Model
@@ -378,8 +403,10 @@ updateAllLayerModels f model =
                 }
             )
         |> (\layers -> { model | layers = layers }) -- .layers?
+-}
 
 
+{-
 updateLayerBlend
     :  Int
     -> (WGLBlend.Blend -> Maybe WGLBlend.Blend)
@@ -400,6 +427,7 @@ updateLayerBlend index ifWebgl ifHtml model =
                         |> Maybe.withDefault htmlBlend
                         |> HtmlLayer htmlLayer
             })
+-}
 
 
 getOrigin : Size -> Pos

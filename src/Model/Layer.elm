@@ -1,4 +1,4 @@
-module LayerDef exposing (..)
+module Model.Layer exposing (..)
 
 import Html exposing (Html)
 import Html as H exposing (..)
@@ -9,37 +9,40 @@ import Dict exposing (Dict)
 import Json.Decode as D
 import Json.Encode as E
 
+import Model.WebGL.Blend as WGLBlend
 
-type Kind
+type ViewKind
     = Html
     | WebGL
     | Canvas
     | JS
 
 
-type LayerKind
+type Kind
     = KBackground
-    | KConver
+    | KCover
 
 
--- type alias CreateLayer model view msg =
---     (String -> Maybe (LayerDef model view msg))
+type Index = Index Int
 
 
-type alias RadiantLayer = LayerDef LayerModel (Html Msg) Msg Blend
+type alias Layer = Def Model (Html Msg) Msg Blend
+
+
+-- type alias CreateLayer = Kind {- -> Model -} -> Maybe Layer
 
 
 type alias Registry =
-    Dict LayerKind RadiantLayer
+    Kind -> Maybe Layer
 
 
 type alias Layers =
-    List ( Visibility, RadiantLayer )
+    List ( Visibility, Layer )
 
 
-type alias LayerDef model view msg blend =
+type alias Def model view msg blend =
     { id : String
-    , kind : Kind
+    , kind : ViewKind
     , init : model
     , encode : model -> E.Value
     , decode : D.Decoder model
@@ -57,7 +60,7 @@ type Visibility
     | Hidden
 
 
-type LayerModel
+type Model
     = Background ()
     | Cover ()
 
@@ -68,22 +71,19 @@ type Msg
 
 
 registry : Registry
-registry = Dict.empty
-
-
-layers : Layers
-layers = []
+registry = always Nothing
+    -- FIXME: fill with all known types of layers
 
 
 adapt
-     : (model -> LayerModel)
+     : (model -> Model)
     -> (msg -> Msg)
-    -> (Kind -> view -> Html Msg)
-    -> (LayerModel -> Maybe model)
+    -> (ViewKind -> view -> Html Msg)
+    -> (Model -> Maybe model)
     -> (Msg -> Maybe msg)
     -> (Blend -> blend)
-    -> LayerDef model view msg blend
-    -> RadiantLayer
+    -> Def model view msg blend
+    -> Layer
 adapt
     convertModel
     convertMsg
@@ -125,19 +125,20 @@ adapt
     }
 
 
--- renderLayer : LayerModel -> Html Msg
--- renderLayer layerModel =
---     case layerModel of
---         Background bgModel -> Background.view bgModel blend
+-- kinda Either, but for ports:
+--    ( Just WebGLBlend, Nothing ) --> WebGL Blend
+--    ( Nothing, Just String ) --> HTML Blend
+--    ( Nothing, Nothing ) --> None
+--    ( Just WebGLBlend, Just String ) --> ¯\_(ツ)_/¯
+type alias PortBlend =
+    ( Maybe WGLBlend.Blend, Maybe String )
 
 
--- updateLayer : Msg -> LayerModel -> LayerModel
--- updateLayer msg layerModel =
---     case ( msg, layerModel ) of
---         ( BackgroundMsg bgMsg, Background bgModel ) ->
---             Background.update bgMsg bgModel
-
-
--- renderLayers : List LayerModel -> (LayerModel -> Html Msg) -> Html Msg
--- renderLayers layerModels renderF =
---     H.div [] <| List.map renderF layerModels
+type alias PortLayerDef =
+    { kind : String
+    , blend : PortBlend
+    , webglOrHtml : String
+    , isOn : Bool
+    , name : String
+    , model : String
+    }

@@ -12,7 +12,7 @@ import Model.AppMode exposing (AppMode(..))
 import Model.Core exposing (..)
 import Model.Product as Product exposing (Product(..))
 import Model.SizeRule exposing (..)
-import Model.Layer exposing (..)
+import Model.Layer as Layer exposing (Index)
 import Model.WebGL.Blend as WGLBlend
 import Model.Html.Blend as HtmlBlend
 
@@ -143,7 +143,7 @@ gui from =
 
 
 
-webglBlendGrid : AppMode -> WGLBlend.Blend -> LayerIndex -> Nest Msg
+webglBlendGrid : AppMode -> WGLBlend.Blend -> Layer.Index -> Nest Msg
 webglBlendGrid mode currentBlend layerIndex =
     let
         blendFuncs =
@@ -222,7 +222,7 @@ webglBlendGrid mode currentBlend layerIndex =
             ]
 
 
-fssControls : AppMode -> FSS.Model -> WGLBlend.Blend -> LayerIndex -> Nest Msg
+fssControls : AppMode -> FSS.Model -> WGLBlend.Blend -> Layer.Index -> Nest Msg
 fssControls mode fssModel currentBlend layerIndex =
     let
         { lightSpeed, faces, amplitude, vignette, iris, colorShift } = fssModel

@@ -445,7 +445,7 @@ update msg model =
                     ]
                 )
 
-        TriggerFeelLucky ->               
+        TriggerFeelLucky ->
             ( model, generateAllNativeMetaballs model )
 
         Configure index _ ->
@@ -852,7 +852,7 @@ update msg model =
                         , value = encodedChange.value
                         }
                     )
-            else ( model, Cmd.none )            
+            else ( model, Cmd.none )
 
         SwitchBackgroundStop layerIndex stopIndex value ->
             if hasBackgroundLayers model then
@@ -879,7 +879,7 @@ update msg model =
                     , Cmd.none
                     )
             else ( model, Cmd.none )
-        
+
         SwitchGradientOrientation layerIndex orientation ->
             if hasBackgroundLayers model then
                 let
@@ -901,7 +901,7 @@ update msg model =
                     ( newModel
                     , Cmd.none
                     )
-            else ( model, Cmd.none )            
+            else ( model, Cmd.none )
 
         -- UpdateNativeMetaballs layerIndex ->
         --     ( model
@@ -1030,23 +1030,23 @@ subscriptions model =
         , changeNativeMetaballsOrbit
             (\{ layer, value } -> ChangeNativeMetaballsOrbit layer (Fluid.Orbit value))
         , changeNativeMetaballsEffects
-            (\{ layer, subject, value } -> 
-                let 
-                    change = 
+            (\{ layer, subject, value } ->
+                let
+                    change =
                         case subject of
-                            "blur" -> Fluid.ChangeBlur value 
-                            "fat" -> Fluid.ChangeFat value                         
+                            "blur" -> Fluid.ChangeBlur value
+                            "fat" -> Fluid.ChangeFat value
                             "ring" -> Fluid.ChangeRing value
                             _ -> Fluid.ChangeNothing
                 in ChangeNativeMetaballsEffects layer change)
-        , iFeelLucky 
+        , iFeelLucky
             (\_ -> TriggerFeelLucky)
         , switchBackgroundStop
             (\{ layer, stopIndex, value } ->
                 SwitchBackgroundStop layer stopIndex value)
         , switchGradientOrientation
             (\{ layer, orientation } ->
-                SwitchGradientOrientation layer 
+                SwitchGradientOrientation layer
                     <| Gradient.decodeOrientation orientation
             )
         , applyRandomizer ApplyRandomizer
@@ -1108,7 +1108,7 @@ view model =
             then ( div
                 ([ "overlay-panel", "import-export-panel", "hide-on-space" ] |> List.map H.class)
                 [ div [ H.class "timeline-holder" ]
-                    [ 
+                    [
                     --     span [ H.class "label past"] [ text "past" ]
                     --    , input
                     --     [ type_ "range"
@@ -1628,7 +1628,7 @@ generateAllInitialNativeMetaballs model =
                     generateInitialNativeMetaballs
                         model.size
                         palette
-                        index)                
+                        index)
 
 
 updateAllNativeMetaballsWith : Model -> Cmd Msg
@@ -1876,11 +1876,11 @@ port switchBackgroundStop :
     -> msg) -> Sub msg
 
 port switchGradientOrientation :
-    ( 
+    (
         { layer: LayerIndex
         , orientation : String
         }
-    -> msg) -> Sub msg    
+    -> msg) -> Sub msg
 
 -- OUTGOING PORTS
 
