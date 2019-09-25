@@ -74,10 +74,10 @@ type alias BallGroup =
 type alias Effects = { blur : Float, fat : Float, ring : Float }
 
 
-type EffectsChange 
+type EffectsChange
     = ChangeBlur Float
     | ChangeFat Float
-    | ChangeRing Float      
+    | ChangeRing Float
     | ChangeNothing
 
 
@@ -102,8 +102,8 @@ type alias StaticModel =
             , gradient : Product.Gradient
             , origin : { x : Float, y : Float }
             }
-    , effects : Effects 
-    } 
+    , effects : Effects
+    }
 
 
 type alias Mesh = WebGL.Mesh Vertex
@@ -151,7 +151,7 @@ type Orbit = Orbit Float -- 0..1
 
 
 defaultEffects : Effects
-defaultEffects = { blur = 0.0, fat = 0.2, ring = 0.0 } 
+defaultEffects = { blur = 0.0, fat = 0.2, ring = 0.0 }
 
 
 -- defaultColors = [ "#f38038", "#ed3d7d", "#341f49" ]
@@ -196,11 +196,11 @@ generator size randomization =
             generateEverything size range palette variety orbit
 
 
-generateOrigin : Random.Generator Vec2 
-generateOrigin = 
+generateOrigin : Random.Generator Vec2
+generateOrigin =
     Random.map2 vec2
-        (Random.float 0.2 0.8)
-        (Random.float 0.2 0.8)           
+        (Random.float -0.1 0.1)
+        (Random.float -0.1 0.1)
 
 
 generateEverything
@@ -262,9 +262,9 @@ generateEverything ( w, h ) range palette variety orbit =
                                 }
                             )
                     )
-        generateEffects gaussX = 
-            Random.map3 
-                (\blur fat ring -> 
+        generateEffects gaussX =
+            Random.map3
+                (\blur fat ring ->
                     { blur = blur, fat = fat, ring = ring }
                 )
                 (gaussX |> gaussInFloatRange (fRange 0 1))
@@ -274,7 +274,7 @@ generateEverything ( w, h ) range palette variety orbit =
         makeBall { center, radius } = Ball center radius
     in
         Gauss.generateX
-            |> Random.andThen 
+            |> Random.andThen
                 (\gaussX ->
                     randomIntInRange range.groups
                         |> Random.map (Tuple.pair gaussX)
@@ -285,10 +285,10 @@ generateEverything ( w, h ) range palette variety orbit =
                         |> Random.map (\groups -> ( gaussX, groups ))
                 )
             |> Random.andThen
-                (\( gaussX, groups ) -> 
+                (\( gaussX, groups ) ->
                     generateEffects gaussX
                         |> Random.map (\effects -> ( groups, effects ))
-                )   
+                )
             |> Random.map (\( groups, effects ) ->
                 { groups = groups
                 , forSize = Just ( w, h )
@@ -300,7 +300,7 @@ generateEverything ( w, h ) range palette variety orbit =
 
 generateFromInitialState
     :  ( Int, Int )
-    -> Ranges    
+    -> Ranges
     -> Product.Palette
     -- -> StaticModelWithGradients
     -> StaticModel
@@ -542,20 +542,20 @@ generateGradientsFor putIntoMsg palette model =
 
 extractStatics : Model -> StaticModel
 extractStatics model =
-    { groups = 
+    { groups =
         model.groups
-        |> List.map (\group ->  
-            { balls = 
+        |> List.map (\group ->
+            { balls =
                 group.balls
                 |> List.map (\ball ->
                         { x = Vec2.getX ball.origin
                         , y = Vec2.getY ball.origin
                         , radius = ball.radius
-                        })    
-            , gradient = group.gradient    
-            , origin = 
+                        })
+            , gradient = group.gradient
+            , origin =
                 { x = Vec2.getX group.origin
-                , y = Vec2.getY group.origin 
+                , y = Vec2.getY group.origin
                 }
             })
     , effects = model.effects
@@ -563,8 +563,8 @@ extractStatics model =
 
 
 applyEffectsChange : EffectsChange -> Effects -> Effects
-applyEffectsChange change effects = 
-    case change of 
+applyEffectsChange change effects =
+    case change of
         ChangeBlur v -> { effects | blur = v }
         ChangeFat v -> { effects | fat = v }
         ChangeRing v -> { effects | ring = v }
@@ -573,7 +573,7 @@ applyEffectsChange change effects =
 
 encodeEffectsChange : EffectsChange -> { subject : String, value : Float }
 encodeEffectsChange change =
-    case change of 
+    case change of
         ChangeBlur v -> { subject = "blur", value = v }
         ChangeFat v -> { subject = "fat", value = v }
         ChangeRing v -> { subject = "ring", value = v }
