@@ -20,7 +20,7 @@ function m(target, width, height, model, colors_) {
     let displayHeight;
     // additional to the one in the Elm model
     // since resize is not going through Elm
-    let scale = width / 1400;
+    let scale = width / 2000;
     let createdMetaballs = [];
     let isStopped = false;
 
