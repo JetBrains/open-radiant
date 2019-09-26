@@ -124,7 +124,7 @@ initialLayers mode =
         layers =
             [ ( Cover, "Cover", CoverModel Cover.init )
             , ( NativeMetaballs, "Metaballs", NativeMetaballsModel NativeMetaballs.init )
-            , ( NativeMetaballs, "Mesaballs", NativeMetaballsModel NativeMetaballs.init )
+            , ( NativeMetaballs, "Balls", NativeMetaballsModel NativeMetaballs.init )
             , ( Background, "Background", BackgroundModel Background.init )
             -- [ ( Fluid, "Fluid", FluidModel Fluid.init )
             -- [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
@@ -363,13 +363,19 @@ update msg model =
                 update message modelWithMouse
 
         TurnOn index ->
-            ( model |> updateLayerDef index
-                (\def -> { def | on = True })
-            , Cmd.none
-            )
+            let
+                newModel =
+                    model |> updateLayerDef (Debug.log "turn on" index)
+                        (\def -> { def | on = True })
+            in
+                ( newModel
+                , if hasNativeMetaballsLayers newModel
+                    then updateAllNativeMetaballsWith newModel
+                    else Cmd.none
+                )
 
         TurnOff index ->
-            ( model |> updateLayerDef index
+            ( model |> updateLayerDef (Debug.log "turn off" index)
                 (\def -> { def | on = False })
             , Cmd.none
             )
@@ -1503,14 +1509,16 @@ updateAndRebuildFssWith index f curModel =
 
 forAllLayersOf : (LayerDef -> Maybe x) -> (Int -> x -> Cmd Msg) -> Model -> Cmd Msg
 forAllLayersOf isRequiredLayer performWhat model =
-    model.layers
-        |> List.indexedMap Tuple.pair
-        |> List.filterMap
-            (\(index, layer) ->
-                isRequiredLayer layer |> Maybe.map (Tuple.pair index)
-            )
-        |> List.map (\(index, layerModel) -> performWhat index layerModel)
-        |> Cmd.batch
+    let
+        skipTurnedOffLayer (index, layer) = if layer.on then Just (index, layer) else Nothing
+        selectRequiredLayer (index, layer) = isRequiredLayer layer |> Maybe.map (Tuple.pair index)
+    in
+        model.layers
+            |> List.indexedMap Tuple.pair
+            |> List.filterMap skipTurnedOffLayer
+            |> List.filterMap selectRequiredLayer
+            |> List.map (\(index, layerModel) -> performWhat index layerModel)
+            |> Cmd.batch
 
 
 rebuildAllFssLayersWith : Model -> Cmd Msg
