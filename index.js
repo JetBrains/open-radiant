@@ -197,7 +197,7 @@ const prepareImportExport = () => {
 
 const savePng = (hiddenLink, { size, coverSize, product, background }) => {
     const [ imageWidth, imageHeight ] = size;
-    const srcCanvas = document.querySelector('.webgl-layers') || document.querySelector('#native-metaballs-0');
+    const srcCanvas = document.querySelector('.webgl-layers') || document.querySelector('#native-metaballs-1');
     const trgCanvas = document.querySelector('#js-save-buffer');
     const [ width, height ] = [ srcCanvas.width, srcCanvas.height ];
     trgCanvas.width = width;
@@ -251,13 +251,15 @@ const updateOrInitNativeMetaballs = (size, layerModel, palette, index) => {
         //debouncedResize(size);
     } else {
         const prev = allNativeMetaballs[index];
-        prev.model = layerModel;
-        prev.palette = palette;
-        allNativeMetaballs[index] = nativeMetaballs.update(size, prev, prev.stop, index);
+        prev.model = layerModel || prev.model;
+        prev.palette = palette || prev.palette;
+        const nativeMetaballsModel =
+            nativeMetaballs.update(size, prev, prev.stop, index);
+        allNativeMetaballs[index] = nativeMetaballsModel;
     }
 };
 
-const updateNativeMetaballsEffects = (subject, value, index) => { 
+const updateNativeMetaballsEffects = (subject, value, index) => {
     if (allNativeMetaballs[index]) {
         const prev = allNativeMetaballs[index];
         if (subject == 'blur') {
@@ -268,7 +270,7 @@ const updateNativeMetaballsEffects = (subject, value, index) => {
             prev.model.effects.ring = value;
         }
         allNativeMetaballs[index].updateEffects(prev.model.effects);
-        //allNativeMetaballs[index] = nativeMetaballs.update(prev.size, prev);    
+        //allNativeMetaballs[index] = nativeMetaballs.update(prev.size, prev);
     }
 }
 
@@ -418,7 +420,7 @@ setTimeout(() => {
                     { app.ports.rotate.send(value); }
                 , applyRandomizer : value =>
                     { app.ports.applyRandomizer.send(prepareModelForImport(value)); }
-                , iFeelLucky : () => 
+                , iFeelLucky : () =>
                     { app.ports.iFeelLucky.send(null); }
                 , refreshFluid : (index) =>
                     { app.ports.refreshFluid.send({ layer: index }); }
@@ -434,11 +436,11 @@ setTimeout(() => {
                     { app.ports.changeNativeMetaballsOrbit.send({ layer: index, value }); }
                 , changeNativeMetaballsEffects : (index, subject) => value =>
                     { app.ports.changeNativeMetaballsEffects.send({ layer: index, subject, value }); }
-                , switchBackgroundStop : (layerIndex, stopIndex) => value => 
+                , switchBackgroundStop : (layerIndex, stopIndex) => value =>
                     { app.ports.switchBackgroundStop.send({ layer: layerIndex, stopIndex, value }); }
-                , switchBackgroundGradientType : (layerIndex) => isRadial => 
+                , switchBackgroundGradientType : (layerIndex) => isRadial =>
                     { const orientation = isRadial ? 'radial' : 'vertical';
-                      app.ports.switchGradientOrientation.send({ layer: layerIndex, orientation }); }                    
+                      app.ports.switchGradientOrientation.send({ layer: layerIndex, orientation }); }
                 , resize: (presetCode) =>
                     { app.ports.resize.send({
                         presetCode, viewport: [ window.innerWidth, window.innerHeight ]
@@ -496,12 +498,14 @@ setTimeout(() => {
     });
 
     app.ports.updateNativeMetaballs.subscribe(({ index, size, layerModel, palette }) => {
-        updateOrInitNativeMetaballs(size, layerModel, palette, index);
+        requestAnimationFrame(() => {
+            updateOrInitNativeMetaballs(size, layerModel, palette, index);
+        });
     });
 
     app.ports.sendNativeMetaballsEffects.subscribe(({ index, subject, value }) => {
         updateNativeMetaballsEffects(subject, value, index);
-    });    
+    });
 
     app.ports.bang.send(null);
 

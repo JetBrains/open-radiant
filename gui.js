@@ -68,7 +68,7 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
           }
       }
 
-      this['visible' + index] = true;
+      this['visible' + index] = !!layer.isOn;
 
       if (is.fss(layer)) {
         this['mirror' + index] =  layer.model.mirror;
@@ -344,21 +344,21 @@ function start(document, model, constants, funcs) {
           is.fluid(layer)
             ? funcs.changeFluidOrbit(index)
             : funcs.changeNativeMetaballsOrbit(index));
-        blur.onFinishChange( 
+        blur.onFinishChange(
             funcs.changeNativeMetaballsEffects(index, 'blur'));
-        fat.onFinishChange( 
-          funcs.changeNativeMetaballsEffects(index, 'fat'));
-        ring.onFinishChange( 
-          funcs.changeNativeMetaballsEffects(index, 'ring'));                      
+        fat.onFinishChange(
+            funcs.changeNativeMetaballsEffects(index, 'fat'));
+        ring.onFinishChange(
+            funcs.changeNativeMetaballsEffects(index, 'ring'));
       }
       if (is.background(layer)) {
         const stop1 = folder.add(config, 'stop1' + index).name('heaven');
-        const stop2 = folder.add(config, 'stop2' + index).name('dragons');        
-        const stop3 = folder.add(config, 'stop3' + index).name('earth');     
+        const stop2 = folder.add(config, 'stop2' + index).name('dragons');
+        const stop3 = folder.add(config, 'stop3' + index).name('earth');
         const switchStop = funcs.switchBackgroundStop;
         stop1.onFinishChange(switchStop(index, 0));
         stop2.onFinishChange(switchStop(index, 1));
-        stop3.onFinishChange(switchStop(index, 2)); 
+        stop3.onFinishChange(switchStop(index, 2));
         const gradientType = folder.add(config, 'isRadial' + index).name('radial');
         gradientType.onFinishChange(funcs.switchBackgroundGradientType(index));
       }
@@ -378,12 +378,9 @@ function start(document, model, constants, funcs) {
 
     layers.concat([]).reverse().forEach((layer, revIndex) => {
       // if ((mode == 'prod') && (layer.name == 'Cover')) return;
-
       const index = layers.length - 1 - revIndex;
       //const folder = gui.addFolder('Layer ' + index + ' (' + layer.kind + ')');
       const folder = gui.addFolder(layer.name.toLowerCase());
-
-
 
       addLayerProps(folder, config, layer, index);
       if (layer.webglOrHtml == 'webgl') {

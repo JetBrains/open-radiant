@@ -100,6 +100,9 @@ init flags url navKey =
                     (initialLayers mode)
                     createLayer
                     Gui.gui
+            -- FIXME: temporary way to hide the second NativeMetaballs layer
+            -- |> updateLayerDef 2
+            --     (\def -> { def | on = False })
         ( model, command ) =
             Nav.applyUrl url initialModel
                 |> batchUpdate initialModel
@@ -123,8 +126,8 @@ initialLayers mode =
     let
         layers =
             [ ( Cover, "Cover", CoverModel Cover.init )
-            , ( NativeMetaballs, "Metaballs-1", NativeMetaballsModel NativeMetaballs.init )
             , ( NativeMetaballs, "Metaballs-2", NativeMetaballsModel NativeMetaballs.init )
+            , ( NativeMetaballs, "Metaballs-1", NativeMetaballsModel NativeMetaballs.init )
             , ( Background, "Background", BackgroundModel Background.init )
             -- [ ( Fluid, "Fluid", FluidModel Fluid.init )
             -- [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
@@ -363,10 +366,16 @@ update msg model =
                 update message modelWithMouse
 
         TurnOn index ->
-            ( model |> updateLayerDef index
-                (\def -> { def | on = True })
-            , Cmd.none
-            )
+            let
+                newModel =
+                    model |> updateLayerDef index
+                        (\def -> { def | on = True })
+            in
+                ( newModel
+                , if hasNativeMetaballsLayers newModel
+                    then updateAllNativeMetaballsWith newModel
+                    else Cmd.none
+                )
 
         TurnOff index ->
             ( model |> updateLayerDef index
@@ -1503,14 +1512,16 @@ updateAndRebuildFssWith index f curModel =
 
 forAllLayersOf : (LayerDef -> Maybe x) -> (Int -> x -> Cmd Msg) -> Model -> Cmd Msg
 forAllLayersOf isRequiredLayer performWhat model =
-    model.layers
-        |> List.indexedMap Tuple.pair
-        |> List.filterMap
-            (\(index, layer) ->
-                isRequiredLayer layer |> Maybe.map (Tuple.pair index)
-            )
-        |> List.map (\(index, layerModel) -> performWhat index layerModel)
-        |> Cmd.batch
+    let
+        skipTurnedOffLayer (index, layer) = if layer.on then Just (index, layer) else Nothing
+        selectRequiredLayer (index, layer) = isRequiredLayer layer |> Maybe.map (Tuple.pair index)
+    in
+        model.layers
+            |> List.indexedMap Tuple.pair
+            |> List.filterMap skipTurnedOffLayer
+            |> List.filterMap selectRequiredLayer
+            |> List.map (\(index, layerModel) -> performWhat index layerModel)
+            |> Cmd.batch
 
 
 rebuildAllFssLayersWith : Model -> Cmd Msg
@@ -1675,7 +1686,8 @@ generateInitialNativeMetaballs size palette layerIdx =
         (UpdateNativeMetaballs layerIdx)
             (NativeMetaballs.generator
                 (getRuleSizeOrZeroes size)
-                <| Fluid.RandomizeInitial palette NativeMetaballs.initial
+                <| Fluid.RandomizeInitial palette
+                <| NativeMetaballs.initial <| getRuleSizeOrZeroes size
             )
 
 

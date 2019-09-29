@@ -4,6 +4,10 @@ function m(target, width, height, model, colors_) {
 
     if (!model.groups.length) return;
 
+    //const pixelRatio = window.devicePixelRatio || 1;
+
+    console.log(model);
+
     const blur = model.effects.blur;
     const fat = model.effects.fat;
     const ring = model.effects.ring;
@@ -14,19 +18,26 @@ function m(target, width, height, model, colors_) {
     let gl;
     let displayWidth;
     let displayHeight;
+    // additional to the one in the Elm model
+    // since resize is not going through Elm
+    let scale = width / 2000;
     let createdMetaballs = [];
     let isStopped = false;
 
-    const defaults = {
+    //const defaults = {
       // speedRange: {min: 0.2, max: 2.0},
       // multArc: {x: {min: -.25, max: .75}, y: {min: -.25, max: .25}},
       // originOffset: {x: 0.6, y: 0.5},
-      originOffset: {x: 0, y: 0},
-      scale: width / 1500
+      //originOffset: {x: 0, y: 0},
+      //scale: 1 //width / 1500
       // colorI: colors[1],
       // colorII: colors[2],
       // colorIII: colors[0]
-    }
+    //}
+
+    /* function calculateScale(dWidth, dHeight) {
+      return dWidth / 1500; // (window.devicePixelRatio || 1)*
+    } */
 
     initialize(target, width, height);
 
@@ -54,15 +65,17 @@ function m(target, width, height, model, colors_) {
 
       displayWidth = Math.floor(gl.canvas.clientWidth);
       displayHeight = Math.floor(gl.canvas.clientHeight);
+      //scale = calculateScale(displayWidth, displayHeight);
 
       const groups = model.groups.map(
         group => ({
           metaballs: group.balls.map(
             ball => ({
-              center: { 
-                x: (group.origin.x * displayWidth) + ball.x, 
-                y: (group.origin.y * displayHeight) + ball.y 
+              center: {
+                x: ball.x,
+                y: ball.y
               },
+              offset: group.origin,
               radius: ball.r,
               speed: ball.speed / 300,
               t: ball.phase,
@@ -78,7 +91,7 @@ function m(target, width, height, model, colors_) {
       );
 
       groups.map(function (group) {
-        createdMetaballs.push(new Metaballs(gl, group, defaults.scale));
+        createdMetaballs.push(new Metaballs(gl, group, scale));
       });
 
       target.addEventListener('mousemove', onMouseMove);
@@ -142,6 +155,7 @@ function m(target, width, height, model, colors_) {
 
       displayWidth = Math.floor(gl.canvas.clientWidth);
       displayHeight = Math.floor(gl.canvas.clientHeight);
+      //scale = calculateScale(displayWidth, displayHeight);
 
       gl.viewport(0, 0, displayWidth, displayHeight);
 
@@ -177,7 +191,7 @@ function m(target, width, height, model, colors_) {
         radiusMultiplier: 1.0,
         positionMultiplier: 1.0
       };
-      let mousePosition = {x: 0, y: 0};
+      let mousePosition = { x: 0, y: 0 };
 
       function initializeShader() {
 
@@ -268,14 +282,11 @@ function m(target, width, height, model, colors_) {
       function setupAttributes() {
         time += 0.01;
         var count = config.metaballs.length;
-        var centerX = displayWidth * defaults.originOffset.x;
-        var centerY = displayHeight * defaults.originOffset.y;
-
 
         for (var i = 0; i < count; i++) {
           var metaball = config.metaballs[i];
-          metaball.x = centerX + (metaball.center.x * scale);
-          metaball.y = centerY + (metaball.center.y * scale);
+          metaball.x = (displayWidth * metaball.offset.x) + (metaball.center.x * scale);
+          metaball.y = (displayHeight * metaball.offset.y) + (metaball.center.y * scale);
           metaball.targRadius = metaball.radius * scale + ((Math.cos((metaball.t + time) * metaball.speed) * 5) + (Math.sin((metaball.t + time) * metaball.speed) * 5));// * animationProperties.positionMultiplier;
         }
 
@@ -295,12 +306,10 @@ function m(target, width, height, model, colors_) {
       function setupMetaballs() {
         metaballsObjects = config.metaballs;
         var metaball;
-        var centerX = displayWidth * defaults.originOffset.x;
-        var centerY = displayHeight * defaults.originOffset.y;
         for (var i = 0, total = metaballsObjects.length; i < total; i++) {
           metaball = metaballsObjects[i];
-          metaball.ox = metaball.x = centerX + metaball.center.x * scale;
-          metaball.oy = metaball.y = centerY + metaball.center.y * scale;
+          metaball.ox = metaball.x = (displayWidth * metaball.offset.x) + metaball.center.x * scale;
+          metaball.oy = metaball.y = (displayHeight * metaball.offset.y) + metaball.center.y * scale;
         }
       }
 
@@ -314,10 +323,10 @@ function m(target, width, height, model, colors_) {
         gl.uniform1f(gl.getUniformLocation(program, 'uBlur'), effects.blur);
         gl.uniform1f(gl.getUniformLocation(program, 'uFat'), effects.fat);
         gl.uniform1f(gl.getUniformLocation(program, 'uRing'), effects.ring);
-      }      
+      }
 
       this.handleMouseMove = function (x, y) {
-        mousePosition.x = x - (window.innerWidth - width ) / 2;
+        mousePosition.x = x - (window.innerWidth - width) / 2;
         mousePosition.y = window.innerHeight - y;
       }
 
@@ -327,15 +336,13 @@ function m(target, width, height, model, colors_) {
         time += 0.01;
 
         var count = config.metaballs.length;
-        var centerX = displayWidth * defaults.originOffset.x;
-        var centerY = displayHeight * defaults.originOffset.y;
 
         var radius = 30;
         var targX, targY, t, d, mb;
         for (var i = 0; i < count; i++) {
           mb = metaballsObjects[i];
-          targX = centerX + (mb.center.x * scale + (Math.sin((mb.t + time) * mb.speed) * radius * mb.arcMult.x) + (Math.sin((mb.t + time) * mb.speed) * radius * mb.arcMult.x)) * animationProperties.positionMultiplier;
-          targY = centerY + (mb.center.y * scale + (Math.cos((mb.t + time) * mb.speed) * radius * mb.arcMult.y) + (Math.cos((mb.t + time) * mb.speed) * radius * mb.arcMult.y)) * animationProperties.positionMultiplier;
+          targX = (mb.offset.x * displayWidth) + (mb.center.x * scale + (Math.sin((mb.t + time) * mb.speed) * radius * mb.arcMult.x) + (Math.sin((mb.t + time) * mb.speed) * radius * mb.arcMult.x)) * animationProperties.positionMultiplier;
+          targY = (mb.offset.y * displayHeight) + (mb.center.y * scale + (Math.cos((mb.t + time) * mb.speed) * radius * mb.arcMult.y) + (Math.cos((mb.t + time) * mb.speed) * radius * mb.arcMult.y)) * animationProperties.positionMultiplier;
 
           t = Math.atan2(mb.x - mousePosition.x, mb.y - mousePosition.y);
           d = 500 / Math.sqrt(Math.pow(mousePosition.x - mb.x, 2) + Math.pow(mousePosition.y - mb.y, 2));
@@ -447,7 +454,7 @@ function m(target, width, height, model, colors_) {
                     // //    alpha = 0.0;
                     // //    }
 
-                #else 
+                #else
 
                   if (v > 1.0) {
                       float l = length(color);
@@ -488,14 +495,14 @@ function m(target, width, height, model, colors_) {
 
     }
 
-    return { 
-      size : [ width, height ], 
-      palette: colors, 
-      model, 
-      stop, 
-      resize, 
-      update : m, 
-      updateEffects 
+    return {
+      size : [ width, height ],
+      palette: colors,
+      model,
+      stop,
+      resize,
+      update : m,
+      updateEffects
     };
 
   };
