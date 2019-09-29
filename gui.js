@@ -68,7 +68,7 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
           }
       }
 
-      this['visible' + index] = true;
+      this['visible' + index] = !!layer.isOn;
 
       if (is.fss(layer)) {
         this['mirror' + index] =  layer.model.mirror;
