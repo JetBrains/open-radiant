@@ -101,8 +101,8 @@ init flags url navKey =
                     createLayer
                     Gui.gui
             -- FIXME: temporary way to hide the second NativeMetaballs layer
-            -- |> updateLayerDef 2
-            --     (\def -> { def | on = False })
+            |> updateLayerDef 2
+                (\def -> { def | on = False })
         ( model, command ) =
             Nav.applyUrl url initialModel
                 |> batchUpdate initialModel
@@ -373,7 +373,7 @@ update msg model =
             in
                 ( newModel
                 , if hasNativeMetaballsLayers newModel
-                    then updateAllNativeMetaballsWith newModel
+                    then generateAllInitialNativeMetaballs newModel
                     else Cmd.none
                 )
 
