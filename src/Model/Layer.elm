@@ -3,6 +3,10 @@ module Model.Layer exposing (..)
 import Html exposing (Html)
 import Html as H exposing (..)
 
+import Array exposing (Array)
+
+import WebGL as WebGL
+
 import Dict
 import Dict exposing (Dict)
 
@@ -26,7 +30,12 @@ type Kind
 type Index = Index Int
 
 
-type alias Layer = Def Model (Html Msg) Msg Blend
+type View
+    = ToHtml (Html Msg)
+    | ToWebGL (Array WebGL.Entity)
+
+
+type alias Layer = Def Model View Msg Blend
 
 
 -- type alias CreateLayer = Kind {- -> Model -} -> Maybe Layer
@@ -78,7 +87,7 @@ registry = always Nothing
 adapt
      : (model -> Model)
     -> (msg -> Msg)
-    -> (ViewKind -> view -> Html Msg)
+    -> (ViewKind -> view -> View)
     -> (Model -> Maybe model)
     -> (Msg -> Maybe msg)
     -> (Blend -> blend)
@@ -116,7 +125,7 @@ adapt
         \layerModel blend ->
             case extractModel layerModel of
                 Just model -> convertView source.kind <| source.view model <| convertBlend blend
-                Nothing -> H.div [] []
+                Nothing -> ToHtml <| H.div [] []
     , subscribe =
         \layerModel ->
             case extractModel layerModel of

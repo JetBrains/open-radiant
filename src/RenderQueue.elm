@@ -4,7 +4,7 @@ module RenderQueue exposing
     )
 
 import Model.Core exposing (..)
-import Model.Layer exposing (..)
+import Model.Layer as Layer
 import Model.SizeRule exposing (..)
 
 import Viewport exposing (Viewport)
@@ -17,15 +17,14 @@ import Html exposing (..)
 import WebGL as WebGL
 
 
-type alias LayerToEntities = Model -> Viewport {} -> Int -> LayerDef -> List WebGL.Entity
-type alias LayerToHtml     = Model -> Viewport {} -> Int -> LayerDef -> Html Msg
+-- type alias LayerToEntities = Layer.Model -> Viewport {} -> Int -> Layer.Def -> List WebGL.Entity
+-- type alias LayerToHtml     = Layer.Model -> Viewport {} -> Int -> Layer.Def -> Html Msg
 
-type RenderQueueItem = ToCanvas (Array WebGL.Entity) | ToHtml (Array (Html Msg))
-type alias RenderQueue = Array RenderQueueItem
+type alias RenderQueue = Array Layer.View
 
 
-groupLayers : LayerToEntities -> LayerToHtml -> Model -> RenderQueue
-groupLayers layerToEntities layerToHtml model =
+groupLayers : Model -> RenderQueue
+groupLayers model =
     let
         viewport = getViewportState model |> Viewport.find
         addToQueue (index, layer) renderQueue =
@@ -33,28 +32,18 @@ groupLayers layerToEntities layerToHtml model =
                 indexOfThelastInQueue = Array.length renderQueue - 1
                 lastInQueue = renderQueue |> Array.get indexOfThelastInQueue
             in case layer.layer of
-                WebGLLayer _ _ ->
+                Layer.ToWebGL entities ->
                     case lastInQueue of
-                        Nothing ->
-                            renderQueue
-                                |> Array.push
-                                    (layerToEntities model viewport index layer
-                                        |> Array.fromList
-                                        |> ToCanvas)
-                        Just (ToCanvas curEntities) ->
+                        Just (Layer.ToWebGL curEntities) ->
                             renderQueue
                                 |> Array.set indexOfThelastInQueue
-                                    (layerToEntities model viewport index layer
-                                        |> Array.fromList
+                                    (entities
                                         |> Array.append curEntities
-                                        |> ToCanvas)
-                        Just _ ->
-                            renderQueue
+                                        |> Layer.ToWebGL)
+                        _ -> renderQueue
                                 |> Array.push
-                                    (layerToEntities model viewport index layer
-                                        |> Array.fromList
-                                        |> ToCanvas)
-                HtmlLayer _ _ ->
+                                    (entities |> Layer.ToWebGL)
+                Layer.ToHtml html ->
                     case lastInQueue of
                         Nothing ->
                             renderQueue
