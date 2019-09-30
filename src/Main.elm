@@ -448,7 +448,7 @@ update msg model =
                     --     then generateAllMetaballs modelWithProduct
                     --     else Cmd.none
                     , if hasNativeMetaballsLayers modelWithProduct
-                        then updateAllNativeMetaballsWith modelWithProduct
+                        then generateAllNativeMetaballsDynamics modelWithProduct
                         else Cmd.none
                     , Nav.pushUrlFrom modelWithProduct
                     ]
@@ -814,7 +814,7 @@ update msg model =
                             )
                 in
                     ( newModel
-                    , updateAllNativeMetaballsWith newModel-- FIXME: use actual index
+                    , generateAllNativeMetaballsDynamics newModel-- FIXME: use actual index
                     )
             else ( model, Cmd.none )
 
@@ -834,7 +834,7 @@ update msg model =
                             )
                 in
                     ( newModel
-                    , updateAllNativeMetaballsWith newModel -- FIXME: use actual index
+                    , generateAllNativeMetaballsDynamics newModel -- FIXME: use actual index
                     )
             else ( model, Cmd.none )
 
@@ -1642,8 +1642,8 @@ generateAllInitialNativeMetaballs model =
                         index)
 
 
-updateAllNativeMetaballsWith : Model -> Cmd Msg
-updateAllNativeMetaballsWith model =
+generateAllNativeMetaballsDynamics : Model -> Cmd Msg
+generateAllNativeMetaballsDynamics model =
     let
         palette = model.product |> Product.getPalette
     in model
@@ -1656,6 +1656,20 @@ updateAllNativeMetaballsWith model =
                         nmModel.orbit
                         palette
                         (Fluid.extractStatics nmModel)
+                        index
+                )
+
+generateAllNativeMetaballsStatics : Model -> Cmd Msg
+generateAllNativeMetaballsStatics model =
+    let
+        palette = model.product |> Product.getPalette
+    in model
+        |> forAllLayersOf
+                isNativeMetaballsLayer
+                (\index nmModel ->
+                    generateNativeMetaballsStatics
+                        model.size
+                        nmModel
                         index
                 )
 
@@ -1705,6 +1719,20 @@ generateNativeMetaballsDynamics size variety orbit palette curModel layerIdx =
             (NativeMetaballs.generator
                 (getRuleSizeOrZeroes size)
                 <| Fluid.RandomizeDynamics NativeMetaballs.defaultRange palette variety orbit curModel
+            )
+
+
+generateNativeMetaballsStatics
+    :  SizeRule
+    -> Fluid.Model
+    -> LayerIndex
+    -> Cmd Msg
+generateNativeMetaballsStatics size curModel layerIdx =
+    NativeMetaballs.generate
+        (UpdateNativeMetaballs layerIdx)
+            (NativeMetaballs.generator
+                (getRuleSizeOrZeroes size)
+                <| Fluid.RandomizeStatics NativeMetaballs.defaultRange curModel
             )
 
 
