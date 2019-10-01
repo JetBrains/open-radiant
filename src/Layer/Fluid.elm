@@ -122,7 +122,7 @@ type Base64Url = Base64Url String
 
 type Randomization
     = RandomizeInitial Product.Palette StaticModel
-    -- | RandomizeDynamics Ranges Product.Palette Variety Orbit StaticModel
+    | RandomizeStatics Ranges Model
     | RandomizeDynamics Ranges Product.Palette Gauss.Variety Orbit StaticModel
     | RandomizeAll Ranges Product.Palette Gauss.Variety Orbit
 
@@ -194,6 +194,8 @@ generator size randomization =
             generateDynamics size range palette variety orbit model
         RandomizeAll range palette variety orbit ->
             generateEverything size range palette variety orbit
+        RandomizeStatics ranges model ->
+            generateStatics size ranges model
 
 
 generateOrigin : Random.Generator Vec2
@@ -362,6 +364,66 @@ generateFromInitialState ( w, h ) range palette initialState =
                                     , variety = Gauss.Variety 0.5
                                     , orbit = Orbit 0.5
                                     , effects = initialState.effects
+                                    }
+                                )
+                )
+
+
+generateStatics
+    :  ( Int, Int )
+    -> Ranges
+    -> Model
+    -> Random.Generator Model
+generateStatics ( w, h ) range curModel =
+    let
+        -- [ color1, color2, color3 ] =
+        --     case palette of
+        --         [ c1, c2, c3 ]::_ -> [ c1, c2, c3 ]
+        generateBall curBall =
+            Random.map3
+                (\radius originX originY ->
+                    { curBall
+                    | origin = vec2 originX originY
+                    , radius = radius
+                    }
+                )
+                (randomFloatInRange range.radius)
+                (randomFloatInRange (fRange 0 <| toFloat w))
+                (randomFloatInRange (fRange 0 <| toFloat h))
+
+        generateStop prevStop =
+            Random.constant prevStop
+
+        generateGroup source =
+            Random.map2
+                Tuple.pair
+                (Random.traverse generateBall source.balls)
+                (Random.traverse generateStop source.gradient.stops
+                    |> Random.map
+                        (\stops ->
+                            { stops = stops
+                            , orientation = source.gradient.orientation
+                            }
+                        )
+                )
+            |> Random.map
+                (\(balls, gradient) ->
+                    { source
+                    | balls = balls
+                    , gradient = gradient
+                    }
+                )
+
+    in
+        Gauss.generateX
+            |> Random.andThen
+                (\gaussX ->
+                    curModel.groups
+                        |> Random.traverse generateGroup
+                        |> Random.map
+                                (\groups ->
+                                    { curModel
+                                    | groups = groups
                                     }
                                 )
                 )

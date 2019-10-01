@@ -8,6 +8,7 @@ module Model.Core exposing
     , extractTimeShift, adaptTimeShift
     , getLayerModel, getLayerModels
     , updateLayer, updateLayerDef, updateLayerBlend, updateLayerWithItsModel, updateAllLayerModels
+    , foldLayers
     , CreateGui
     , hasErrors, addError, addErrors
     , TimeDelta, Pos, Size
@@ -103,6 +104,7 @@ type Msg
     | ChangeOpacity LayerIndex FSS.Opacity
     | RebuildMetaballs LayerIndex Metaballs.Model
     | RequestNewFluid LayerIndex
+    | RequestNewNativeMetaballs LayerIndex
     | RebuildFluid LayerIndex Fluid.Model
     | RegenerateFluidGradients LayerIndex
     | ChangeFluidVariety LayerIndex Gaussian.Variety
@@ -315,6 +317,20 @@ getLayerModels test model =
     model.layers
         |> List.filter (\layer -> True)
         |> List.map .model
+
+
+foldLayers
+    : (Int -> Layer -> LayerModel -> x -> x)
+    -> x
+    -> Model
+    -> x
+foldLayers f default model =
+    model.layers
+        |> List.indexedMap Tuple.pair
+        |> List.foldl
+            (\(index, layerDef) prev ->
+                f index layerDef.layer layerDef.model prev)
+            default
 
 
 updateLayer

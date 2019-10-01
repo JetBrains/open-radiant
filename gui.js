@@ -68,7 +68,7 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
           }
       }
 
-      this['visible' + index] = true;
+      this['visible' + index] = !!layer.isOn;
 
       if (is.fss(layer)) {
         this['mirror' + index] =  layer.model.mirror;
@@ -88,9 +88,13 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
       }
 
       if (is.fluid(layer) || is.nativeMetaballs(layer)) {
-        this['bang' + index] = () => funcs.refreshFluid(index);
+
         if (is.fluid(layer)) {
+          this['bang' + index] = () => funcs.refreshFluid(index);
           this['rebuildGradients' + index] = () => funcs.rebuildFluidGradients(index);
+        }
+        if (is.nativeMetaballs(layer)) {
+          this['bang' + index] = () => funcs.refreshNativeMetaballs(index);
         }
         this['variety'+index] = layer.model.variety;
         this['orbit'+index] = layer.model.orbit;
