@@ -6,8 +6,6 @@ function m(target, width, height, model, colors_) {
 
     //const pixelRatio = window.devicePixelRatio || 1;
 
-    console.log(model);
-
     const blur = model.effects.blur;
     const fat = model.effects.fat;
     const ring = model.effects.ring;

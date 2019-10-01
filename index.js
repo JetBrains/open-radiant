@@ -456,6 +456,15 @@ setTimeout(() => {
             //     update();
             // });
 
+            app.ports.updateNativeMetaballs.subscribe(({ index, size, layerModel, palette }) => {
+                config['variety'+index] = layerModel.variety;
+                config['orbit'+index] = layerModel.orbit;
+                config['blur'+index] = layerModel.effects.blur;
+                config['fat'+index] = layerModel.effects.fat;
+                config['ring'+index] = layerModel.effects.ring;
+                update();
+            });
+
         }
 
         model.layers.forEach((layer, index) => {
