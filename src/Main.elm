@@ -606,6 +606,27 @@ update msg model =
                 else Cmd.none
             )
 
+        RequestNewNativeMetaballs index ->
+            ( model
+            , model
+                |> foldLayers
+                    (\fIndex _ layerModel prevCmds ->
+                        ( if index == fIndex then
+                            case layerModel of
+                                NativeMetaballsModel nmModel ->
+                                    Just <|
+                                        generateNativeMetaballsStatics
+                                            model.size
+                                            nmModel
+                                            index
+                                _ -> Nothing
+                          else Nothing
+                        ) :: prevCmds
+                    ) []
+                |> List.filterMap identity
+                |> Cmd.batch
+            )
+
         ChangeFluidVariety index value ->
             if hasFluidLayers model then
                 let
@@ -1028,6 +1049,8 @@ subscriptions model =
         --     (\{ layer } -> UpdateNativeMetaballs layer)
         , refreshFluid
             (\{ layer } -> RequestNewFluid layer)
+        , refreshNativeMetaballs
+            (\{ layer } -> RequestNewNativeMetaballs layer)
         , changeFluidVariety
             (\{ layer, value } ->
                 ChangeFluidVariety layer (Gaussian.Variety value))
@@ -1881,6 +1904,10 @@ port changeHtmlBlend :
     -> msg) -> Sub msg
 
 port refreshFluid :
+    ( { layer : LayerIndex }
+    -> msg) -> Sub msg
+
+port refreshNativeMetaballs :
     ( { layer : LayerIndex }
     -> msg) -> Sub msg
 
