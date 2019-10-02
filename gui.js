@@ -431,7 +431,7 @@ function start(document, model, constants, funcs) {
     //     gui.addFolder()
     // });
 
-    return { config, update };
+    return { config, update : update(gui) };
 }
 
 module.exports = start;
