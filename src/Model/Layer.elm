@@ -15,16 +15,11 @@ import Json.Encode as E
 
 import Model.WebGL.Blend as WGLBlend
 
-type ViewKind
+type Kind
     = Html
     | WebGL
     | Canvas
     | JS
-
-
-type Kind
-    = KBackground
-    | KCover
 
 
 type Index = Index Int
@@ -32,31 +27,24 @@ type Index = Index Int
 
 type View
     = ToHtml (Html Msg)
-    | ToWebGL (Array WebGL.Entity)
-
-
-type alias Layer = Def Model View Msg Blend
+    | ToWebGL WebGL.Entity
 
 
 -- type alias CreateLayer = Kind {- -> Model -} -> Maybe Layer
 
 
 type alias Registry =
-    Kind -> Maybe Layer
-
-
-type alias Layers =
-    List ( Visibility, Layer )
+    Model -> Maybe (Def Model View Msg Blend)
 
 
 type alias Def model view msg blend =
     { id : String
-    , kind : ViewKind
+    , kind : Kind
     , init : model
     , encode : model -> E.Value
     , decode : D.Decoder model
     , update : msg -> model -> ( model, Cmd msg )
-    , view : model -> blend -> view
+    , view : model -> Maybe blend -> view
     , subscribe : model -> Sub msg
     }
 
@@ -67,6 +55,7 @@ type alias Blend = String
 type Visibility
     = Visible
     | Hidden
+    | Locked
 
 
 type Model
@@ -87,12 +76,12 @@ registry = always Nothing
 adapt
      : (model -> Model)
     -> (msg -> Msg)
-    -> (ViewKind -> view -> View)
+    -> (Kind -> view -> View)
     -> (Model -> Maybe model)
     -> (Msg -> Maybe msg)
-    -> (Blend -> blend)
+    -> (Blend -> Maybe blend)
     -> Def model view msg blend
-    -> Layer
+    -> Def Model View Msg Blend
 adapt
     convertModel
     convertMsg
@@ -122,9 +111,11 @@ adapt
                     , Cmd.none
                     )
     , view =
-        \layerModel blend ->
+        \layerModel maybeBlend ->
             case extractModel layerModel of
-                Just model -> convertView source.kind <| source.view model <| convertBlend blend
+                Just model ->
+                    convertView source.kind
+                        <| source.view model <| convertBlend <| Maybe.withDefault "" maybeBlend
                 Nothing -> ToHtml <| H.div [] []
     , subscribe =
         \layerModel ->

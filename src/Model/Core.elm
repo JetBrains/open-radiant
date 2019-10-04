@@ -33,8 +33,8 @@ import Model.Product as Product exposing (Product)
 import Model.Product
 import Model.WebGL.Blend as WGLBlend
 import Model.Html.Blend as HtmlBlend
-
 import Model.Layer as Layer exposing (Index)
+import Model.Layers exposing (Layers)
 
 import Layer.FSS as FSS
 import Layer.Metaballs as Metaballs
@@ -141,7 +141,7 @@ type alias Model = -- TODO: Result Error { ... }
     , fps : Int
     , theta : Float
     , omega : Float
-    , layers : List Layer
+    , layers : Layers
     , size : SizeRule
     , origin : Pos
     , mouse : Pos

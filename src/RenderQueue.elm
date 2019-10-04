@@ -3,7 +3,7 @@ module RenderQueue exposing
     , apply
     )
 
-import Model.Core exposing (..)
+import Model.Core exposing (Model)
 import Model.Layer as Layer
 import Model.SizeRule exposing (..)
 
@@ -20,7 +20,10 @@ import WebGL as WebGL
 -- type alias LayerToEntities = Layer.Model -> Viewport {} -> Int -> Layer.Def -> List WebGL.Entity
 -- type alias LayerToHtml     = Layer.Model -> Viewport {} -> Int -> Layer.Def -> Html Msg
 
-type alias RenderQueue = Array Layer.View
+type QueueItem
+    = HtmlGroup (Array (Html Layer.Msg))
+    | WebGLGroup (Array WebGL.Entity)
+type alias RenderQueue = Array QueueItem
 
 
 groupLayers : Model -> RenderQueue
@@ -32,38 +35,26 @@ groupLayers model =
                 indexOfThelastInQueue = Array.length renderQueue - 1
                 lastInQueue = renderQueue |> Array.get indexOfThelastInQueue
             in case layer.layer of
-                Layer.ToWebGL entities ->
+                Layer.ToWebGL entity ->
                     case lastInQueue of
-                        Just (Layer.ToWebGL curEntities) ->
+                        Just (WebGLGroup existingEntities) ->
                             renderQueue
                                 |> Array.set indexOfThelastInQueue
-                                    (entities
-                                        |> Array.append curEntities
-                                        |> Layer.ToWebGL)
-                        _ -> renderQueue
+                                    (Array.push entity existingEntities |> WebGLGroup)
+                        _ ->
+                            renderQueue
                                 |> Array.push
-                                    (entities |> Layer.ToWebGL)
+                                    (Array.empty |> Array.push entity |> WebGLGroup)
                 Layer.ToHtml html ->
                     case lastInQueue of
-                        Nothing ->
-                            renderQueue
-                                |> Array.push
-                                    (Array.empty
-                                        |> Array.push (layerToHtml model viewport index layer)
-                                        |> ToHtml)
-                        Just (ToHtml curHtml) ->
+                        Just (HtmlGroup existingHtml) ->
                             renderQueue
                                 |> Array.set indexOfThelastInQueue
-                                    (Array.empty
-                                        |> Array.push (layerToHtml model viewport index layer)
-                                        |> Array.append curHtml
-                                        |> ToHtml)
-                        Just _ ->
+                                    (Array.push html existingHtml |> HtmlGroup)
+                        _ ->
                             renderQueue
                                 |> Array.push
-                                    (Array.empty
-                                        |> Array.push (layerToHtml model viewport index layer)
-                                        |> ToHtml)
+                                    (Array.empty |> Array.push html |> HtmlGroup)
     in
         model.layers
             |> List.indexedMap Tuple.pair
@@ -71,14 +62,18 @@ groupLayers model =
             |> List.foldl addToQueue Array.empty
 
 
-apply : (List (Html Msg) -> Html Msg) -> (List WebGL.Entity -> Html Msg) -> RenderQueue -> Html Msg
+apply
+    : (List (Html Layer.Msg) -> Html Layer.Msg)
+    -> (List WebGL.Entity -> Html Layer.Msg)
+    -> RenderQueue
+    -> Html Layer.Msg
 apply wrapHtml wrapEntities queue =
     Array.toList queue
         |> List.map
             (\queueItem ->
                 case queueItem of
-                    ToCanvas entities -> wrapEntities <| Array.toList entities
-                    ToHtml elements -> wrapHtml <| Array.toList elements
+                    WebGLGroup entities -> wrapEntities <| Array.toList entities
+                    HtmlGroup htmls -> wrapHtml <| Array.toList htmls
             )
         |> div []
 
