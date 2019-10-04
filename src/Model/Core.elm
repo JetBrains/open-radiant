@@ -35,13 +35,13 @@ import Model.Product
 import Model.WebGL.Blend as WGLBlend
 import Model.Html.Blend as HtmlBlend
 import Model.Layer as Layer exposing (Index)
-import Model.Layers exposing (Layers)
+import Model.Layer.Layers exposing (Layers)
 
 import Layer.FSS as FSS
 import Layer.Metaballs as Metaballs
 import Layer.NativeMetaballs as NativeMetaballs
 import Layer.Fluid as Fluid
-import Layer.FluidGrid as FluidGrid
+import Layer.FluidGrid.FluidGrid as FluidGrid
 
 import Gradient exposing (..)
 
@@ -96,17 +96,6 @@ type Msg
     | ChangeHtmlBlend Layer.Index HtmlBlend.Blend
     --| ToFss Layer.Index FSS.Msg
 
-    | RebuildFss Layer.Index FSS.SerializedScene
-    --| RebuildOnClient Layer.Index FSS.SerializedScene
-    | ChangeFssRenderMode Layer.Index FSS.RenderMode
-    | ChangeFaces Layer.Index FSS.Faces
-    | AlterFaces Layer.Index FSS.FacesChange
-    | ChangeLightSpeed Layer.Index Int
-    | ChangeVignette Layer.Index FSS.Vignette
-    | ChangeIris Layer.Index FSS.Iris
-    | AlterAmplitude Layer.Index FSS.AmplitudeChange
-    | ShiftColor Layer.Index FSS.ColorShiftPatch
-    | ChangeOpacity Layer.Index FSS.Opacity
     | RebuildMetaballs Layer.Index Metaballs.Model
     | RequestNewFluid Layer.Index
     | RebuildFluid Layer.Index Fluid.Model

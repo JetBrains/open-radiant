@@ -1,4 +1,4 @@
-module Model.ImportExport exposing
+module Model.Export exposing
     ( encodeModel
     , decodeModel
     , encodePortModel
@@ -37,7 +37,7 @@ import Gradient
 
 import Model.Core as M
 import Model.AppMode as Mode
-import Model.Layer as M
+import Model.Layer as Layer
 import Model.SizeRule as SizeRule
 import Model.Error as M
 import Model.Product as Product exposing (Product, encode, decode, encodeGradient, decodeGradient)
@@ -76,13 +76,6 @@ encodeIntPair ( v1, v2 ) =
 --     E.list f [ v1, v2 ]
 
 
-encodeXY : (a -> E.Value) -> { x: a, y: a } -> E.Value
-encodeXY f { x, y } =
-    E.object
-        [ ( "x", f x )
-        , ( "y", f y )
-        ]
-
 
 encodeColor : { r: Float, g: Float, b: Float } -> E.Value
 encodeColor { r, g, b } =
@@ -91,26 +84,6 @@ encodeColor { r, g, b } =
         [ r
         , g
         , b
-        ]
-
-
-encodeColorShift : FSS.ColorShift -> E.Value
-encodeColorShift { hue, saturation, brightness } =
-    E.list
-        E.float
-        [ hue
-        , saturation
-        , brightness
-        ]
-
-
-encodeAmplitude : FSS.Amplitude -> E.Value
-encodeAmplitude { amplitudeX, amplitudeY, amplitudeZ } =
-    E.list
-        E.float
-        [ amplitudeX
-        , amplitudeY
-        , amplitudeZ
         ]
 
 

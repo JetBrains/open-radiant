@@ -64,7 +64,7 @@ import Layer.Vignette as Vignette
 import Layer.Metaballs as Metaballs
 import Layer.NativeMetaballs as NativeMetaballs
 import Layer.Fluid as Fluid
-import Layer.FluidGrid as FluidGrid
+import Layer.FluidGrid.Def as FluidGrid
 
 
 initialMode : AppMode

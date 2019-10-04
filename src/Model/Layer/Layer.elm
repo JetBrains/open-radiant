@@ -1,4 +1,4 @@
-module Model.Layer exposing (..)
+module Model.Layer.Layer exposing (..)
 
 import Html exposing (Html)
 import Html as H exposing (..)
@@ -13,19 +13,12 @@ import Json.Encode as E
 
 import WebGL as WebGL
 
-import Gui.Def exposing (Nest)
+import Model.Layer.Def exposing (..)
 
 import Model.WebGL.Blend as WGLBlend
 
 
 type alias Layer = ( Visibility, Blend, Model )
-
-
-type Kind
-    = Html
-    | WebGL
-    | Canvas
-    | JS
 
 
 type Index = Index Int
@@ -41,19 +34,6 @@ type View
 
 type alias Registry =
     Model -> Maybe (Def Model View Msg Blend)
-
-
-type alias Def model view msg blend =
-    { id : String
-    , kind : Kind
-    , init : model
-    , encode : model -> E.Value
-    , decode : D.Decoder model
-    , update : msg -> model -> ( model, Cmd msg )
-    , view : model -> Maybe blend -> view
-    , subscribe : model -> Sub msg
-    , gui : Maybe (Nest msg)
-    }
 
 
 type alias Blend = String

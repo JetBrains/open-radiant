@@ -1,4 +1,4 @@
-module Layer.FluidGrid exposing
+module Layer.FluidGrid.Def exposing
     ( Model
     , init
     , view
