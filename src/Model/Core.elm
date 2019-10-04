@@ -13,6 +13,7 @@ module Model.Core exposing
     , TimeDelta, Pos, Size
     )
 
+
 import Array
 import Array exposing (Array)
 import Dict exposing (get)
@@ -179,7 +180,7 @@ type alias PortModel =
 init
     :  Nav.Key
     -> AppMode
-    -> List Layer.Kind
+    -> Layers
     -> CreateGui
     -> Model
 init navKey appMode initialLayers createGui =
@@ -187,10 +188,7 @@ init navKey appMode initialLayers createGui =
         emptyModel = initEmpty navKey appMode
         modelWithLayers =
             { emptyModel
-            | layers =
-                initialLayers
-                    |> List.map emptyModel.registry
-                    |> List.filterMap identity
+            | layers = initialLayers
             }
     in
         { modelWithLayers

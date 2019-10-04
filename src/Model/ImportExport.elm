@@ -114,25 +114,6 @@ encodeAmplitude { amplitudeX, amplitudeY, amplitudeZ } =
         ]
 
 
--- encodeTripleAsArray : (a -> E.Value) -> Array a -> E.Value
--- encodeTripleAsArray f [ v1, v2, v3 ] =
---    [ v1, v2, v3 ]
---         |> List.map f
---         |> Array.fromList
---         |> E.array
-
-
-encodeKind : M.LayerKind -> E.Value
-encodeKind = E.string << M.encodeKind
-
-
-webglOrHtml : M.LayerDef -> String
-webglOrHtml layerDef =
-     case layerDef.layer of
-        M.WebGLLayer _ _ -> "webgl"
-        M.HtmlLayer _ _ -> "html"
-
-
 encodeLayerDef : Product -> M.LayerDef -> E.Value
 encodeLayerDef product layerDef =
     E.object
@@ -227,7 +208,7 @@ encodeLayerModel product layerModel =
                             |> Maybe.withDefault E.null)
                 , ( "variety", E.float <| case fluidModel.variety of Gaussian.Variety v -> v)
                 , ( "orbit", E.float <| case fluidModel.orbit of Fluid.Orbit v -> v)
-                , ( "effects", E.object 
+                , ( "effects", E.object
                         [ ( "blur", E.float fluidModel.effects.blur )
                         , ( "fat", E.float fluidModel.effects.fat )
                         , ( "ring", E.float fluidModel.effects.ring )
@@ -616,8 +597,8 @@ layerModelDecoder kind product =
                     (D.maybe <| D.field "forSize" makeSize)
                     (D.maybe <| D.field "variety" D.float)
                     (D.maybe <| D.field "orbit" D.float)
-                    (D.maybe <| D.field "effects" 
-                        <| D.map3 
+                    (D.maybe <| D.field "effects"
+                        <| D.map3
                             (\blur fat ring ->
                                 { blur = blur
                                 , fat = fat

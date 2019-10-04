@@ -5,15 +5,21 @@ import Html as H exposing (..)
 
 import Array exposing (Array)
 
-import WebGL as WebGL
-
 import Dict
 import Dict exposing (Dict)
 
 import Json.Decode as D
 import Json.Encode as E
 
+import WebGL as WebGL
+
+import Gui.Def exposing (Nest)
+
 import Model.WebGL.Blend as WGLBlend
+
+
+type alias Layer = ( Visibility, Blend, Model )
+
 
 type Kind
     = Html
@@ -46,6 +52,7 @@ type alias Def model view msg blend =
     , update : msg -> model -> ( model, Cmd msg )
     , view : model -> Maybe blend -> view
     , subscribe : model -> Sub msg
+    , gui : Maybe (Nest msg)
     }
 
 
@@ -71,6 +78,10 @@ type Msg
 registry : Registry
 registry = always Nothing
     -- FIXME: fill with all known types of layers
+
+
+isVisible : Layer -> Bool
+isVisible ( visibility, _, _) = visibility /= Hidden
 
 
 adapt
@@ -106,7 +117,7 @@ adapt
                     source.update msg model
                         |> Tuple.mapFirst convertModel
                         |> Tuple.mapSecond (Cmd.map convertMsg)
-                _ -> -- FIXME: return Maybe for the case when message / model doesn't match
+                _ -> -- FIXME: return Maybe/Result for the case when message / model doesn't match
                     ( convertModel source.init
                     , Cmd.none
                     )
@@ -122,6 +133,7 @@ adapt
             case extractModel layerModel of
                 Just model -> source.subscribe model |> Sub.map convertMsg
                 Nothing -> Sub.none
+    , gui = Nothing -- FIXME
     }
 
 
@@ -142,3 +154,12 @@ type alias PortLayerDef =
     , name : String
     , model : String
     }
+
+
+encodeKind : Kind -> String
+encodeKind kind =
+     case kind of
+        WebGL -> "webgl"
+        Canvas -> "canvas"
+        JS -> "js"
+        Html -> "html"

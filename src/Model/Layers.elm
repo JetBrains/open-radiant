@@ -2,4 +2,4 @@ module Model.Layers exposing (..)
 
 import Model.Layer exposing (..)
 
-type alias Layers = List ( Visibility, Blend, Model )
+type alias Layers = List Layer

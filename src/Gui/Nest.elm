@@ -6,6 +6,10 @@ import Array
 import Gui.Def exposing (..)
 
 
+-- map : (umsg1 -> umsg2) -> Nest umsg1 -> Nest umsg2
+-- map = -- TODO
+
+
 noChildren : Nest umsg
 noChildren =
     { focus = -1

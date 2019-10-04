@@ -9,15 +9,15 @@ import Gui.Nest exposing (..)
 import Layer.FSS as FSS
 
 import Model.AppMode exposing (AppMode(..))
-import Model.Core exposing (..)
+import Model.Core as Core exposing (..)
 import Model.Product as Product exposing (Product(..))
 import Model.SizeRule exposing (..)
-import Model.Layer as Layer exposing (Index)
+import Model.Layer as Layer exposing (Index, Model(..))
 import Model.WebGL.Blend as WGLBlend
 import Model.Html.Blend as HtmlBlend
 
 
-gui : Model -> Gui.Model Msg
+gui : Core.Model -> Gui.Model Core.Msg
 gui from =
     let
         ( currentSizePresets, sizePresetsShape ) =
@@ -112,13 +112,15 @@ gui from =
         layerButtons =
             from.layers
                 |> List.filter
-                    (\{ name } ->
-                        case ( name, from.mode ) of
-                            ( "Cover", Production ) -> False
+                    (\(_, _, model) ->
+                        case ( model, from.mode ) of
+                            ( Cover _, Production ) -> False
                             _ -> True
                     )
                 |> List.indexedMap
-                    (\layerIndex { name, layer, model } ->
+                    (\layerIndex _ ->
+                        Ghost <| "layer " ++ String.fromInt layerIndex
+                        {- FIXME: return back
                         case layer of
                             WebGLLayer webGllayer webglBlend ->
                                 case model of
@@ -129,6 +131,7 @@ gui from =
                             HtmlLayer _ htmlBlend ->
                                 Nested (String.toLower name) Collapsed
                                     <| htmlControls htmlBlend layerIndex
+                        -}
                     )
     in
         Gui.build <|
@@ -143,7 +146,7 @@ gui from =
 
 
 
-webglBlendGrid : AppMode -> WGLBlend.Blend -> Layer.Index -> Nest Msg
+webglBlendGrid : AppMode -> WGLBlend.Blend -> Layer.Index -> Nest Core.Msg
 webglBlendGrid mode currentBlend layerIndex =
     let
         blendFuncs =
@@ -222,7 +225,7 @@ webglBlendGrid mode currentBlend layerIndex =
             ]
 
 
-fssControls : AppMode -> FSS.Model -> WGLBlend.Blend -> Layer.Index -> Nest Msg
+fssControls : AppMode -> FSS.Model -> WGLBlend.Blend -> Layer.Index -> Nest Core.Msg
 fssControls mode fssModel currentBlend layerIndex =
     let
         { lightSpeed, faces, amplitude, vignette, iris, colorShift } = fssModel

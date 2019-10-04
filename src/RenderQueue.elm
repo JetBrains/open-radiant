@@ -1,5 +1,5 @@
 module RenderQueue exposing
-    ( groupLayers
+    ( make
     , apply
     )
 
@@ -21,50 +21,57 @@ import WebGL as WebGL
 -- type alias LayerToHtml     = Layer.Model -> Viewport {} -> Int -> Layer.Def -> Html Msg
 
 type QueueItem
-    = HtmlGroup (Array (Html Layer.Msg))
-    | WebGLGroup (Array WebGL.Entity)
+    = HtmlGroup (Array (Layer.Index, Html Layer.Msg))
+    | WebGLGroup (Array (Layer.Index, WebGL.Entity))
 type alias RenderQueue = Array QueueItem
 
 
-groupLayers : Model -> RenderQueue
-groupLayers model =
+make : List Layer.View -> RenderQueue
+make renderedLayers =
     let
-        viewport = getViewportState model |> Viewport.find
-        addToQueue (index, layer) renderQueue =
+        addToQueue (index, layerView) renderQueue =
             let
                 indexOfThelastInQueue = Array.length renderQueue - 1
                 lastInQueue = renderQueue |> Array.get indexOfThelastInQueue
-            in case layer.layer of
+            in case layerView of
                 Layer.ToWebGL entity ->
                     case lastInQueue of
                         Just (WebGLGroup existingEntities) ->
                             renderQueue
                                 |> Array.set indexOfThelastInQueue
-                                    (Array.push entity existingEntities |> WebGLGroup)
+                                    (existingEntities
+                                        |> Array.push (index, entity)
+                                        |> WebGLGroup)
                         _ ->
                             renderQueue
                                 |> Array.push
-                                    (Array.empty |> Array.push entity |> WebGLGroup)
+                                    (Array.empty
+                                        |> Array.push (index, entity)
+                                        |> WebGLGroup)
                 Layer.ToHtml html ->
                     case lastInQueue of
                         Just (HtmlGroup existingHtml) ->
                             renderQueue
                                 |> Array.set indexOfThelastInQueue
-                                    (Array.push html existingHtml |> HtmlGroup)
+                                    (existingHtml
+                                        |> Array.push (index, html)
+                                        |> HtmlGroup)
                         _ ->
                             renderQueue
                                 |> Array.push
-                                    (Array.empty |> Array.push html |> HtmlGroup)
+                                    (Array.empty
+                                        |> Array.push (index, html)
+                                        |> HtmlGroup)
     in
-        model.layers
+        renderedLayers
             |> List.indexedMap Tuple.pair
-            |> List.filter (Tuple.second >> .on)
+            |> List.map (Tuple.mapFirst Layer.Index)
             |> List.foldl addToQueue Array.empty
 
 
 apply
-    : (List (Html Layer.Msg) -> Html Layer.Msg)
-    -> (List WebGL.Entity -> Html Layer.Msg)
+    : (List (Layer.Index, Html Layer.Msg) -> Html Layer.Msg)
+    -> (List (Layer.Index, WebGL.Entity) -> Html Layer.Msg)
     -> RenderQueue
     -> Html Layer.Msg
 apply wrapHtml wrapEntities queue =
