@@ -34,8 +34,8 @@ import Model.SizeRule exposing (..)
 import Model.SizeRule as SizeRule exposing (default)
 import Model.Product as Product exposing (Product)
 import Model.Product
-import Model.WebGL.Blend as WGLBlend
-import Model.Html.Blend as HtmlBlend
+import Model.Layer.Blend.Html as HtmlBlend
+import Model.Layer.Blend.WebGL as WGLBlend
 
 import Gradient exposing (..)
 

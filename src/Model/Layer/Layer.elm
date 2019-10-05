@@ -15,7 +15,8 @@ import WebGL as WebGL
 
 import Model.Layer.Def exposing (..)
 
-import Model.WebGL.Blend as WGLBlend
+import Model.Layer.Blend.Html as HtmlBlend
+import Model.Layer.Blend.WebGL as WGLBlend
 
 
 type alias Layer = ( Visibility, Blend, Model )
@@ -36,7 +37,10 @@ type alias Registry =
     Model -> Maybe (Def Model View Msg Blend)
 
 
-type alias Blend = String
+type Blend
+    = ForWebGL WGLBlend.Blend
+    | ForHtml HtmlBlend.Blend
+    | NoBlend
 
 
 type Visibility
@@ -107,7 +111,8 @@ adapt
             case extractModel layerModel of
                 Just model ->
                     convertView source.kind
-                        <| source.view model <| convertBlend <| Maybe.withDefault "" maybeBlend
+                        <| source.view model
+                            <| convertBlend <| Maybe.withDefault NoBlend maybeBlend
                 Nothing -> ToHtml <| H.div [] []
     , subscribe =
         \layerModel ->
@@ -116,31 +121,3 @@ adapt
                 Nothing -> Sub.none
     , gui = Nothing -- FIXME
     }
-
-
--- kinda Either, but for ports:
---    ( Just WebGLBlend, Nothing ) --> WebGL Blend
---    ( Nothing, Just String ) --> HTML Blend
---    ( Nothing, Nothing ) --> None
---    ( Just WebGLBlend, Just String ) --> ¯\_(ツ)_/¯
-type alias PortBlend =
-    ( Maybe WGLBlend.Blend, Maybe String )
-
-
-type alias PortLayerDef =
-    { kind : String
-    , blend : PortBlend
-    , webglOrHtml : String
-    , isOn : Bool
-    , name : String
-    , model : String
-    }
-
-
-encodeKind : Kind -> String
-encodeKind kind =
-     case kind of
-        WebGL -> "webgl"
-        Canvas -> "canvas"
-        JS -> "js"
-        Html -> "html"

@@ -38,8 +38,8 @@ import Model.SizeRule exposing (..)
 import Model.SizeRule as SizeRule exposing (decode, encode, toRecord)
 import Model.Error exposing (..)
 import Model.Export as IE -- IE for import/export
-import Model.WebGL.Blend as WGLBlend
-import Model.Html.Blend as HtmlBlend
+import Model.Layer.Blend.Html as HtmlBlend
+import Model.Layer.Blend.WebGL as WGLBlend
 
 import Gui.Gui as Gui
 import Gui.Mouse exposing (Position)

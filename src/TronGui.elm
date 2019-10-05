@@ -11,8 +11,8 @@ import Model.Core as Core exposing (..)
 import Model.Product as Product exposing (Product(..))
 import Model.SizeRule exposing (..)
 import Model.Layer.Layer as Layer exposing (Index, Model(..))
-import Model.WebGL.Blend as WGLBlend
-import Model.Html.Blend as HtmlBlend
+import Model.Layer.Blend.Html as HtmlBlend
+import Model.Layer.Blend.WebGL as WGLBlend
 
 
 gui : Core.Model -> Gui.Model Core.Msg

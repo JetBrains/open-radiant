@@ -1,10 +1,11 @@
-module Model.Html.Blend exposing
+module Model.Layer.Blend.Html exposing
     ( Blend(..)
     , PortBlend
     , default
     , encode
     , decode
     )
+
 
 type Blend
     = Normal

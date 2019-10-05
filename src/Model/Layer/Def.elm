@@ -38,3 +38,22 @@ unit =
     , view = always <| always ()
     , gui = Nothing
     }
+
+
+-- kinda Either, but for ports:
+--    ( Just WebGLBlend, Nothing ) --> WebGL Blend
+--    ( Nothing, Just String ) --> HTML Blend
+--    ( Nothing, Nothing ) --> None
+--    ( Just WebGLBlend, Just String ) --> ¯\_(ツ)_/¯
+type alias PortBlend =
+    ( Maybe String, Maybe String )
+
+
+type alias PortDef =
+    { kind : String
+    , blend : PortBlend
+    , webglOrHtml : String
+    , isOn : Bool
+    , name : String
+    , model : String
+    }
