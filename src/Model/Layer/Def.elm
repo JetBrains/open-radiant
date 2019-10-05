@@ -24,3 +24,17 @@ type alias Def model view msg blend =
     , subscribe : model -> Sub msg
     , gui : Maybe (Nest msg)
     }
+
+
+unit : Def () () () ()
+unit =
+    { id = "unit"
+    , kind = JS
+    , init = ()
+    , encode = always <| E.object []
+    , decode = D.succeed ()
+    , update = \_ model -> ( model, Cmd.none )
+    , subscribe = always Sub.none
+    , view = always <| always ()
+    , gui = Nothing
+    }
