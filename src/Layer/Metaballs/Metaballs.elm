@@ -19,6 +19,9 @@ import Svg.Attributes as SA exposing (..)
 import Model.Product as Product
 
 
+type Msg = Rebuild Model
+
+
 -- v = 0.5
 handleLenRate = 2.5
 distanceFactor = 1.5

@@ -25,7 +25,9 @@ import WebGL.Texture exposing (Texture)
 
 import Algorithm.Gaussian as Gaussian exposing (Variety)
 
-import Model.Layer exposing (..)
+import Model.Layer.Layer exposing (..)
+import Model.Layer.Layer as Layer exposing (Index)
+import Model.Layer.Layers exposing (Layers)
 import Model.AppMode exposing (..)
 import Model.Error exposing (..)
 import Model.SizeRule exposing (..)
@@ -34,14 +36,6 @@ import Model.Product as Product exposing (Product)
 import Model.Product
 import Model.WebGL.Blend as WGLBlend
 import Model.Html.Blend as HtmlBlend
-import Model.Layer as Layer exposing (Index)
-import Model.Layer.Layers exposing (Layers)
-
-import Layer.FSS as FSS
-import Layer.Metaballs as Metaballs
-import Layer.NativeMetaballs as NativeMetaballs
-import Layer.Fluid as Fluid
-import Layer.FluidGrid.FluidGrid as FluidGrid
 
 import Gradient exposing (..)
 
@@ -96,24 +90,6 @@ type Msg
     | ChangeHtmlBlend Layer.Index HtmlBlend.Blend
     --| ToFss Layer.Index FSS.Msg
 
-    | RebuildMetaballs Layer.Index Metaballs.Model
-    | RequestNewFluid Layer.Index
-    | RebuildFluid Layer.Index Fluid.Model
-    | RegenerateFluidGradients Layer.Index
-    | ChangeFluidVariety Layer.Index Gaussian.Variety
-    | ChangeFluidOrbit Layer.Index Fluid.Orbit
-    | RequestNewFluidGrid Layer.Index
-    | RebuildFluidGrid Layer.Index FluidGrid.Model
-    | LoadFluidGradientTextures Layer.Index (List Fluid.Base64Url)
-    | ApplyFluidTextures
-        Layer.Index
-        (List { gradient : Fluid.TextureAndSize, data : Fluid.TextureAndSize })
-    | UpdateNativeMetaballs Layer.Index NativeMetaballs.Model -- called when random model was generated in any way
-    | ChangeNativeMetaballsVariety Layer.Index Gaussian.Variety
-    | ChangeNativeMetaballsOrbit Layer.Index NativeMetaballs.Orbit
-    | ChangeNativeMetaballsEffects Layer.Index Fluid.EffectsChange
-    | SwitchBackgroundStop Layer.Index Int Bool -- StopIndex and StopState
-    | SwitchGradientOrientation Layer.Index Gradient.Orientation
     | Randomize
     | ApplyRandomizer PortModel
     | SavePng

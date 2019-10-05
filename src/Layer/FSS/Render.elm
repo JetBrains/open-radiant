@@ -1,6 +1,7 @@
 module Layer.FSS.Render exposing (..)
 
 import Viewport exposing (Viewport)
+import Viewport as Viewport exposing (default)
 
 import Model.Product exposing (ProductId)
 
@@ -14,8 +15,31 @@ import Math.Vector4 as Vec4 exposing (vec4, Vec4)
 import WebGL
 import WebGL.Settings exposing (Setting)
 
+import Model.WebGL.Blend exposing (..)
+
 
 type alias Mesh = WebGL.Mesh Vertex
+
+
+view : Model -> Maybe Blend -> WebGL.Entity
+view model maybeBlend =
+    -- FIXME: implement properly
+    makeEntity
+        0
+        { x = 0, y = 0 }
+        0
+        0
+        Viewport.default
+        model
+        Nothing
+        []
+        <| WebGL.triangles
+                [
+                    ( defaultVertex
+                    , defaultVertex
+                    , defaultVertex
+                    )
+                ]
 
 
 makeEntity

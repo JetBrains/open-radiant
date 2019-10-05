@@ -51,20 +51,20 @@ import RenderQueue as RQ
 import Navigation as Nav
 import Gradient as Gradient
 
-import Layer.Background as Background
-import Layer.Background exposing (StopState(..), StopStates(..))
-import Layer.Lorenz as Lorenz
-import Layer.Fractal as Fractal
-import Layer.Voronoi as Voronoi
-import Layer.FSS as FSS
-import Layer.Template as Template
-import Layer.Cover as Cover
-import Layer.Canvas as Canvas
-import Layer.Vignette as Vignette
-import Layer.Metaballs as Metaballs
-import Layer.NativeMetaballs as NativeMetaballs
-import Layer.Fluid as Fluid
-import Layer.FluidGrid.Def as FluidGrid
+import Layer.Background.Background as Background
+import Layer.Background.Background exposing (StopState(..), StopStates(..))
+import Layer.Lorenz.Lorenz as Lorenz
+import Layer.Fractal.Fractal as Fractal
+import Layer.Voronoi.Voronoi as Voronoi
+import Layer.FSS.FSS as FSS
+import Layer.Template.Template as Template
+import Layer.Cover.Cover as Cover
+import Layer.Canvas.Canvas as Canvas
+import Layer.Vignette.Vignette as Vignette
+import Layer.Metaballs.Metaballs as Metaballs
+import Layer.NativeMetaballs.NativeMetaballs as NativeMetaballs
+import Layer.Fluid.Fluid as Fluid
+import Layer.FluidGrid.FluidGrid as FluidGrid
 
 
 initialMode : AppMode

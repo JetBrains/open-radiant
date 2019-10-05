@@ -6,13 +6,13 @@ import Gui.Gui as Gui
 import Gui.Def exposing (..)
 import Gui.Nest exposing (..)
 
-import Layer.FSS as FSS
+import Layer.FSS.FSS as FSS
 
 import Model.AppMode exposing (AppMode(..))
 import Model.Core as Core exposing (..)
 import Model.Product as Product exposing (Product(..))
 import Model.SizeRule exposing (..)
-import Model.Layer as Layer exposing (Index, Model(..))
+import Model.Layer.Layer as Layer exposing (Index, Model(..))
 import Model.WebGL.Blend as WGLBlend
 import Model.Html.Blend as HtmlBlend
 

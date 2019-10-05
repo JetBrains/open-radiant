@@ -1,4 +1,4 @@
-module Layer.NativeMetaballs exposing
+module Layer.NativeMetaballs.NativeMetaballs exposing
     ( Model
     -- , PortModel
     , init
@@ -28,12 +28,18 @@ import Model.Product exposing (ColorId(..))
 import Model.Range exposing (..)
 import Model.Html.Blend as Blend
 
-import Layer.Fluid as Fluid exposing
+import Layer.Fluid.Fluid as Fluid exposing
     ( Model
     , generate, generator
     , Orbit(..), Ranges
     )
 
+
+type Msg
+    = Update Model -- called when random model was generated in any way
+    | ChangeVariety Gaussian.Variety
+    | ChangeOrbit Orbit
+    | ChangeEffects Fluid.EffectsChange
 
 
 type alias Model = Fluid.Model

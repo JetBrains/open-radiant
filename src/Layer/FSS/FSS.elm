@@ -5,6 +5,7 @@ import Model.Layer.Def as Layer
 import Layer.FSS.Model exposing (..)
 import Layer.FSS.Model as Model exposing (init)
 import Layer.FSS.Export as Export
+import Layer.FSS.Render as Render
 
 import WebGL
 
@@ -32,6 +33,8 @@ def =
     , init = Model.init
     , encode = Export.encode
     , decode = Export.decode
-    , update = always <| ChangeOpacity 10 -- FIXME
-    , subscribe = Sub.none -- FIXME
+    , update = \msg model -> ( model, Cmd.none )-- FIXME
+    , subscribe = always Sub.none -- FIXME
+    , view = Render.view
+    , gui = Nothing -- FIXME
     }

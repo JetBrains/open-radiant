@@ -1,4 +1,4 @@
-module Layer.Fluid exposing
+module Layer.Fluid.Fluid exposing
     ( Model
     , StaticModel--, StaticModelWithGradients
     , Randomization(..)
@@ -48,6 +48,17 @@ import Gradient exposing (..)
 import Model.Product as Product
 import Model.Product exposing (ColorId(..))
 import Model.Range exposing (..)
+
+
+type Msg
+    = RequestNew
+    | Rebuild Model
+    | RegenerateGradients
+    | ChangeVariety Gauss.Variety
+    | ChangeOrbit Orbit
+    | LoadGradientTextures (List Base64Url)
+    | ApplyTextures
+        (List { gradient : TextureAndSize, data : TextureAndSize })
 
 
 type alias Ball =
