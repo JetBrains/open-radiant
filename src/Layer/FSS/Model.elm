@@ -1,5 +1,20 @@
 module Layer.FSS.Model exposing (..)
 
+
+type Msg
+    = RebuildFss SerializedScene
+    --| RebuildOnClient Layer.Index FSS.SerializedScene
+    | ChangeRenderMode RenderMode
+    | ChangeFaces Faces
+    | AlterFaces FacesChange
+    | ChangeLightSpeed Int
+    | ChangeVignette Vignette
+    | ChangeIris Iris
+    | AlterAmplitude AmplitudeChange
+    | ShiftColor ColorShiftPatch
+    | ChangeOpacity Opacity
+
+
 type RenderMode
     = Triangles
     | Lines

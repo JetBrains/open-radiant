@@ -126,3 +126,37 @@ decode =
             |> D.andMap (D.field "vignette" D.float)
             |> D.andMap (D.field "iris" D.float)
             |> D.andThen identity
+
+
+encodeForPort : Model -> PortModel
+encodeForPort m =
+    { amplitude = m.amplitude
+    , colorShift = m.colorShift
+    , opacity = m.opacity
+    , faces = m.faces
+    , lightSpeed = m.lightSpeed
+    , renderMode = encodeRenderMode m.renderMode
+    , clip = m.clip
+    , shareMesh = m.shareMesh
+    , vignette = m.vignette
+    , iris = m.iris
+    , mirror = m.mirror
+    --, palette = product |> getPalette
+    }
+
+
+decocdeFromPort : FSS.PortModel -> FSS.Model
+decocdeFromPort pm =
+    { amplitude = pm.amplitude
+    , colorShift = pm.colorShift
+    , opacity = pm.opacity
+    , faces = pm.faces
+    , lightSpeed = pm.lightSpeed
+    , renderMode = decodeRenderMode pm.renderMode
+    , clip = pm.clip
+    , shareMesh = pm.shareMesh
+    , vignette = pm.vignette
+    , iris = pm.iris
+    , mirror = pm.mirror
+    --, palette = product |> getPalette
+    }

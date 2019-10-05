@@ -48,6 +48,7 @@ type Visibility
 type Model
     = Background ()
     | Cover ()
+    -- TODO: add mirrored FSS
 
 
 type Msg

@@ -22,7 +22,7 @@ type alias Def model view msg blend =
     , update : msg -> model -> ( model, Cmd msg )
     , view : model -> Maybe blend -> view
     , subscribe : model -> Sub msg
-    , gui : Maybe (Nest msg)
+    , gui : Maybe (model -> Nest msg)
     }
 
 

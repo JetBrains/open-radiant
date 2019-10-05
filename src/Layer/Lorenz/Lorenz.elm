@@ -1,4 +1,4 @@
-module Layer.Lorenz exposing
+module Layer.Lorenz.Lorenz exposing
     ( Model
     , Mesh
     , init

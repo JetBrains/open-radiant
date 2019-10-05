@@ -1,4 +1,4 @@
-module Layer.Metaballs exposing
+module Layer.Metaballs.Metaballs exposing
     ( Model
     , init
     , view

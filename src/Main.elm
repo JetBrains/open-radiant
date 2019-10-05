@@ -33,11 +33,11 @@ import Model.AppMode as Mode exposing (decode, encode)
 import Model.Product exposing (Product)
 import Model.Product as Product
 import Model.Constants exposing (..)
-import Model.Layer exposing (..)
+import Model.Layer.Layer exposing (..)
 import Model.SizeRule exposing (..)
 import Model.SizeRule as SizeRule exposing (decode, encode, toRecord)
 import Model.Error exposing (..)
-import Model.ImportExport as IE
+import Model.Export as IE -- IE for import/export
 import Model.WebGL.Blend as WGLBlend
 import Model.Html.Blend as HtmlBlend
 
@@ -51,6 +51,7 @@ import RenderQueue as RQ
 import Navigation as Nav
 import Gradient as Gradient
 
+{-
 import Layer.Background.Background as Background
 import Layer.Background.Background exposing (StopState(..), StopStates(..))
 import Layer.Lorenz.Lorenz as Lorenz
@@ -65,6 +66,7 @@ import Layer.Metaballs.Metaballs as Metaballs
 import Layer.NativeMetaballs.NativeMetaballs as NativeMetaballs
 import Layer.Fluid.Fluid as Fluid
 import Layer.FluidGrid.FluidGrid as FluidGrid
+-}
 
 
 initialMode : AppMode

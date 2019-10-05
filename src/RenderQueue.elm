@@ -4,7 +4,7 @@ module RenderQueue exposing
     )
 
 import Model.Core exposing (Model)
-import Model.Layer as Layer
+import Model.Layer.Layer as Layer
 import Model.SizeRule exposing (..)
 
 import Viewport exposing (Viewport)

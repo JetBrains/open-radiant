@@ -1,4 +1,4 @@
-module Layer.Vignette exposing
+module Layer.Vignette.Vignette exposing
     ( Model, PortModel
     , Mesh
     , makeEntity
@@ -42,7 +42,6 @@ makeEntity viewport config settings =
         fragmentShader
         (mesh config.color)
         (uniforms viewport config)
-
 
 
 -- Mesh

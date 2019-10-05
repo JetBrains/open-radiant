@@ -1,4 +1,4 @@
-module Layer.Cover exposing
+module Layer.Cover.Cover exposing
     ( init
     , view
     )

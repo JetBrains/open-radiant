@@ -28,16 +28,11 @@ import Algorithm.Gaussian as Gaussian
 import Model.WebGL.Blend as WGLBlend
 import Model.Html.Blend as HtmlBlend
 
-import Layer.FSS as FSS
-import Layer.Lorenz as Lorenz
-import Layer.Fluid as Fluid
-import Layer.Background as Background
-
 import Gradient
 
 import Model.Core as M
 import Model.AppMode as Mode
-import Model.Layer as Layer
+import Model.Layer.Layer as Layer
 import Model.SizeRule as SizeRule
 import Model.Error as M
 import Model.Product as Product exposing (Product, encode, decode, encodeGradient, decodeGradient)
@@ -61,6 +56,7 @@ type LayerDecodeError
     | BlendDecodeFailed String
     | LayerCreationFailed String
     | LayerModelDecodeFailed D.Error
+
 
 
 encodeIntPair : ( Int, Int ) -> E.Value
@@ -113,85 +109,6 @@ encodeLayerDef product layerDef =
         , ( "webglOrHtml", webglOrHtml layerDef |> E.string )
         -- , ( "mesh", E.string "" )
         ]
-
-
-encodeLayerModel : Product -> M.LayerModel -> E.Value
-encodeLayerModel product layerModel =
-    case layerModel of
-        M.BackgroundModel bgModel ->
-            Background.encode bgModel
-        M.FssModel fssModel ->
-            [ ( "renderMode", FSS.encodeRenderMode fssModel.renderMode |> E.string )
-            , ( "faces", encodeXY E.int fssModel.faces )
-            , ( "lightSpeed", E.int fssModel.lightSpeed )
-            , ( "amplitude", encodeAmplitude fssModel.amplitude )
-            , ( "colorShift", encodeColorShift fssModel.colorShift )
-            , ( "opacity", E.float fssModel.opacity )
-            , ( "mirror", E.bool fssModel.mirror )
-            , ( "clip",
-                    Maybe.withDefault FSS.noClip fssModel.clip
-                        |> encodeXY E.float
-                )
-            , ( "shareMesh", E.bool fssModel.shareMesh )
-            , ( "vignette", E.float fssModel.vignette )
-            , ( "iris", E.float fssModel.iris )
-            ] |> E.object
-        M.VignetteModel vignetteModel ->
-            [ ( "opacity", E.float vignetteModel.opacity )
-            , ( "color", encodeColor vignetteModel.color )
-            ] |> E.object
-        M.FluidModel fluidModel ->
-            let
-                encodeBall ball =
-                    E.object
-                        [ ( "x", E.float <| Vec2.getX ball.origin )
-                        , ( "y", E.float <| Vec2.getY ball.origin )
-                        , ( "r", E.float ball.radius )
-                        , ( "speed", E.float ball.speed )
-                        , ( "phase", E.float ball.phase )
-                        , ( "ax", E.float <| Vec2.getX ball.amplitude )
-                        , ( "ay", E.float <| Vec2.getY ball.amplitude )
-                        ]
-                encodeSize ( width, height )  =
-                    E.object
-                        [ ( "width", E.int width )
-                        , ( "height", E.int height )
-                        ]
-                encodeGroup group =
-                    E.object
-                        [ ( "balls", E.list encodeBall group.balls )
-                        , ( "gradient" ,
-                                Product.encodeGradient
-                                    (Product.getPalette product)
-                                    group.gradient
-                          )
-                        , ( "origin"
-                            , E.object
-                            [ ( "x", E.float <| Vec2.getX group.origin )
-                            , ( "y", E.float <| Vec2.getY group.origin )
-                            ]
-                            )
-                        ]
-
-            in
-                [ ( "groups", E.list encodeGroup fluidModel.groups )
-                , ( "size",
-                        fluidModel.forSize
-                            |> Maybe.map encodeSize
-                            |> Maybe.withDefault E.null)
-                , ( "variety", E.float <| case fluidModel.variety of Gaussian.Variety v -> v)
-                , ( "orbit", E.float <| case fluidModel.orbit of Fluid.Orbit v -> v)
-                , ( "effects", E.object
-                        [ ( "blur", E.float fluidModel.effects.blur )
-                        , ( "fat", E.float fluidModel.effects.fat )
-                        , ( "ring", E.float fluidModel.effects.ring )
-                        ])
-                ] |> E.object
-        M.NativeMetaballsModel
-            nativeMetaballsModel ->
-                encodeLayerModel product <| M.FluidModel nativeMetaballsModel
-        _ -> [ ( "layer-model", E.string "do-not-exists" ) ] |> E.object
-        -- FIXME: fail for unknown layer kinds, but don't fail if layer just has empty model
 
 
 encodeModel_ : M.Model -> E.Value
@@ -457,147 +374,6 @@ layerDefDecoder createLayer product =
             |> D.andThen identity
 
 
-layerModelDecoder : M.LayerKind -> Product -> D.Decoder M.LayerModel
-layerModelDecoder kind product =
-    case kind of
-        M.Fss ->
-            let
-                createFssModel
-                    renderModeStr
-                    faces
-                    amplitude
-                    colorShift
-                    opacity
-                    mirror
-                    clip
-                    lightSpeed
-                    shareMesh
-                    vignette
-                    iris =
-                    case [ faces, amplitude, colorShift, clip ] of
-                        [ [facesX, facesY], [amplitudeX, amplitudeY, amplitudeZ], [hue, saturation, brightness], [clipX, clipY] ] ->
-                            M.FssModel
-                                { renderMode = FSS.decodeRenderMode renderModeStr
-                                , faces = { x = floor facesX, y = floor facesY }
-                                , amplitude =
-                                    { amplitudeX = amplitudeX
-                                    , amplitudeY = amplitudeY
-                                    , amplitudeZ = amplitudeZ
-                                    }
-                                , colorShift =
-                                    { hue = hue
-                                    , saturation = saturation
-                                    , brightness = brightness
-                                    }
-                                , opacity = opacity
-                                , mirror = mirror
-                                , clip = Just { x = clipX, y = clipY }
-                                , lightSpeed = lightSpeed
-                                , shareMesh = shareMesh
-                                , vignette = vignette
-                                , iris = iris
-                                }
-                            |> D.succeed
-                        _ -> D.fail "failed to parse model"
-            in
-                D.succeed createFssModel
-                    |> D.andMap (D.field "renderMode" D.string)
-                    |> D.andMap (D.field "faces" <| D.list D.float)
-                    |> D.andMap (D.field "amplitude" <| D.list D.float)
-                    |> D.andMap (D.field "colorShift" <| D.list D.float)
-                    |> D.andMap (D.field "opacity" D.float)
-                    |> D.andMap (D.field "mirror" D.bool)
-                    |> D.andMap (D.field "clip" <| D.list D.float)
-                    |> D.andMap (D.field "lightSpeed" D.int)
-                    |> D.andMap (D.field "shareMesh" D.bool)
-                    |> D.andMap (D.field "vignette" D.float)
-                    |> D.andMap (D.field "iris" D.float)
-                    |> D.andThen identity
-        M.MirroredFss ->
-            layerModelDecoder M.Fss product
-        M.Fluid ->
-            let
-                range = Fluid.defaultRange
-                makeBall =
-                    D.map7
-                        (\x y r speed phase ax ay ->
-                            { origin = Vec2.vec2 x y
-                            , radius = r
-                            , speed = speed
-                            , phase = phase
-                            , amplitude = Vec2.vec2 ax ay
-                            }
-                        )
-                        (D.field "x" D.float)
-                        (D.field "y" D.float)
-                        (D.field "r" D.float)
-                        (D.field "speed" D.float |> D.withDefault (getFloatMin range.speed))
-                        (D.field "phase" D.float |> D.withDefault 0)
-                        (D.field "ax" D.float |> D.withDefault (getFloatMin range.amplitude.x))
-                        (D.field "ay" D.float |> D.withDefault (getFloatMin range.amplitude.y))
-                makeOrigin =
-                    D.map2
-                        Vec2.vec2
-                        (D.field "x" D.float)
-                        (D.field "y" D.float)
-                makeGroup =
-                    D.map3
-                        (\balls gradient origin ->
-                            { balls = balls
-                            , textures = Nothing
-                            , gradient = gradient |> Maybe.withDefault Product.emptyGradient
-                            , origin = origin |> Maybe.withDefault (Vec2.vec2 0 0)
-                            }
-                        )
-                        (D.field "balls" <| D.list makeBall)
-                        (D.field "gradient"
-                            <| D.maybe <| Product.decodeGradient (Product.getPalette product))
-                        (D.field "origin" <| D.maybe <| makeOrigin)
-                makeSize =
-                    D.map2 Tuple.pair
-                        (D.field "width" D.int)
-                        (D.field "height" D.int)
-            in
-                D.map5
-                    (\groups forSize variety orbit effects ->
-                        { groups = groups
-                        , forSize = forSize
-                        , variety = variety |> Maybe.map Gaussian.Variety |> Maybe.withDefault Fluid.defaultVariety
-                        , orbit = orbit |> Maybe.map Fluid.Orbit |> Maybe.withDefault Fluid.defaultOrbit
-                        , effects = effects |> Maybe.withDefault Fluid.defaultEffects
-                        })
-                    (D.field "groups" <| D.list makeGroup)
-                    (D.maybe <| D.field "forSize" makeSize)
-                    (D.maybe <| D.field "variety" D.float)
-                    (D.maybe <| D.field "orbit" D.float)
-                    (D.maybe <| D.field "effects"
-                        <| D.map3
-                            (\blur fat ring ->
-                                { blur = blur
-                                , fat = fat
-                                , ring = ring
-                                }
-                            )
-                            (D.field "blur" D.float)
-                            (D.field "fat" D.float)
-                            (D.field "ring" D.float))
-                    |> D.map M.FluidModel
-        M.NativeMetaballs ->
-            layerModelDecoder M.Fluid product |>
-                D.map (\layerModel ->
-                    case layerModel of
-                        M.FluidModel fluidModel -> M.NativeMetaballsModel fluidModel
-                        _ -> layerModel
-                    )
-
-        M.Background ->
-            Background.decode
-                |> D.map M.BackgroundModel
-        -- TODO: add parsing other models here
-        _ -> D.succeed <| M.initLayerModel kind -- FIXME: Fail to decode if layer is unknown, but don't fail if it just has empty model
-        -- _ -> D.fail "unknown kind"
-
-
 modelDecoder : Nav.Key -> Mode.AppMode -> M.CreateLayer -> M.CreateGui -> D.Decoder M.Model
 modelDecoder navKey currentMode createLayer createGui =
     let
@@ -676,39 +452,6 @@ decodeModel navKey currentMode createLayer createGui modelStr =
     D.decodeString (modelDecoder navKey currentMode createLayer createGui) modelStr
         |> Result.mapError D.errorToString
 
-
-encodeFss : FSS.Model -> Product -> FSS.PortModel
-encodeFss m product =
-    { amplitude = m.amplitude
-    , colorShift = m.colorShift
-    , opacity = m.opacity
-    , faces = m.faces
-    , lightSpeed = m.lightSpeed
-    , renderMode = FSS.encodeRenderMode m.renderMode
-    , clip = m.clip
-    , shareMesh = m.shareMesh
-    , vignette = m.vignette
-    , iris = m.iris
-    , mirror = m.mirror
-    --, palette = product |> getPalette
-    }
-
-
-fromFssPortModel : FSS.PortModel -> FSS.Model
-fromFssPortModel pm =
-    { amplitude = pm.amplitude
-    , colorShift = pm.colorShift
-    , opacity = pm.opacity
-    , faces = pm.faces
-    , lightSpeed = pm.lightSpeed
-    , renderMode = FSS.decodeRenderMode pm.renderMode
-    , clip = pm.clip
-    , shareMesh = pm.shareMesh
-    , vignette = pm.vignette
-    , iris = pm.iris
-    , mirror = pm.mirror
-    --, palette = product |> getPalette
-    }
 
 
 adaptModelDecodeErrors : List ModelDecodeError -> M.Errors
