@@ -51,14 +51,6 @@ type ModelDecodeError
     | ProductDecodeError String
 
 
-type LayerDecodeError
-    = KindDecodeFailed String
-    | BlendDecodeFailed String
-    | LayerCreationFailed String
-    | LayerModelDecodeFailed D.Error
-
-
-
 encodeIntPair : ( Int, Int ) -> E.Value
 encodeIntPair ( v1, v2 ) =
     E.object
@@ -192,34 +184,6 @@ decodePortModel navKey product portModel =
                 |> Product.decode
                 |> Result.mapError (List.singleton << ProductDecodeError))
 
-
-
-intPairDecoder : D.Decoder (Int, Int)
-intPairDecoder =
-    D.map2 Tuple.pair
-        (D.field "v1" D.int)
-        (D.field "v2" D.int)
-
-
-resultToDecoder : Result String a -> D.Decoder a
-resultToDecoder result =
-    case result of
-        Ok res -> D.succeed res
-        Err err -> D.fail err
-
-
-resultToDecoder_ : (x -> String) -> Result x a -> D.Decoder a
-resultToDecoder_ errToStr result =
-    case result of
-        Ok res -> D.succeed res
-        Err err -> D.fail <| errToStr err
-
-
-maybeToDecoder : String -> Maybe a -> D.Decoder a
-maybeToDecoder failureReason maybe =
-    case maybe of
-        Just v -> D.succeed v
-        Nothing -> D.fail failureReason
 
 
 modelDecoder : Nav.Key -> Mode.AppMode -> M.CreateGui -> D.Decoder M.Model

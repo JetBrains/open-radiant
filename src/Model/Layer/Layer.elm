@@ -34,7 +34,9 @@ type View
 
 
 type alias Registry =
-    Model -> Maybe (Def Model View Msg Blend)
+    { byId : String -> Maybe (Def Model View Msg Blend)
+    , byModel : Model -> Maybe (Def Model View Msg Blend)
+    }
 
 
 type Blend
@@ -52,6 +54,7 @@ type Visibility
 type Model
     = Background ()
     | Cover ()
+    | Unknown
     -- TODO: add mirrored FSS
 
 
@@ -61,12 +64,28 @@ type Msg
 
 
 registry : Registry
-registry = always Nothing
+registry =
+    { byId = always Nothing
+    , byModel = always Nothing
+    }
     -- FIXME: fill with all known types of layers
 
 
 isVisible : Layer -> Bool
 isVisible ( visibility, _, _) = visibility /= Hidden
+
+
+getId : Layer -> Maybe String
+getId ( _, _, model ) =
+    registry.byModel model |> Maybe.map .id
+
+
+isOn : Layer -> Bool
+isOn ( visibility, _, _ ) =
+    case visibility of
+        Visible -> True
+        Locked -> True
+        Hidden -> False
 
 
 adapt

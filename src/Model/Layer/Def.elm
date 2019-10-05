@@ -5,6 +5,8 @@ import Gui.Def exposing (Nest)
 import Json.Decode as D
 import Json.Encode as E
 
+import Model.Layer.Blend.WebGL as WebGL
+
 
 type Kind
     = Html
@@ -46,14 +48,14 @@ unit =
 --    ( Nothing, Nothing ) --> None
 --    ( Just WebGLBlend, Just String ) --> ¯\_(ツ)_/¯
 type alias PortBlend =
-    ( Maybe String, Maybe String )
+    ( Maybe WebGL.Blend, Maybe String )
 
 
 type alias PortDef =
-    { kind : String
+    { def : String
+    , kind : String
     , blend : PortBlend
-    , webglOrHtml : String
+    , visible : String
     , isOn : Bool
-    , name : String
     , model : String
     }
