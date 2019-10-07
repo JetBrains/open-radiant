@@ -23,6 +23,7 @@ type alias Layer = ( Visibility, Blend, Model )
 
 
 type Index = Index Int
+type alias JsIndex = Int -- index for ports
 
 
 type View
@@ -36,6 +37,7 @@ type View
 type alias Registry =
     { byId : DefId -> Maybe (Def Model View Msg Blend)
     , byModel : Model -> Maybe (Def Model View Msg Blend)
+    , byMsg : Msg -> Maybe (Def Model View Msg Blend)
     }
 
 
@@ -63,10 +65,31 @@ type Msg
     | CoverMsg ()
 
 
+type Adaptation model view msg blend =
+    Adaptation
+        { convertModel : model -> Model
+        , convertMsg : msg -> Msg
+        , convertView : Kind -> view -> View
+        , extractModel : Model -> Maybe model
+        , extractMsg : Msg -> Maybe msg
+        , extractBlend : Blend -> Maybe blend
+        }
+
+
+register
+    :  Def model view msg blend
+    -> Adaptation model view msg blend
+    -> Registry
+    -> Registry
+register def adaptation registerAt =
+    registerAt
+
+
 registry : Registry
 registry =
     { byId = always Nothing
     , byModel = always Nothing
+    , byMsg = always Nothing
     }
     -- FIXME: fill with all known types of layers
 
@@ -129,39 +152,29 @@ alterWebGlBlend changeF =
 
 
 adapt
-     : (model -> Model)
-    -> (msg -> Msg)
-    -> (Kind -> view -> View)
-    -> (Model -> Maybe model)
-    -> (Msg -> Maybe msg)
-    -> (Blend -> Maybe blend)
+     : Adaptation model view msg blend
     -> Def model view msg blend
     -> Def Model View Msg Blend
 adapt
-    convertModel
-    convertMsg
-    convertView
-    extractModel
-    extractMsg
-    convertBlend
+    (Adaptation a)
     source =
     let
         adaptUpdateTuple f =
-            f |> Tuple.mapFirst convertModel
-              |> Tuple.mapSecond (Cmd.map convertMsg)
+            f |> Tuple.mapFirst a.convertModel
+              |> Tuple.mapSecond (Cmd.map a.convertMsg)
     in
         { id = source.id
         , kind = source.kind
         , init = adaptUpdateTuple << source.init
         , encode =
             \ctx layerModel ->
-                case extractModel layerModel of
+                case a.extractModel layerModel of
                     Just m -> source.encode ctx m
                     Nothing -> E.string <| "wrong encoder for " ++ source.id
-        , decode = D.map convertModel << source.decode
+        , decode = D.map a.convertModel << source.decode
         , update =
             \ctx mainMsg layerModel ->
-                case ( extractMsg mainMsg, extractModel layerModel ) of
+                case ( a.extractMsg mainMsg, a.extractModel layerModel ) of
                     ( Just msg, Just model ) ->
                         adaptUpdateTuple <|
                             source.update ctx msg model
@@ -169,16 +182,16 @@ adapt
                         adaptUpdateTuple <| source.init ctx
         , view =
             \ctx layerModel maybeBlend ->
-                case extractModel layerModel of
+                case a.extractModel layerModel of
                     Just model ->
-                        convertView source.kind
+                        a.convertView source.kind
                             <| source.view ctx model
-                                <| convertBlend <| Maybe.withDefault NoBlend maybeBlend
+                                <| a.extractBlend <| Maybe.withDefault NoBlend maybeBlend
                     Nothing -> ToHtml <| H.div [] []
         , subscribe =
             \ctx layerModel ->
-                case extractModel layerModel of
-                    Just model -> source.subscribe ctx model |> Sub.map convertMsg
+                case a.extractModel layerModel of
+                    Just model -> source.subscribe ctx model |> Sub.map a.convertMsg
                     Nothing -> Sub.none
         , gui = Nothing -- FIXME
         }

@@ -37,7 +37,7 @@ import Model.SizeRule exposing (..)
 import Model.SizeRule as SizeRule exposing (decode, encode, toRecord)
 import Model.Error exposing (..)
 import Model.Export as IE -- IE for import/export
-import Model.Layer.Layer exposing (Layer)
+import Model.Layer.Layer exposing (Layer, Blend(..))
 import Model.Layer.Layer as Layer
 import Model.Layer.Layers as Layers
 import Model.Layer.Blend.Html as HtmlBlend
@@ -99,14 +99,24 @@ init flags url navKey =
                 |> Maybe.withDefault initialMode
         initialModel =
             Model.init
-                    navKey
-                    mode
-                    (initialLayers mode)
-                    createLayer
-                    Gui.gui
+                navKey
+                mode
+        ( layers, commands ) =
+            initialLayers initialModel.mode
+                |> Layers.init (getContext initialModel)
+        initialModelWithLayers =
+            { initialModel
+            | layers = layers
+            }
+        initialModelWithLayersAndGui =
+            initialModelWithLayers
+            -- , gui = case model.mode of
+            --     TronUi innerAppMode ->
+            --         Just <| createGui { modelWithLayers | mode = innerAppMode }
+            --     _ -> Nothing
         ( model, command ) =
-            Nav.applyUrl url initialModel
-                |> batchUpdate initialModel
+            Nav.applyUrl url initialModelWithLayersAndGui
+                |> batchUpdate initialModelWithLayersAndGui
     in
         ( model
         , Cmd.batch
@@ -114,10 +124,11 @@ init flags url navKey =
             , case model.size of
                 Dimensionless ->
                     resizeToViewport
-                _ ->
-                    if hasFssLayers model
-                        then rebuildAllFssLayersWith model
-                        else Cmd.none
+                _ -> Cmd.none
+                -- _ ->
+                --     if hasFssLayers model
+                --         then rebuildAllFssLayersWith model
+                --         else Cmd.none
             ]
         )
 
@@ -268,7 +279,7 @@ update msg model =
 
         Import encodedModel ->
             case (encodedModel
-                    |> IE.decode model.navKey model.mode Gui.gui) of
+                    |> IE.decode model.navKey (getContext model) Gui.gui) of
                 Ok decodedModel ->
                     ( decodedModel
                     , Cmd.batch
@@ -536,7 +547,9 @@ update msg model =
                     { model
                     | layers =
                         model.layers
-                            |> Layers.update (Layer.changeBlend newBlend) index
+                            |> Layers.update
+                                    (Layer.changeBlend <| Layer.ForWebGL newBlend)
+                                    index
                     }
             in
                 ( newModel
@@ -562,28 +575,30 @@ update msg model =
                     { model
                     | layers =
                         model.layers
-                            |> Layers.update (Layer.changeBlend newBlend) index
+                            |> Layers.update
+                                (Layer.changeBlend <| ForHtml newBlend)
+                                index
                     }
             in
                 ( newModel
                 , Cmd.none
                 )
 
+        {-
         ChangeFssRenderMode index renderMode ->
-            -- ( model
-            --     |> updateFss index
-            --         (\fssModel -> { fssModel | renderMode = renderMode })
-            -- , Cmd.none
-            -- )
             model
                 |> updateAndRebuildFssWith index
                     (\fssModel -> { fssModel | renderMode = renderMode })
+        -}
 
+        {-
         ChangeFaces index faces ->
             model
                 |> updateAndRebuildFssWith index
                     (\fssModel -> { fssModel | faces = faces })
+        -}
 
+        {-
         AlterFaces index change ->
             model
                 |> updateAndRebuildFssWith index
@@ -597,12 +612,16 @@ update msg model =
                                     ( change.yChange |> Maybe.withDefault current.y )
                             }
                     )
+        -}
 
+        {-
         ChangeLightSpeed index lightSpeed ->
             model
                 |> updateAndRebuildFssWith index
                     (\fssModel -> { fssModel | lightSpeed = lightSpeed })
+        -}
 
+        {-
         RebuildFss index serializedScene ->
             ( model |> updateLayer index
                 (\layer layerModel ->
@@ -630,12 +649,16 @@ update msg model =
                 )
             , Cmd.none
             )
+        -}
 
+        {-
         RebuildMetaballs index metaballsModel ->
             ( model |> updateMetaballsModel index metaballsModel
             , Cmd.none
             )
+        -}
 
+        {-
         UpdateNativeMetaballs index nativeMetaballsModel ->
             ( model |> updateNativeMetaballsModel index nativeMetaballsModel
             , updateNativeMetaballs
@@ -646,7 +669,9 @@ update msg model =
                         |> IE.encodeLayerModel model.product
                 }
             )
+        -}
 
+        {-
         RebuildFluid index fluidModel ->
             ( model |> updateFluidModel index fluidModel.groups
             , buildFluidGradientTextures
@@ -654,14 +679,18 @@ update msg model =
                 , IE.encodeLayerModel model.product <| FluidModel fluidModel
                 )
             )
+        -}
 
+        {-
         RequestNewFluid index ->
             ( model
             , if hasFluidLayers model
                 then generateAllFluid model -- FIXME: use actual index
                 else Cmd.none
             )
+        -}
 
+        {-
         ChangeFluidVariety index value ->
             if hasFluidLayers model then
                 let
@@ -681,7 +710,9 @@ update msg model =
                     , generateAllFluid newModel -- FIXME: use actual index
                     )
             else ( model, Cmd.none )
+        -}
 
+        {-
         ChangeFluidOrbit index value ->
             if hasFluidLayers model then
                 let
@@ -701,26 +732,34 @@ update msg model =
                     , generateAllFluid newModel -- FIXME: use actual index
                     )
             else ( model, Cmd.none )
+        -}
 
+        {-
         RequestNewFluidGrid index ->
             ( model
             , if hasFluidGridLayers model
                 then generateAllFluidGrids model -- FIXME: use actual index
                 else Cmd.none
             )
+        -}
 
+        {-
         RebuildFluidGrid index fluidGridModel ->
             ( model |> rebuildFluidGrid index fluidGridModel
             , Cmd.none
             )
+        -}
 
+        {-
         ChangeVignette index opacity ->
             ( model
                 |> updateFss index
                     (\fssModel -> { fssModel | vignette = opacity })
             , Cmd.none
             )
+        -}
 
+        {-
         ChangeIris index iris ->
             ( model |> updateFss index
                 (\fssModel -> { fssModel | iris = iris })
@@ -741,7 +780,9 @@ update msg model =
             --                 _ -> (layer, model)
             --         )
             -- , Cmd.none
+        -}
 
+        {-
         AlterAmplitude index change ->
             model
                 |> updateAndRebuildFssWith index
@@ -756,8 +797,9 @@ update msg model =
                                     ( change.zChange |> Maybe.withDefault current.amplitudeZ )
                             }
                     )
+        -}
 
-
+        {-
         ShiftColor index shift ->
             ( model |> updateFss index
                 (\fss ->
@@ -773,12 +815,15 @@ update msg model =
                 )
             , Cmd.none
             )
+        -}
 
+        {-
         ChangeOpacity index newOpacity ->
             ( model |> updateFss index
                 (\fssModel -> { fssModel | opacity = newOpacity })
             , Cmd.none
             )
+        -}
 
         SavePng ->
             ( model
@@ -787,17 +832,20 @@ update msg model =
 
         Randomize ->
             ( model
-            , model |> IE.encodePortModel |> requestRandomize
+            , model |> IE.encodeForPort |> requestRandomize
             -- TODO: updateUrl newModel?
             )
 
         ApplyRandomizer portModel ->
-            case IE.decodePortModel model.navKey createLayer model.product portModel of
+            case IE.decodeFromPort model.navKey (getContext model) portModel of
                 Ok decodedPortModel ->
                     ( decodedPortModel
+                    , Cmd.none
+                    {-
                     , if hasFssLayers decodedPortModel
                         then rebuildAllFssLayersWith decodedPortModel
                         else Cmd.none
+                    -}
                     )
                 Err decodingErrors ->
                     ( model |> addErrors (IE.adaptModelDecodeErrors decodingErrors)
@@ -814,6 +862,7 @@ update msg model =
             , Cmd.none
             )
 
+        {-
         LoadFluidGradientTextures layerIndex gradientUrls ->
             ( model
             , model
@@ -832,12 +881,16 @@ update msg model =
                    )
                 |> Cmd.batch
             )
+        -}
 
+        {-
         RegenerateFluidGradients layerIndex ->
             ( model
             , regenerateFluidGradients model
             )
+        -}
 
+        {-
         ApplyFluidTextures layerIndex textures ->
             ( model |> updateLayerWithItsModel
                 0 -- FIXME: update to layerIndex when we will use it
@@ -853,7 +906,9 @@ update msg model =
                 )
             , Cmd.none
             )
+        -}
 
+        {-
         ChangeNativeMetaballsVariety index value ->
             if hasNativeMetaballsLayers model then
                 let
@@ -873,7 +928,9 @@ update msg model =
                     , updateAllNativeMetaballsWith newModel-- FIXME: use actual index
                     )
             else ( model, Cmd.none )
+        -}
 
+        {-
         ChangeNativeMetaballsOrbit index value ->
             if hasNativeMetaballsLayers model then
                 let
@@ -893,7 +950,9 @@ update msg model =
                     , updateAllNativeMetaballsWith newModel -- FIXME: use actual index
                     )
             else ( model, Cmd.none )
+        -}
 
+        {-
         ChangeNativeMetaballsEffects index change ->
             if hasNativeMetaballsLayers model then
                 let
@@ -918,7 +977,9 @@ update msg model =
                         }
                     )
             else ( model, Cmd.none )
+        -}
 
+        {-
         SwitchBackgroundStop layerIndex stopIndex value ->
             if hasBackgroundLayers model then
                 let
@@ -944,7 +1005,9 @@ update msg model =
                     , Cmd.none
                     )
             else ( model, Cmd.none )
+        -}
 
+        {-
         SwitchGradientOrientation layerIndex orientation ->
             if hasBackgroundLayers model then
                 let
@@ -967,6 +1030,7 @@ update msg model =
                     , Cmd.none
                     )
             else ( model, Cmd.none )
+        -}
 
         -- UpdateNativeMetaballs layerIndex ->
         --     ( model
@@ -1023,6 +1087,7 @@ subscriptions model =
                 case Product.decode productStr of
                     Ok product -> ChangeProduct product
                     Err error -> AddError <| "Failed to decode product: " ++ error)
+        {-
         , changeFssRenderMode (\{value, layer} ->
             FSS.decodeRenderMode value |> ChangeFssRenderMode layer)
         , changeFacesX (\{value, layer} ->
@@ -1114,6 +1179,7 @@ subscriptions model =
                 SwitchGradientOrientation layer
                     <| Gradient.decodeOrientation orientation
             )
+        -}
         , applyRandomizer ApplyRandomizer
         , import_ Import
         , pause (\_ -> Pause)
@@ -1122,8 +1188,8 @@ subscriptions model =
         , hideControls (\_ -> HideControls)
         , turnOn TurnOn
         , turnOff TurnOff
-        , mirrorOn MirrorOn
-        , mirrorOff MirrorOff
+        -- , mirrorOn MirrorOn
+        -- , mirrorOff MirrorOff
         , savePng (\_ -> SavePng)
         ]
 
@@ -1152,7 +1218,11 @@ view model =
                 , style "display" (if visible then "block" else "none")
                 , Events.onClick TriggerPause
                 ]
-        renderQueue = model |> RQ.groupLayers layerToEntities layerToHtml
+        renderQueue =
+            model |>
+                RQ.apply
+                    (always <| div [] []) -- FiXME
+                    (always <| div [] []) -- FiXME
         isInPlayerMode =
             case model.mode of
                 Player -> True
@@ -1269,6 +1339,7 @@ ensurePositive (x, y) =
 --         Controls.Rotate th -> Rotate th
 
 
+{-
 layerToHtml : Model -> Viewport {} -> Int -> LayerDef -> Html Msg
 layerToHtml model viewport index layerDef =
     case layerDef.layer of
@@ -1293,8 +1364,10 @@ layerToHtml model viewport index layerDef =
                     Canvas.view
                 _ -> div [] []
         _ -> div [] []
+-}
 
 
+{-
 layerToEntities : Model -> Viewport {} -> Int -> LayerDef -> List WebGL.Entity
 layerToEntities model viewport index layerDef =
     case layerDef.layer of
@@ -1394,6 +1467,7 @@ layerToEntities model viewport index layerDef =
                     ]
                 _ -> []
         _ -> []
+-}
 
 
 resizeToViewport =
@@ -1836,51 +1910,57 @@ port rotate : (Float -> msg) -> Sub msg
 
 port initLayers : (Array String -> msg) -> Sub msg
 
-port configureLorenz : ({ value: Lorenz.Model, layer: LayerIndex } -> msg) -> Sub msg
+{-
+port configureLorenz : ({ value: Lorenz.Model, layer: Layer.Index } -> msg) -> Sub msg
 
-port configureFss : ({ value: FSS.PortModel, layer: LayerIndex } -> msg) -> Sub msg
+port configureFss : ({ value: FSS.PortModel, layer: Layer.Index } -> msg) -> Sub msg
 
-port configureMirroredFss : ({ value: FSS.PortModel, layer: LayerIndex } -> msg) -> Sub msg
+port configureMirroredFss : ({ value: FSS.PortModel, layer: Layer.Index } -> msg) -> Sub msg
+-}
 
 port changeProduct : (String -> msg) -> Sub msg
 
-port rebuildFss : ({ value: FSS.SerializedScene, layer: LayerIndex } -> msg) -> Sub msg
+{-
+port rebuildFss : ({ value: FSS.SerializedScene, layer: Layer.Index } -> msg) -> Sub msg
 
 port loadFluidGradientTextures : ({ value: List String, layer: LayerIndex } -> msg) -> Sub msg
 
 port requestRegenerateFluidGradients : ({ layer: LayerIndex } -> msg) -> Sub msg
+-}
 
 -- port requestUpdateNativeMetaballs : ({ layer: LayerIndex } -> msg) -> Sub msg
 
-port turnOn : (LayerIndex -> msg) -> Sub msg
+port turnOn : (Layer.JsIndex -> msg) -> Sub msg
 
-port turnOff : (LayerIndex -> msg) -> Sub msg
+port turnOff : (Layer.JsIndex -> msg) -> Sub msg
 
-port mirrorOn : (LayerIndex -> msg) -> Sub msg
+port mirrorOn : (Layer.JsIndex -> msg) -> Sub msg
 
-port mirrorOff : (LayerIndex -> msg) -> Sub msg
+port mirrorOff : (Layer.JsIndex -> msg) -> Sub msg
 
 port import_ : (String -> msg) -> Sub msg
 
-port changeFssRenderMode : ({ value: String, layer: LayerIndex } -> msg) -> Sub msg
+{-
+port changeFssRenderMode : ({ value: String, layer: Layer.IndexP } -> msg) -> Sub msg
 
-port changeFacesX : ({ value: Int, layer: LayerIndex } -> msg) -> Sub msg
+port changeFacesX : ({ value: Int, layer: Layer.IndexP } -> msg) -> Sub msg
 
-port changeFacesY : ({ value: Int, layer: LayerIndex } -> msg) -> Sub msg
+port changeFacesY : ({ value: Int, layer: Layer.IndexP } -> msg) -> Sub msg
 
-port changeLightSpeed : ({ value: Int, layer: LayerIndex } -> msg) -> Sub msg
+port changeLightSpeed : ({ value: Int, layer: Layer.IndexP } -> msg) -> Sub msg
 
-port changeVignette : ({ value: FSS.Vignette, layer: LayerIndex } -> msg) -> Sub msg
+port changeVignette : ({ value: FSS.Vignette, layer: Layer.IndexP } -> msg) -> Sub msg
 
-port changeIris : ({ value: FSS.Iris, layer: LayerIndex } -> msg) -> Sub msg
+port changeIris : ({ value: FSS.Iris, layer: Layer.IndexP } -> msg) -> Sub msg
 
-port changeAmplitude : ({ value: FSS.AmplitudeChange, layer: LayerIndex } -> msg) -> Sub msg
+port changeAmplitude : ({ value: FSS.AmplitudeChange, layer: Layer.IndexP } -> msg) -> Sub msg
 
-port shiftColor : ({ value: FSS.ColorShiftPatch, layer: LayerIndex } -> msg) -> Sub msg
+port shiftColor : ({ value: FSS.ColorShiftPatch, layer: Layer.IndexP } -> msg) -> Sub msg
 
-port changeOpacity : ({ value: FSS.Opacity, layer: LayerIndex } -> msg) -> Sub msg
+port changeOpacity : ({ value: FSS.Opacity, layer: Layer.IndexP } -> msg) -> Sub msg
 
-port changeNativeMetaballsEffects : ({ subject: String, value: Float, layer: LayerIndex } -> msg) -> Sub msg
+port changeNativeMetaballsEffects : ({ subject: String, value: Float, layer: Layer.IndexP } -> msg) -> Sub msg
+-}
 
 port iFeelLucky : (() -> msg) -> Sub msg
 
@@ -1895,47 +1975,48 @@ port applyRandomizer : (PortModel -> msg) -> Sub msg
 port savePng : (() -> msg) -> Sub msg
 
 port changeWGLBlend :
-    ( { layer : LayerIndex
+    ( { layer : Layer.JsIndex
       , value : WGLBlend.Blend
       }
     -> msg) -> Sub msg
 
 port changeHtmlBlend :
-    ( { layer : LayerIndex
+    ( { layer : Layer.JsIndex
       , value : String
       }
     -> msg) -> Sub msg
 
+{-
 port refreshFluid :
-    ( { layer : LayerIndex }
+    ( { layer : Layer.IndexP }
     -> msg) -> Sub msg
 
 port changeFluidVariety :
-    ( { layer : LayerIndex
+    ( { layer : Layer.IndexP
       , value : Float
       }
     -> msg) -> Sub msg
 
 port changeFluidOrbit :
-    ( { layer : LayerIndex
+    ( { layer : Layer.IndexP
       , value : Float
       }
     -> msg) -> Sub msg
 
 port changeNativeMetaballsVariety :
-    ( { layer : LayerIndex
+    ( { layer : Layer.IndexP
       , value : Float
       }
     -> msg) -> Sub msg
 
 port changeNativeMetaballsOrbit :
-    ( { layer : LayerIndex
+    ( { layer : Layer.IndexP
       , value : Float
       }
     -> msg) -> Sub msg
 
 port switchBackgroundStop :
-    ( { layer : LayerIndex
+    ( { layer : Layer.IndexP
       , stopIndex : Int
       , value : Bool
       }
@@ -1943,10 +2024,11 @@ port switchBackgroundStop :
 
 port switchGradientOrientation :
     (
-        { layer: LayerIndex
+        { layer: Layer.IndexP
         , orientation : String
         }
     -> msg) -> Sub msg
+-}
 
 -- OUTGOING PORTS
 
@@ -1962,13 +2044,15 @@ type alias SizeUpdate =
 
 port startGui : ( PortModel, Constants ) -> Cmd msg
 
+{-
 port requestFssRebuild :
-    { layer: LayerIndex
+    { layer: Layer.IndexP
     , model: PortModel
     , value: FSS.PortModel
     } -> Cmd msg
 
 port buildFluidGradientTextures : ( Int, E.Value ) -> Cmd msg
+-}
 
 port sizeChanged : SizeUpdate -> Cmd msg
 
@@ -1990,6 +2074,7 @@ port requestWindowResize : ( Int, Int ) -> Cmd msg
 
 -- port rebuildOnClient : (FSS.SerializedScene, Int) -> Cmd msg
 
+{-
 port updateNativeMetaballs :
     { index: LayerIndex
     , size: (Int, Int)
@@ -2003,3 +2088,4 @@ port sendNativeMetaballsEffects :
     , subject: String
     , value: Float
     } -> Cmd msg
+-}
