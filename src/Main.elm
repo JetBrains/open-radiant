@@ -103,7 +103,7 @@ init flags url navKey =
                 mode
         ( layers, commands ) =
             initialLayers initialModel.mode
-                |> Layers.init (getContext initialModel)
+                        |> Layers.init ToLayer (getContext initialModel)
         initialModelWithLayers =
             { initialModel
             | layers = layers
@@ -138,11 +138,11 @@ initialLayers mode =
     let
         layers =
             [ ( if mode == Ads then Layer.Hidden else Layer.Visible
-              , HtmlBlend.default
+              , Layer.ForHtml HtmlBlend.default
               , "cover" ) -- TODO: `Cover.id` & s.o.
-            , ( Layer.Hidden, WGLBlend.default, "metaballs" )
-            , ( Layer.Visible, WGLBlend.default, "metaballs" )
-            , ( Layer.Locked, WGLBlend.default, "background" )
+            , ( Layer.Hidden, Layer.ForWebGL WGLBlend.default, "metaballs" )
+            , ( Layer.Visible, Layer.ForWebGL WGLBlend.default, "metaballs" )
+            , ( Layer.Locked, Layer.ForHtml HtmlBlend.default, "background" )
             ]
     in
         layers
@@ -160,7 +160,8 @@ update msg model =
         Bang ->
             let
                 ( layers, commands ) =
-                    Layers.init (getContext model) <| initialLayers model.mode
+                    initialLayers model.mode
+                        |> Layers.init ToLayer (getContext model)
             in
                 ( { model
                   | layers = layers
@@ -219,6 +220,7 @@ update msg model =
                     , case model.size of
                         Dimensionless ->
                             resizeToViewport
+                        _ -> Cmd.none
                         {-
                         _ ->
                             if hasFssLayers model
@@ -279,7 +281,7 @@ update msg model =
 
         Import encodedModel ->
             case (encodedModel
-                    |> IE.decode model.navKey (getContext model) Gui.gui) of
+                    |> IE.decodeFromString model.navKey (getContext model) Gui.gui) of
                 Ok decodedModel ->
                     ( decodedModel
                     , Cmd.batch
@@ -311,12 +313,12 @@ update msg model =
 
         Export ->
             ( model
-            , model |> IE.encode |> export_
+            , model |> IE.encodeToString |> export_
             )
 
         ExportZip ->
             ( model
-            , model |> IE.encode |> exportZip_
+            , model |> IE.encodeToString |> exportZip_
             )
 
         TimeTravel timeShift ->
@@ -390,7 +392,7 @@ update msg model =
                     { model
                     | layers =
                         model.layers
-                            |> Layers.update Layer.show index
+                            |> Layers.modify Layer.show index
                     }
             in
                 ( newModel
@@ -408,7 +410,7 @@ update msg model =
                     { model
                     | layers =
                         model.layers
-                            |> Layers.update Layer.hide index
+                            |> Layers.modify Layer.hide index
                     }
             in
                 ( newModel
@@ -547,7 +549,7 @@ update msg model =
                     { model
                     | layers =
                         model.layers
-                            |> Layers.update
+                            |> Layers.modify
                                     (Layer.changeBlend <| Layer.ForWebGL newBlend)
                                     index
                     }
@@ -562,7 +564,7 @@ update msg model =
                     { model
                     | layers =
                         model.layers
-                            |> Layers.update (Layer.alterWebGlBlend changeF) index
+                            |> Layers.modify (Layer.alterWebGlBlend changeF) index
                     }
             in
                 ( newModel
@@ -575,7 +577,7 @@ update msg model =
                     { model
                     | layers =
                         model.layers
-                            |> Layers.update
+                            |> Layers.modify
                                 (Layer.changeBlend <| ForHtml newBlend)
                                 index
                     }
@@ -824,6 +826,16 @@ update msg model =
             , Cmd.none
             )
         -}
+
+        ToLayer index layerMsg ->
+            case model.layers
+                |> Layers.update ToLayer (getContext model) index layerMsg of
+                ( newLayers, cmds ) ->
+                    ( { model
+                      | layers = newLayers
+                      }
+                    , Cmd.none
+                    )
 
         SavePng ->
             ( model
@@ -1186,8 +1198,8 @@ subscriptions model =
         , continue (\_ -> Continue)
         , triggerPause (\_ -> TriggerPause)
         , hideControls (\_ -> HideControls)
-        , turnOn TurnOn
-        , turnOff TurnOff
+        , turnOn (Layer.Index >> TurnOn)
+        , turnOff (Layer.Index >> TurnOff)
         -- , mirrorOn MirrorOn
         -- , mirrorOff MirrorOff
         , savePng (\_ -> SavePng)
@@ -1218,11 +1230,13 @@ view model =
                 , style "display" (if visible then "block" else "none")
                 , Events.onClick TriggerPause
                 ]
-        renderQueue =
-            model |>
-                RQ.apply
-                    (always <| div [] []) -- FiXME
-                    (always <| div [] []) -- FiXME
+        renderedLayers =
+            model.layers
+                |> Layers.render
+                |> RQ.make
+                |> RQ.apply
+                        (always <| div [] []) -- FiXME
+                        (always <| div [] []) -- FiXME
         isInPlayerMode =
             case model.mode of
                 Player -> True
@@ -1238,7 +1252,7 @@ view model =
                             errorsList |> List.map (\err -> span [] [ text err ])
                     )
             else div [ H.id "error-pane" ] []
-        , renderQueue |> RQ.apply wrapHtml wrapEntities
+        , renderedLayers --|> RQ.apply wrapHtml wrapEntities
         , if model.controlsVisible && not isInPlayerMode
             then ( div
                 ([ "overlay-panel", "import-export-panel", "hide-on-space" ] |> List.map H.class)

@@ -3,8 +3,9 @@ module RenderQueue exposing
     , apply
     )
 
-import Model.Core exposing (Model)
+import Model.Core exposing (Model, Msg(..))
 import Model.Layer.Layer as Layer
+import Model.Layer.Layers exposing (Layers)
 import Model.SizeRule exposing (..)
 
 import Viewport exposing (Viewport)
@@ -26,10 +27,10 @@ type QueueItem
 type alias RenderQueue = Array QueueItem
 
 
-make : List Layer.View -> RenderQueue
+make : List ( Layer.Index, Layer.View ) -> RenderQueue
 make renderedLayers =
     let
-        addToQueue (index, layerView) renderQueue =
+        addToQueue ( index, layerView ) renderQueue =
             let
                 indexOfThelastInQueue = Array.length renderQueue - 1
                 lastInQueue = renderQueue |> Array.get indexOfThelastInQueue
@@ -64,16 +65,14 @@ make renderedLayers =
                                         |> HtmlGroup)
     in
         renderedLayers
-            |> List.indexedMap Tuple.pair
-            |> List.map (Tuple.mapFirst Layer.Index)
             |> List.foldl addToQueue Array.empty
 
 
 apply
-    : (List (Layer.Index, Html Layer.Msg) -> Html Layer.Msg)
-    -> (List (Layer.Index, WebGL.Entity) -> Html Layer.Msg)
+    :  (List (Layer.Index, Html Layer.Msg) -> Html Msg)
+    -> (List (Layer.Index, WebGL.Entity) -> Html Msg)
     -> RenderQueue
-    -> Html Layer.Msg
+    -> Html Msg
 apply wrapHtml wrapEntities queue =
     Array.toList queue
         |> List.map

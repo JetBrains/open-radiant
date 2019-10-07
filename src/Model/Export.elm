@@ -2,6 +2,7 @@ module Model.Export exposing
     ( encode
     , decode
     , encodeToString
+    , decodeFromString
     , encodeForPort
     , decodeFromPort
     , adaptModelDecodeErrors
@@ -263,13 +264,13 @@ decode navKey ctx createGui =
             )
 
 
-decodeToResult
+decodeFromString
      : Nav.Key
     -> Context
     -> M.CreateGui
     -> String
     -> Result String M.Model
-decodeToResult navKey ctx createGui modelStr =
+decodeFromString navKey ctx createGui modelStr =
     D.decodeString (decode navKey ctx createGui) modelStr
         |> Result.mapError D.errorToString
 
