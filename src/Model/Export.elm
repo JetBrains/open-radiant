@@ -33,6 +33,7 @@ import Gradient
 import Model.Core as M
 import Model.AppMode as Mode
 import Model.Layer.Layer as Layer
+import Model.Layer.Export as Layer
 import Model.SizeRule as SizeRule
 import Model.Error as M
 import Model.Product as Product exposing (Product, encode, decode, encodeGradient, decodeGradient)
@@ -45,7 +46,7 @@ import TronGui as GUI
 
 
 type ModelDecodeError
-    = LayerDecodeErrors (List LayerDecodeError)
+    = LayerDecodeErrors (List Layer.DecodeError)
     | SizeRuleDecodeError String
     -- | ModeDecodeError String
     | ProductDecodeError String
@@ -82,7 +83,7 @@ encodeModel_ model =
         , ( "mode", E.string <| Mode.encode model.mode )
         , ( "theta", E.float model.theta )
         , ( "omega", E.float model.omega )
-        , ( "layers", E.list (encodeLayerDef model.product) model.layers )
+        , ( "layers", E.list (Layer.encodeModel model.product) model.layers )
         -- , ( "layers", E.list (List.filterMap
         --         (\layer -> Maybe.map encodeLayer layer) model.layers) )
         -- for b/w compatibility, we also encode size as numbers, but sizeRule is what should matter
@@ -112,7 +113,7 @@ encodePortModel model =
     , now = model.now
     , theta = model.theta
     , omega = model.omega
-    , layers = List.map (encodePortLayer model.product) model.layers
+    , layers = List.map (Layer.encodeForPort model.product) model.layers
     , size = SizeRule.getRuleSize model.size |> Maybe.withDefault ( -1, -1 )
     , sizeRule = SizeRule.encode model.size |> Just
     , origin = model.origin
@@ -130,7 +131,7 @@ decodePortModel
 decodePortModel navKey product portModel =
     let
         couldBeDecodedLayers =
-            List.map (decodePortLayer product) portModel.layers
+            List.map (Layer.decodeFromPort product) portModel.layers
         extractLayerDecodeErrors res =
             case res of
                 Ok layer -> Nothing

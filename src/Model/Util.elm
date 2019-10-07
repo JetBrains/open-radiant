@@ -2,6 +2,7 @@ module Model.Util exposing (..)
 
 import Json.Decode as D
 
+
 intPairDecoder : D.Decoder (Int, Int)
 intPairDecoder =
     D.map2 Tuple.pair
@@ -10,10 +11,8 @@ intPairDecoder =
 
 
 resultToDecoder : Result String a -> D.Decoder a
-resultToDecoder result =
-    case result of
-        Ok res -> D.succeed res
-        Err err -> D.fail err
+resultToDecoder =
+    resultToDecoder_ identity
 
 
 resultToDecoder_ : (x -> String) -> Result x a -> D.Decoder a

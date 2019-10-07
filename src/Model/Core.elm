@@ -27,6 +27,7 @@ import Algorithm.Gaussian as Gaussian exposing (Variety)
 
 import Model.Layer.Layer exposing (..)
 import Model.Layer.Layer as Layer exposing (Index)
+import Model.Layer.Def as Layer exposing (PortDef)
 import Model.Layer.Layers exposing (Layers)
 import Model.AppMode exposing (..)
 import Model.Error exposing (..)
@@ -89,7 +90,6 @@ type Msg
     | AlterWGLBlend Layer.Index WGLBlend.BlendChange
     | ChangeHtmlBlend Layer.Index HtmlBlend.Blend
     --| ToFss Layer.Index FSS.Msg
-
     | Randomize
     | ApplyRandomizer PortModel
     | SavePng
@@ -128,7 +128,7 @@ type alias Model = -- TODO: Result Error { ... }
 
 type alias PortModel =
     { background : String
-    , layers : List PortLayerDef
+    , layers : List Layer.PortDef
     , mode : String
     , mouse : ( Int, Int )
     , now : Float
