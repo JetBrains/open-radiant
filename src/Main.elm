@@ -33,11 +33,13 @@ import Model.AppMode as Mode exposing (decode, encode)
 import Model.Product exposing (Product)
 import Model.Product as Product
 import Model.Constants exposing (..)
-import Model.Layer.Layer exposing (..)
 import Model.SizeRule exposing (..)
 import Model.SizeRule as SizeRule exposing (decode, encode, toRecord)
 import Model.Error exposing (..)
 import Model.Export as IE -- IE for import/export
+import Model.Layer.Layer exposing (Layer)
+import Model.Layer.Layer as Layer
+import Model.Layer.Layers as Layers
 import Model.Layer.Blend.Html as HtmlBlend
 import Model.Layer.Blend.WebGL as WGLBlend
 
@@ -123,7 +125,7 @@ init flags url navKey =
         )
 
 
-initialLayers : AppMode -> List ( LayerKind, String, LayerModel )
+initialLayers : AppMode -> List Layer
 initialLayers mode =
     let
         layers =
@@ -161,26 +163,34 @@ update msg model =
     case msg of
 
         Bang ->
-            ( model
-            , Cmd.batch
-                [ startGui
-                    ( model |> IE.encodePortModel
-                    , makeConstants
-                    )
-                , if hasMetaballLayers model
-                    then generateAllMetaballs model
-                    else Cmd.none
-                , if hasFluidLayers model
-                    then generateAllFluid model
-                    else Cmd.none
-                , if hasFluidGridLayers model
-                    then generateAllFluidGrids model
-                    else Cmd.none
-                , if hasNativeMetaballsLayers model
-                    then generateAllInitialNativeMetaballs model
-                    else Cmd.none
-                ]
-            )
+            let
+                ( layers, commands ) = Layers.init (getContext model) initialLayers
+            in
+                ( { model
+                  | layers = layers
+                  }
+                , Cmd.batch
+                    [ startGui
+                        ( model |> IE.encodeForPort
+                        , makeConstants
+                        )
+                    , commands
+                    ]
+                    {- FIXME: in the corresponding layers
+                    , if hasMetaballLayers model
+                        then generateAllMetaballs model
+                        else Cmd.none
+                    , if hasFluidLayers model
+                        then generateAllFluid model
+                        else Cmd.none
+                    , if hasFluidGridLayers model
+                        then generateAllFluidGrids model
+                        else Cmd.none
+                    , if hasNativeMetaballsLayers model
+                        then generateAllInitialNativeMetaballs model
+                        else Cmd.none
+                    -}
+                )
 
         ChangeMode mode ->
             let

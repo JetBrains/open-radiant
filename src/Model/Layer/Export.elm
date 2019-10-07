@@ -92,7 +92,7 @@ encodeBlendDesc blend =
 encodeModel : Context -> Model -> Maybe E.Value
 encodeModel ctx model =
     registry.byModel model
-        |> Maybe.map (\def -> def.encode model)
+        |> Maybe.map (\def -> def.encode ctx model)
 
 
 unknown = "<unknown>"
@@ -133,7 +133,7 @@ decodeFromPort ctx portDef  =
     case registry.byId portDef.def of
         Just def ->
             portDef.model
-                |> D.decodeString def.decode
+                |> D.decodeString (def.decode ctx)
                 |> Result.mapError LayerModelDecodeFailed
                 |> Result.map
                     (\model ->
@@ -199,7 +199,7 @@ decode ctx =
             case registry.byId defId of
                 Just def ->
                     layerModelStr
-                        |> D.decodeString def.decode
+                        |> D.decodeString (def.decode ctx)
                         |> resultToDecoder_ D.errorToString
                         |> D.map
                             (\model ->

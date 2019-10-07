@@ -34,7 +34,7 @@ type View
 
 
 type alias Registry =
-    { byId : String -> Maybe (Def Model View Msg Blend)
+    { byId : DefId -> Maybe (Def Model View Msg Blend)
     , byModel : Model -> Maybe (Def Model View Msg Blend)
     }
 
@@ -75,7 +75,7 @@ isVisible : Layer -> Bool
 isVisible ( visibility, _, _) = visibility /= Hidden
 
 
-getId : Layer -> Maybe String
+getId : Layer -> Maybe DefId
 getId ( _, _, model ) =
     registry.byModel model |> Maybe.map .id
 
@@ -105,38 +105,40 @@ adapt
     extractMsg
     convertBlend
     source =
-    { id = source.id
-    , kind = source.kind
-    , init = convertModel source.init
-    , encode =
-        \layerModel ->
-            case extractModel layerModel of
-                Just m -> source.encode m
-                Nothing -> E.string <| "wrong encoder for " ++ source.id
-    , decode = source.decode |> D.map convertModel
-    , update =
-        \mainMsg layerModel ->
-            case ( extractMsg mainMsg, extractModel layerModel ) of
-                ( Just msg, Just model ) ->
-                    source.update msg model
-                        |> Tuple.mapFirst convertModel
-                        |> Tuple.mapSecond (Cmd.map convertMsg)
-                _ -> -- FIXME: return Maybe/Result for the case when message / model doesn't match
-                    ( convertModel source.init
-                    , Cmd.none
-                    )
-    , view =
-        \layerModel maybeBlend ->
-            case extractModel layerModel of
-                Just model ->
-                    convertView source.kind
-                        <| source.view model
-                            <| convertBlend <| Maybe.withDefault NoBlend maybeBlend
-                Nothing -> ToHtml <| H.div [] []
-    , subscribe =
-        \layerModel ->
-            case extractModel layerModel of
-                Just model -> source.subscribe model |> Sub.map convertMsg
-                Nothing -> Sub.none
-    , gui = Nothing -- FIXME
-    }
+    let
+        adaptUpdateTuple f =
+            f |> Tuple.mapFirst convertModel
+              |> Tuple.mapSecond (Cmd.map convertMsg)
+    in
+        { id = source.id
+        , kind = source.kind
+        , init = adaptUpdateTuple << source.init
+        , encode =
+            \ctx layerModel ->
+                case extractModel layerModel of
+                    Just m -> source.encode ctx m
+                    Nothing -> E.string <| "wrong encoder for " ++ source.id
+        , decode = D.map convertModel << source.decode
+        , update =
+            \ctx mainMsg layerModel ->
+                case ( extractMsg mainMsg, extractModel layerModel ) of
+                    ( Just msg, Just model ) ->
+                        adaptUpdateTuple <|
+                            source.update ctx msg model
+                    _ -> -- FIXME: return Maybe/Result for the case when message / model doesn't match
+                        adaptUpdateTuple <| source.init ctx
+        , view =
+            \ctx layerModel maybeBlend ->
+                case extractModel layerModel of
+                    Just model ->
+                        convertView source.kind
+                            <| source.view ctx model
+                                <| convertBlend <| Maybe.withDefault NoBlend maybeBlend
+                    Nothing -> ToHtml <| H.div [] []
+        , subscribe =
+            \ctx layerModel ->
+                case extractModel layerModel of
+                    Just model -> source.subscribe ctx model |> Sub.map convertMsg
+                    Nothing -> Sub.none
+        , gui = Nothing -- FIXME
+        }

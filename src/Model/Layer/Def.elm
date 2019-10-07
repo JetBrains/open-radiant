@@ -7,6 +7,11 @@ import Json.Encode as E
 
 import Model.Layer.Blend.WebGL as WebGL
 
+import Model.Layer.Context exposing (Context)
+
+
+type alias DefId = String
+
 
 type Kind
     = Html
@@ -16,14 +21,14 @@ type Kind
 
 
 type alias Def model view msg blend =
-    { id : String
+    { id : DefId
     , kind : Kind
-    , init : model
-    , encode : model -> E.Value
-    , decode : D.Decoder model
-    , update : msg -> model -> ( model, Cmd msg )
-    , view : model -> Maybe blend -> view
-    , subscribe : model -> Sub msg
+    , init : Context -> ( model, Cmd msg )
+    , encode : Context -> model -> E.Value
+    , decode : Context -> D.Decoder model
+    , update : Context -> msg -> model -> ( model, Cmd msg )
+    , view : Context -> model -> Maybe blend -> view
+    , subscribe : Context -> model -> Sub msg
     , gui : Maybe (model -> Nest msg)
     }
 
@@ -32,12 +37,12 @@ unit : Def () () () ()
 unit =
     { id = "unit"
     , kind = JS
-    , init = ()
-    , encode = always <| E.object []
-    , decode = D.succeed ()
-    , update = \_ model -> ( model, Cmd.none )
-    , subscribe = always Sub.none
-    , view = always <| always ()
+    , init = always ( (), Cmd.none )
+    , encode = always <| always <| E.object []
+    , decode = always <| D.succeed ()
+    , update = \_ _ model -> ( model, Cmd.none )
+    , subscribe = always <| always <| Sub.none
+    , view = \_ _ _ -> ()
     , gui = Nothing
     }
 
