@@ -151,7 +151,7 @@ decodeFromPort navKey ctx portModel =
                 mode =
                     modeResult
                         |> Result.withDefault Mode.Production
-                initialModel = M.initEmpty navKey mode
+                initialModel = M.init navKey mode
                 decodedModel =
                     { initialModel
                     | background = portModel.background
@@ -201,7 +201,8 @@ decode navKey ctx createGui =
             now
             product =
             let
-                initialModel = M.init navKey ctx.mode [] createGui
+                initialModel =
+                    M.init navKey ctx.mode
                 sizeResult =
                     case maybeSizeRule of
                         Just sizeRuleStr -> SizeRule.decode sizeRuleStr
@@ -224,6 +225,15 @@ decode navKey ctx createGui =
                             , now = now
                             , product = product -- Debug.log "product decoded" product
                             --, palette = Product.getPalette product
+                            }
+                        )
+                    |> D.map
+                        (\newModel ->
+                            { newModel
+                            | gui = case ctx.mode of
+                                Mode.TronUi innerAppMode ->
+                                    Just <| createGui { newModel | mode = innerAppMode }
+                                _ -> Nothing
                             }
                         )
 

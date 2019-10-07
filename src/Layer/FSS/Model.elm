@@ -13,6 +13,8 @@ type Msg
     | AlterAmplitude AmplitudeChange
     | ShiftColor ColorShiftPatch
     | ChangeOpacity Opacity
+    | MirrorOn
+    | MirrorOff
 
 
 type RenderMode

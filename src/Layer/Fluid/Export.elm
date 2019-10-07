@@ -1,7 +1,18 @@
 module Layer.Fluid.Export exposing (..)
 
+import Layer.Fluid.Model exposing (..)
+
 foo = 42
 
+
+
+encodeEffectsChange : EffectsChange -> { subject : String, value : Float }
+encodeEffectsChange change =
+    case change of
+        ChangeBlur v -> { subject = "blur", value = v }
+        ChangeFat v -> { subject = "fat", value = v }
+        ChangeRing v -> { subject = "ring", value = v }
+        ChangeNothing -> { subject = "nothing", value = -1.0 }
 
 {-
 

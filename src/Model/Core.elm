@@ -3,7 +3,6 @@ module Model.Core exposing
     , Model
     , PortModel
     , init
-    , initEmpty
     , getContext
     , getOrigin, adaptSize
     , extractTimeShift, adaptTimeShift
@@ -84,10 +83,11 @@ type Msg
     | ChangeProduct Product
     | TurnOn Layer.Index
     | TurnOff Layer.Index
-    | MirrorOn Layer.Index
-    | MirrorOff Layer.Index
+    -- | MirrorOn Layer.Index
+    -- | MirrorOff Layer.Index
     -- | Configure Layer.Index Layer.Model
     | TriggerFeelLucky
+    | ToLayer Layer.Index Layer.Msg
     | ChangeWGLBlend Layer.Index WGLBlend.Blend
     | AlterWGLBlend Layer.Index WGLBlend.BlendChange
     | ChangeHtmlBlend Layer.Index HtmlBlend.Blend
@@ -144,12 +144,13 @@ type alias PortModel =
     }
 
 
+{-
 init
     :  Nav.Key
     -> AppMode
-    -> Layers
+    -> Layers.Initial
     -> CreateGui
-    -> Model
+    -> ( Model, Cmd Msg )
 init navKey appMode initialLayers createGui =
     let
         emptyModel = initEmpty navKey appMode
@@ -165,10 +166,11 @@ init navKey appMode initialLayers createGui =
                     Just <| createGui { modelWithLayers | mode = innerAppMode }
                 _ -> Nothing
         }
+-}
 
 
-initEmpty : Nav.Key -> AppMode -> Model
-initEmpty navKey mode =
+init : Nav.Key -> AppMode -> Model
+init navKey mode =
     { background = "rgba(0, 0, 0, 0)" -- FIXME: get rid of this property thanks to Background layer
     , mode = mode
     , gui = Nothing

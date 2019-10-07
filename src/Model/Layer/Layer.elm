@@ -88,6 +88,46 @@ isOn ( visibility, _, _ ) =
         Hidden -> False
 
 
+hide : Layer -> Layer
+hide ( _ , blend, model ) =
+    ( Hidden, blend, model )
+
+
+show : Layer -> Layer
+show ( _ , blend, model ) =
+    ( Visible, blend, model )
+
+
+lock : Layer -> Layer
+lock ( _ , blend, model ) =
+    ( Locked, blend, model )
+
+
+unlock : Layer -> Layer
+unlock ( _ , blend, model ) =
+    ( Visible, blend, model )
+
+
+changeBlend : Blend -> Layer -> Layer
+changeBlend newBlend ( visibility, _, model ) =
+    ( visibility, newBlend, model )
+
+
+alterBlend : (Blend -> Blend) -> Layer -> Layer
+alterBlend changeF ( visibility, curBlend, model ) =
+    ( visibility, changeF curBlend, model )
+
+
+alterWebGlBlend : WGLBlend.BlendChange -> Layer -> Layer
+alterWebGlBlend changeF =
+    alterBlend
+        (\blend ->
+            case blend of
+                ForWebGL wglBlend -> changeF wglBlend |> ForWebGL
+                _ -> blend
+        )
+
+
 adapt
      : (model -> Model)
     -> (msg -> Msg)

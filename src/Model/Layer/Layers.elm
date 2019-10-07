@@ -11,7 +11,7 @@ type alias Layers = List Layer
 type alias Initial = List ( Visibility, Blend, DefId )
 
 
-init : Context -> Initial -> ( Layers, Cmd Msg )
+init : Context -> Initial -> ( Layers, Cmd Msg ) -- TODO: Result (List String)
 init ctx layers =
     let
         foldingF ( visibility, blend, defId ) ( prevLayers, prevCmds ) =
@@ -27,3 +27,13 @@ init ctx layers =
     in
         List.foldl foldingF ( [], [] ) layers
             |> Tuple.mapSecond Cmd.batch
+
+
+update : (Layer -> Layer) -> Index -> Layers -> Layers
+update f (Index indexToChange) =
+    List.indexedMap
+        (\index layer ->
+            if index == indexToChange then
+                f layer
+            else layer
+        )

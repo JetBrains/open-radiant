@@ -104,9 +104,6 @@ init flags url navKey =
                     (initialLayers mode)
                     createLayer
                     Gui.gui
-            -- FIXME: temporary way to hide the second NativeMetaballs layer
-            -- |> updateLayerDef 2
-            --     (\def -> { def | on = False })
         ( model, command ) =
             Nav.applyUrl url initialModel
                 |> batchUpdate initialModel
@@ -125,35 +122,22 @@ init flags url navKey =
         )
 
 
-initialLayers : AppMode -> List Layer
+initialLayers : AppMode -> Layers.Initial
 initialLayers mode =
     let
         layers =
-            [ ( Cover, "Cover", CoverModel Cover.init )
-            , ( NativeMetaballs, "Metaballs-2", NativeMetaballsModel NativeMetaballs.init )
-            , ( NativeMetaballs, "Metaballs-1", NativeMetaballsModel NativeMetaballs.init )
-            , ( Background, "Background", BackgroundModel Background.init )
-            -- [ ( Fluid, "Fluid", FluidModel Fluid.init )
-            -- [ ( Metaballs, "Metaballs", MetaballsModel Metaballs.init )
-            -- [ ( FluidGrid, "FluidGrid", FluidGridModel FluidGrid.init )
-            -- [ ( Fss, "Lower Layer", FssModel FSS.init )
-            -- , ( Fss, "Mid Layer", FssModel FSS.init )
-            -- , ( Fss, "Top layer"
-            -- , let
-            --       fssModel = FSS.init
-            --   in
-            --       { fssModel
-            --       | renderMode = FSS.PartialLines
-            --       , shareMesh = True
-            --       } |> FssModel
-            --  ), ( Cover, "Cover", CoverModel Cover.init )
-            -- ]
+            [ ( if mode == Ads then Layer.Hidden else Layer.Visible
+              , HtmlBlend.default
+              , "cover" ) -- TODO: `Cover.id` & s.o.
+            , ( Layer.Hidden, WGLBlend.default, "metaballs" )
+            , ( Layer.Visible, WGLBlend.default, "metaballs" )
+            , ( Layer.Locked, WGLBlend.default, "background" )
             ]
     in
         layers
-            |> List.filter (\(kind, _, _) ->
-                case ( kind, mode ) of
-                    ( Cover, Ads ) -> False
+            |> List.filter (\(_, _, defId) ->
+                case ( defId, mode ) of
+                    ( "cover", Ads ) -> False
                     _ -> True
             )
 
@@ -164,10 +148,17 @@ update msg model =
 
         Bang ->
             let
-                ( layers, commands ) = Layers.init (getContext model) initialLayers
+                ( layers, commands ) =
+                    Layers.init (getContext model) <| initialLayers model.mode
             in
                 ( { model
                   | layers = layers
+                  {-
+                  , gui = case model.mode of
+                        TronUi innerAppMode ->
+                            Just <| createGui { modelWithLayers | mode = innerAppMode }
+                        _ -> Nothing
+                  -}
                   }
                 , Cmd.batch
                     [ startGui
@@ -194,12 +185,13 @@ update msg model =
 
         ChangeMode mode ->
             let
-                newModel =
-                    Model.init model.navKey mode (initialLayers mode) createLayer Gui.gui
+                ( newModel, commands ) =
+                    update Bang model
             in
                 ( newModel
                 , Cmd.batch
-                    [ Mode.encode newModel.mode |> modeChanged
+                    [ commands
+                    , Mode.encode newModel.mode |> modeChanged
                     , resizeToViewport
                     , Nav.pushUrlFrom newModel
                     ]
@@ -216,10 +208,12 @@ update msg model =
                     , case model.size of
                         Dimensionless ->
                             resizeToViewport
+                        {-
                         _ ->
                             if hasFssLayers model
                                 then rebuildAllFssLayersWith model
                                 else Cmd.none
+                        -}
                     ]
                 )
 
@@ -274,10 +268,12 @@ update msg model =
 
         Import encodedModel ->
             case (encodedModel
-                    |> IE.decodeModel model.navKey model.mode createLayer Gui.gui) of
+                    |> IE.decode model.navKey model.mode Gui.gui) of
                 Ok decodedModel ->
                     ( decodedModel
                     , Cmd.batch
+                        [ Nav.pushUrlFrom decodedModel ]
+                        {-
                         [ if hasFssLayers decodedModel
                             then rebuildAllFssLayersWith decodedModel
                             else Cmd.none
@@ -295,6 +291,7 @@ update msg model =
                             else Cmd.none
                         , Nav.pushUrlFrom decodedModel
                         ]
+                        -}
                     )
                 Err importError ->
                     ( model |> addError importError
@@ -303,12 +300,12 @@ update msg model =
 
         Export ->
             ( model
-            , model |> IE.encodeModel |> export_
+            , model |> IE.encode |> export_
             )
 
         ExportZip ->
             ( model
-            , model |> IE.encodeModel |> exportZip_
+            , model |> IE.encode |> exportZip_
             )
 
         TimeTravel timeShift ->
@@ -335,25 +332,24 @@ update msg model =
 
         Resize rule ->
             let
-                -- _ = Debug.log "Resize: rule" rule
                 ( width, height ) = getRuleSizeOrZeroes rule
                 newModelWithSize =
                     { model
                     | size = rule
                     , origin = getOrigin ( width, height )
                     }
-                    |> (\modelWithSize ->
-                            if rule /= Dimensionless && hasFluidLayers modelWithSize
-                            then remapAllFluidLayersToNewSize modelWithSize
-                            else modelWithSize
-                        )
+                    -- |> (\modelWithSize ->
+                    --         if rule /= Dimensionless && hasFluidLayers modelWithSize
+                    --         then remapAllFluidLayersToNewSize modelWithSize
+                    --         else modelWithSize
+                    --     )
             in
                 ( newModelWithSize
                 , Cmd.batch
                     [ newModelWithSize |> getSizeUpdate |> sizeChanged
-                    , if hasFssLayers newModelWithSize
-                        then rebuildAllFssLayersWith newModelWithSize
-                        else Cmd.none
+                    -- , if hasFssLayers newModelWithSize
+                    --     then rebuildAllFssLayersWith newModelWithSize
+                    --     else Cmd.none
                     , requestWindowResize ( width, height )
                     , Nav.pushUrlFrom newModelWithSize
                     ]
@@ -380,23 +376,43 @@ update msg model =
         TurnOn index ->
             let
                 newModel =
-                    model |> updateLayerDef index
-                        (\def -> { def | on = True })
+                    { model
+                    | layers =
+                        model.layers
+                            |> Layers.update Layer.show index
+                    }
             in
                 ( newModel
+                , Cmd.none
+                {-
                 , if hasNativeMetaballsLayers newModel
                     then updateAllNativeMetaballsWith newModel
                     else Cmd.none
+                -}
                 )
 
         TurnOff index ->
-            ( model |> updateLayerDef index
-                (\def -> { def | on = False })
-            , Cmd.none
-            )
+            let
+                newModel =
+                    { model
+                    | layers =
+                        model.layers
+                            |> Layers.update Layer.hide index
+                    }
+            in
+                ( newModel
+                , Cmd.none
+                {-
+                , if hasNativeMetaballsLayers newModel
+                    then updateAllNativeMetaballsWith newModel
+                    else Cmd.none
+                -}
+                )
 
+        {-
         MirrorOn index ->
-            ( model |> updateLayerDef index
+            ( model
+                {- model |> updateLayerDef index
                 (\layerDef ->
                     case layerDef.layer of
                         WebGLLayer webglLayer blend ->
@@ -411,12 +427,15 @@ update msg model =
                                     }
                                 _ -> layerDef
                         _ -> layerDef
-                )
+                ) -}
             , Cmd.none
             )
+        -}
 
+        {-
         MirrorOff index ->
-            ( model |> updateLayerDef index
+            ( model
+                model |> updateLayerDef index
                 (\layerDef ->
                     case layerDef.layer of
                         WebGLLayer webglLayer blend ->
@@ -434,11 +453,14 @@ update msg model =
                 )
             , Cmd.none
             )
+        -}
 
         ChangeProduct product ->
             let modelWithProduct = { model | product = product }
             in
                 ( modelWithProduct
+                , Cmd.none
+                {-
                 , Cmd.batch
                     [ if hasFssLayers modelWithProduct
                         then rebuildAllFssLayersWith modelWithProduct
@@ -464,12 +486,16 @@ update msg model =
                         else Cmd.none
                     , Nav.pushUrlFrom modelWithProduct
                     ]
+                -}
                 )
 
         TriggerFeelLucky ->
-            ( model, generateAllNativeMetaballs model )
+            ( model
+            , Cmd.none
+            --- , generateAllNativeMetaballs model
+            )
 
-        Configure index _ ->
+        {- Configure index _ ->
             ( model |> updateLayer index
                 (\layer curLayerModel ->
                     case layer of
@@ -502,28 +528,46 @@ update msg model =
                             webglBlend
                         _ -> layer)
             , Cmd.none
-            )
+            ) -}
 
         ChangeWGLBlend index newBlend ->
-            ( model |> updateLayerBlend index
-                (\_ -> Just newBlend)
-                (\_ -> Nothing)
-            , Cmd.none
-            )
+            let
+                newModel =
+                    { model
+                    | layers =
+                        model.layers
+                            |> Layers.update (Layer.changeBlend newBlend) index
+                    }
+            in
+                ( newModel
+                , Cmd.none
+                )
 
         AlterWGLBlend index changeF ->
-            ( model |> updateLayerBlend index
-                (\curBlend -> Just <| changeF curBlend)
-                (\_ -> Nothing)
-            , Cmd.none
-            )
+            let
+                newModel =
+                    { model
+                    | layers =
+                        model.layers
+                            |> Layers.update (Layer.alterWebGlBlend changeF) index
+                    }
+            in
+                ( newModel
+                , Cmd.none
+                )
 
         ChangeHtmlBlend index newBlend ->
-            ( model |> updateLayerBlend index
-                (\_ -> Nothing)
-                (\_ -> Just newBlend)
-            , Cmd.none
-            )
+            let
+                newModel =
+                    { model
+                    | layers =
+                        model.layers
+                            |> Layers.update (Layer.changeBlend newBlend) index
+                    }
+            in
+                ( newModel
+                , Cmd.none
+                )
 
         ChangeFssRenderMode index renderMode ->
             -- ( model
@@ -1362,7 +1406,7 @@ resizeToViewport =
 
 -- TODO: The functions below belong to the specific layers. move them to `Model/Layer?`
 
-
+{-
 hasMetaballLayers : Model -> Bool
 hasMetaballLayers model
     = True -- FIXME: implement, think that on Bang (where it is called) initialLayers could not exist yet
@@ -1573,10 +1617,6 @@ commandForAllFluidLayers modifyFluidModel model =
         model
 
 
--- extractFssBuildOptions : Model -> FssBuildOptions
--- extractFssBuildOptions = prepareGuiConfig
-
-
 generateAllMetaballs : Model -> Cmd Msg
 generateAllMetaballs model =
     let
@@ -1774,6 +1814,8 @@ generateFluidGrid size layerIdx =
     FluidGrid.generate
         (RebuildFluidGrid layerIdx)
             (FluidGrid.generator <| SizeRule.toRecord size)
+
+-}
 
 
 -- INCOMING PORTS
