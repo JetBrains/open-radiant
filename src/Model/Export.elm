@@ -1,12 +1,9 @@
 module Model.Export exposing
-    ( encodeModel
-    , decodeModel
-    , encodePortModel
-    , encodePortLayer
-    , decodePortModel
-    , encodeFss
-    , encodeLayerModel
-    , fromFssPortModel
+    ( encode
+    , decode
+    , encodeToString
+    , encodeForPort
+    , decodeFromPort
     , adaptModelDecodeErrors
     )
 
@@ -27,6 +24,7 @@ import Algorithm.Gaussian as Gaussian
 
 import Model.Layer.Blend.Html as HtmlBlend
 import Model.Layer.Blend.WebGL as WGLBlend
+import Model.Util exposing (resultToDecoder, intPairDecoder)
 
 import Gradient
 
@@ -34,6 +32,7 @@ import Model.Core as M
 import Model.AppMode as Mode
 import Model.Layer.Layer as Layer
 import Model.Layer.Export as Layer
+import Model.Layer.Context exposing (Context)
 import Model.SizeRule as SizeRule
 import Model.Error as M
 import Model.Product as Product exposing (Product, encode, decode, encodeGradient, decodeGradient)
@@ -76,14 +75,14 @@ encodeColor { r, g, b } =
         ]
 
 
-encodeModel_ : M.Model -> E.Value
-encodeModel_ model =
+encode : M.Model -> E.Value
+encode model =
     E.object
         [ ( "background", E.string model.background )
         , ( "mode", E.string <| Mode.encode model.mode )
         , ( "theta", E.float model.theta )
         , ( "omega", E.float model.omega )
-        , ( "layers", E.list (Layer.encodeModel model.product) model.layers )
+        , ( "layers", E.list (Layer.encode <| M.getContext model) model.layers )
         -- , ( "layers", E.list (List.filterMap
         --         (\layer -> Maybe.map encodeLayer layer) model.layers) )
         -- for b/w compatibility, we also encode size as numbers, but sizeRule is what should matter
@@ -102,18 +101,18 @@ encodeModel_ model =
         ]
 
 
-encodeModel : M.Model -> String
-encodeModel model = model |> encodeModel_ |> E.encode 2
+encodeToString : M.Model -> String
+encodeToString model = model |> encode |> E.encode 2
 
 
-encodePortModel : M.Model -> M.PortModel
-encodePortModel model =
+encodeForPort : M.Model -> M.PortModel
+encodeForPort model =
     { background = model.background
     , mode = Mode.encode model.mode
     , now = model.now
     , theta = model.theta
     , omega = model.omega
-    , layers = List.map (Layer.encodeForPort model.product) model.layers
+    , layers = List.map (Layer.encodeForPort <| M.getContext model) model.layers
     , size = SizeRule.getRuleSize model.size |> Maybe.withDefault ( -1, -1 )
     , sizeRule = SizeRule.encode model.size |> Just
     , origin = model.origin
@@ -123,15 +122,15 @@ encodePortModel model =
     }
 
 
-decodePortModel
+decodeFromPort
     :  Nav.Key
-    -> Product
+    -> Context
     -> M.PortModel
     -> Result (List ModelDecodeError) M.Model
-decodePortModel navKey product portModel =
+decodeFromPort navKey ctx portModel =
     let
         couldBeDecodedLayers =
-            List.map (Layer.decodeFromPort product) portModel.layers
+            List.map (Layer.decodeFromPort ctx) portModel.layers
         extractLayerDecodeErrors res =
             case res of
                 Ok layer -> Nothing
@@ -187,8 +186,8 @@ decodePortModel navKey product portModel =
 
 
 
-modelDecoder : Nav.Key -> Mode.AppMode -> M.CreateGui -> D.Decoder M.Model
-modelDecoder navKey currentMode createGui =
+decode : Nav.Key -> Context -> M.CreateGui -> D.Decoder M.Model
+decode navKey ctx createGui =
     let
         createModel
             background
@@ -202,7 +201,7 @@ modelDecoder navKey currentMode createGui =
             now
             product =
             let
-                initialModel = M.init navKey currentMode [] createGui
+                initialModel = M.init navKey ctx.mode [] createGui
                 sizeResult =
                     case maybeSizeRule of
                         Just sizeRuleStr -> SizeRule.decode sizeRuleStr
@@ -243,7 +242,7 @@ modelDecoder navKey currentMode createGui =
                     |> D.andMap (D.field "background" D.string)
                     |> D.andMap (D.field "theta" D.float)
                     |> D.andMap (D.field "omega" D.float)
-                    |> D.andMap (D.field "layers" (layerDefDecoder product |> D.list))
+                    |> D.andMap (D.field "layers" (Layer.decode ctx |> D.list))
                     |> D.andMap (D.maybe (D.field "size" intPairDecoder))
                     |> D.andMap (D.maybe (D.field "sizeRule" D.string))
                     |> D.andMap (D.field "origin" intPairDecoder)
@@ -254,14 +253,14 @@ modelDecoder navKey currentMode createGui =
             )
 
 
-decodeModel
+decodeToResult
      : Nav.Key
-    -> Mode.AppMode
+    -> Context
     -> M.CreateGui
     -> String
     -> Result String M.Model
-decodeModel navKey currentMode createGui modelStr =
-    D.decodeString (modelDecoder navKey currentMode createGui) modelStr
+decodeToResult navKey ctx createGui modelStr =
+    D.decodeString (decode navKey ctx createGui) modelStr
         |> Result.mapError D.errorToString
 
 
@@ -272,13 +271,13 @@ adaptModelDecodeErrors modelDecodeErrors =
         layerDecodeErrorToString index layerDecodeError =
             "(" ++ String.fromInt index ++ ") " ++
                 case layerDecodeError of
-                    KindDecodeFailed whyKindDecodeFailed ->
+                    Layer.UnknownDefId whyKindDecodeFailed ->
                         "Failed to decode kind: " ++ whyKindDecodeFailed
-                    BlendDecodeFailed whyBlendDecodeFailed ->
+                    Layer.UnknownBlend whyBlendDecodeFailed ->
                         "Failed to decode blend: " ++ whyBlendDecodeFailed
-                    LayerCreationFailed whyLayerCreationFailed ->
-                        "Failed to create layer: " ++ whyLayerCreationFailed
-                    LayerModelDecodeFailed whyLayerModelDecodeFailed ->
+                    -- LayerCreationFailed whyLayerCreationFailed ->
+                    --     "Failed to create layer: " ++ whyLayerCreationFailed
+                    Layer.LayerModelDecodeFailed whyLayerModelDecodeFailed ->
                         "Failed to decode layer model: "
                             ++ D.errorToString whyLayerModelDecodeFailed
         modelDecodeErrorToString index modelDecodeError =

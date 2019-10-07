@@ -4,6 +4,7 @@ module Model.Core exposing
     , PortModel
     , init
     , initEmpty
+    , getContext
     , getOrigin, adaptSize
     , extractTimeShift, adaptTimeShift
     -- , getLayerModel, getLayerModels
@@ -28,6 +29,7 @@ import Algorithm.Gaussian as Gaussian exposing (Variety)
 import Model.Layer.Layer exposing (..)
 import Model.Layer.Layer as Layer exposing (Index)
 import Model.Layer.Def as Layer exposing (PortDef)
+import Model.Layer.Context as Layer exposing (Context)
 import Model.Layer.Layers exposing (Layers)
 import Model.AppMode exposing (..)
 import Model.Error exposing (..)
@@ -188,6 +190,14 @@ initEmpty navKey mode =
     , navKey = navKey
     , url = Nothing
     , registry = Layer.registry
+    }
+
+
+getContext : Model -> Layer.Context
+getContext model =
+    { viewport = ()
+    , product = model.product
+    , mode = model.mode
     }
 
 

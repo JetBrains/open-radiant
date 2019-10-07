@@ -126,10 +126,10 @@ encodeForPort ctx (( visibility, blend, model ) as layer) =
 
 
 decodeFromPort
-    :  Product
+    :  Context
     -> PortDef
     -> Result (List DecodeError) Layer
-decodeFromPort curProduct portDef  =
+decodeFromPort ctx portDef  =
     case registry.byId portDef.def of
         Just def ->
             portDef.model
@@ -192,8 +192,8 @@ encode ctx (( visibility, blend, model ) as layer) =
                 ]
 
 
-decode : D.Decoder Layer
-decode =
+decode : Context -> D.Decoder Layer
+decode ctx =
     let
         createLayer defId kindStr blendStr visibilityStr layerModelStr =
             case registry.byId defId of
