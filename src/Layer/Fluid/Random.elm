@@ -1,5 +1,20 @@
 module Layer.Fluid.Random exposing (..)
 
+import Array
+import Random
+import Random.Extra as Random exposing (traverse)
+import Gradient exposing (..)
+
+import Algorithm.Gaussian as Gauss
+import Algorithm.Gaussian exposing (gaussian)
+
+import Math.Vector3 as Vec3 exposing (..)
+import Math.Vector2 as Vec2 exposing (..)
+
+import Model.Range exposing (..)
+import Model.Product as Product
+import Model.Product exposing (ColorId(..))
+
 import Layer.Fluid.Model exposing (..)
 
 generator : ( Int, Int ) -> Randomization -> Random.Generator Model

@@ -10,7 +10,8 @@ import Model.AppMode exposing (AppMode(..))
 import Model.Core as Core exposing (..)
 import Model.Product as Product exposing (Product(..))
 import Model.SizeRule exposing (..)
-import Model.Layer.Layer as Layer exposing (Index, Model(..))
+import Model.Layer.Layer as Layer exposing (Model(..))
+import Model.Layer.Def as Layer exposing (Index)
 import Model.Layer.Blend.Html as HtmlBlend
 import Model.Layer.Blend.WebGL as WGLBlend
 

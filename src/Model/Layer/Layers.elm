@@ -1,6 +1,6 @@
 module Model.Layer.Layers exposing (..)
 
-import Model.Layer.Def exposing (DefId)
+import Model.Layer.Def exposing (DefId, Index(..))
 import Model.Layer.Layer exposing (..)
 import Model.Layer.Context exposing (Context)
 

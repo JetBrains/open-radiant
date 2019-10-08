@@ -5,6 +5,7 @@ module RenderQueue exposing
 
 import Model.Core exposing (Model, Msg(..))
 import Model.Layer.Layer as Layer
+import Model.Layer.Def as Layer exposing (Index)
 import Model.Layer.Layers exposing (Layers)
 import Model.SizeRule exposing (..)
 

@@ -14,16 +14,15 @@ import Json.Encode as E
 import WebGL as WebGL
 
 import Model.Layer.Def exposing (..)
+import Model.Layer.Def as Def exposing (Index)
 
 import Model.Layer.Blend.Html as HtmlBlend
 import Model.Layer.Blend.WebGL as WGLBlend
 
+import Layer.Fluid.Fluid as Fluid exposing (..)
+
 
 type alias Layer = ( Visibility, Blend, Model )
-
-
-type Index = Index Int
-type alias JsIndex = Int -- index for ports
 
 
 type View
@@ -191,7 +190,9 @@ adapt
         , subscribe =
             \ctx layerModel ->
                 case a.extractModel layerModel of
-                    Just model -> source.subscribe ctx model |> Sub.map a.convertMsg
+                    Just model ->
+                        source.subscribe ctx model
+                            |> Sub.map (\f index -> a.convertMsg <| f index)
                     Nothing -> Sub.none
         , gui = Nothing -- FIXME
         }

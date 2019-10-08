@@ -12,6 +12,9 @@ import Model.Layer.Context exposing (Context)
 
 type alias DefId = String
 
+type Index = Index Int
+type alias JsIndex = Int -- index for ports
+
 
 type Kind
     = Html
@@ -28,8 +31,8 @@ type alias Def model view msg blend =
     , decode : Context -> D.Decoder model
     , update : Context -> msg -> model -> ( model, Cmd msg )
     , view : Context -> model -> Maybe blend -> view
-    , subscribe : Context -> model -> Sub msg
-    , gui : Maybe (model -> Nest msg)
+    , subscribe : Context -> model -> Sub (Index -> msg)
+    , gui : Maybe (Index -> model -> Nest msg)
     }
 
 
@@ -38,11 +41,11 @@ unit =
     { id = "unit"
     , kind = JS
     , init = always ( (), Cmd.none )
-    , encode = always <| always <| E.object []
+    , encode = \_ _ -> E.object []
     , decode = always <| D.succeed ()
     , update = \_ _ model -> ( model, Cmd.none )
-    , subscribe = always <| always <| Sub.none
     , view = \_ _ _ -> ()
+    , subscribe = \_ _ -> Sub.none
     , gui = Nothing
     }
 

@@ -37,8 +37,10 @@ import Model.SizeRule exposing (..)
 import Model.SizeRule as SizeRule exposing (decode, encode, toRecord)
 import Model.Error exposing (..)
 import Model.Export as IE -- IE for import/export
+
 import Model.Layer.Layer exposing (Layer, Blend(..))
 import Model.Layer.Layer as Layer
+import Model.Layer.Def as Layer exposing (Index)
 import Model.Layer.Layers as Layers
 import Model.Layer.Blend.Html as HtmlBlend
 import Model.Layer.Blend.WebGL as WGLBlend
@@ -1936,10 +1938,6 @@ port changeProduct : (String -> msg) -> Sub msg
 
 {-
 port rebuildFss : ({ value: FSS.SerializedScene, layer: Layer.Index } -> msg) -> Sub msg
-
-port loadFluidGradientTextures : ({ value: List String, layer: LayerIndex } -> msg) -> Sub msg
-
-port requestRegenerateFluidGradients : ({ layer: LayerIndex } -> msg) -> Sub msg
 -}
 
 -- port requestUpdateNativeMetaballs : ({ layer: LayerIndex } -> msg) -> Sub msg
@@ -2001,22 +1999,6 @@ port changeHtmlBlend :
     -> msg) -> Sub msg
 
 {-
-port refreshFluid :
-    ( { layer : Layer.IndexP }
-    -> msg) -> Sub msg
-
-port changeFluidVariety :
-    ( { layer : Layer.IndexP
-      , value : Float
-      }
-    -> msg) -> Sub msg
-
-port changeFluidOrbit :
-    ( { layer : Layer.IndexP
-      , value : Float
-      }
-    -> msg) -> Sub msg
-
 port changeNativeMetaballsVariety :
     ( { layer : Layer.IndexP
       , value : Float
@@ -2064,8 +2046,6 @@ port requestFssRebuild :
     , model: PortModel
     , value: FSS.PortModel
     } -> Cmd msg
-
-port buildFluidGradientTextures : ( Int, E.Value ) -> Cmd msg
 -}
 
 port sizeChanged : SizeUpdate -> Cmd msg

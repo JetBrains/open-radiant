@@ -26,8 +26,8 @@ import WebGL.Texture exposing (Texture)
 import Algorithm.Gaussian as Gaussian exposing (Variety)
 
 import Model.Layer.Layer exposing (..)
-import Model.Layer.Layer as Layer exposing (Index)
-import Model.Layer.Def as Layer exposing (PortDef)
+import Model.Layer.Layer as Layer exposing (Registry)
+import Model.Layer.Def as Layer exposing (PortDef, Index)
 import Model.Layer.Context as Layer exposing (Context)
 import Model.Layer.Layers exposing (Layers)
 import Model.AppMode exposing (..)
@@ -200,6 +200,8 @@ getContext model =
     { viewport = ()
     , product = model.product
     , mode = model.mode
+    , size = getRuleSizeOrZeroes model.size
+    , palette = Product.getPalette model.product
     }
 
 
