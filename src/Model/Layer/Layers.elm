@@ -19,7 +19,7 @@ init
 init mapMsg ctx initial =
     let
         foldingF index ( visibility, blend, defId ) =
-            registry.byId defId
+            (registry.byId defId)
                 |> Maybe.map (\def -> def.init ctx)
                 |> Maybe.map (\( model, cmd ) ->
                         ( ( visibility, blend, model ), cmd ))

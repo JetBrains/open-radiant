@@ -36,7 +36,7 @@ import Color.Manipulate as Color exposing (..)
 
 def : Layer.Def Model (Html Msg) Msg Html.Blend
 def =
-    { id = "bg"
+    { id = "background"
     , kind = Html
     , init = \_ -> ( init, Cmd.none )
     , encode = encode

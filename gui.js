@@ -36,7 +36,7 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
     const sizePresetSet = getSizeSet(mode, constants);
 
     layers.forEach((layer, index) => {
-      if (layer.webglOrHtml == 'webgl') {
+      if (layer.kind == 'webgl') {
         if (mode !== 'prod') {
           if (layer.blend[0]) {
             const blend = layer.blend[0];
@@ -62,7 +62,7 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
           this['blendColor' + index] =
               layer.blend[0].color || [ 1, 0, 0, 0 ]; // FIXME: get RGBA components
         }
-      } else { // webglOrHtml != 'webgl'
+      } else { // kind != 'webgl'
           if (!is.background(layer)) {
             this['layer' + index + 'Blend'] = layer.blend[1] || 'normal';
           }
@@ -378,12 +378,13 @@ function start(document, model, constants, funcs) {
 
     layers.concat([]).reverse().forEach((layer, revIndex) => {
       // if ((mode == 'prod') && (layer.name == 'Cover')) return;
+      console.log(layer);
       const index = layers.length - 1 - revIndex;
       //const folder = gui.addFolder('Layer ' + index + ' (' + layer.kind + ')');
-      const folder = gui.addFolder(layer.name.toLowerCase());
+      const folder = gui.addFolder(layer.def.toLowerCase());
 
       addLayerProps(folder, config, layer, index);
-      if (layer.webglOrHtml == 'webgl') {
+      if (layer.king == 'webgl') {
         addWebGLBlend(folder, config, layer, index);
       } else {
         if (!is.background(layer)) {

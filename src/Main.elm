@@ -1049,6 +1049,12 @@ subscriptions model =
                     Ok product -> ChangeProduct product
                     Err error -> AddError <| "Failed to decode product: " ++ error)
         , Layers.subscribe ToLayer (getContext model) model.layers
+        , changeWGLBlend (\{ layer, value } ->
+            ChangeWGLBlend (Layer.Index layer) value
+          )
+        , changeHtmlBlend (\{ layer, value } ->
+            ChangeHtmlBlend (Layer.Index layer) <| HtmlBlend.decode value
+          )
         {-
         , changeFssRenderMode (\{value, layer} ->
             FSS.decodeRenderMode value |> ChangeFssRenderMode layer)
@@ -1085,12 +1091,6 @@ subscriptions model =
                             |> Maybe.map (Resize << FromPreset)
                             |> Maybe.withDefault (Resize <| UseViewport <| ViewportSize vw vh )
             )
-        , changeWGLBlend (\{ layer, value } ->
-            ChangeWGLBlend layer value
-          )
-        , changeHtmlBlend (\{ layer, value } ->
-            ChangeHtmlBlend layer <| HtmlBlend.decode value
-          )
         , configureLorenz (\{ layer, value } ->
             Configure layer (LorenzModel value)
           )
@@ -1154,12 +1154,15 @@ view model =
         ( w, h ) =
                 getRuleSize model.size |> Maybe.withDefault ( -1, -1 )
         visible = w > 0 && h > 0
-        wrapHtml =
+        wrapHtml htmls =
             div
                 [ H.class "html-layers", H.class "layers"
                 , Events.onClick TriggerPause
                 ]
-        wrapEntities =
+                <| List.map
+                    (\( index, html ) -> Html.map (ToLayer index) html)
+                    htmls
+        wrapEntities entities =
             WebGL.toHtmlWith
                 --[ WebGL.antialias
                 [ WebGL.alpha True
@@ -1172,13 +1175,14 @@ view model =
                 , style "display" (if visible then "block" else "none")
                 , Events.onClick TriggerPause
                 ]
+                <| List.map Tuple.second entities
         renderedLayers =
             model.layers
                 |> Layers.render (getContext model)
                 |> RQ.make
                 |> RQ.apply
-                        (always <| div [] []) -- FiXME
-                        (always <| div [] []) -- FiXME
+                        wrapHtml
+                        wrapEntities
         isInPlayerMode =
             case model.mode of
                 Player -> True
@@ -1865,12 +1869,6 @@ port hideControls : (() -> msg) -> Sub msg
 port rotate : (Float -> msg) -> Sub msg
 
 port initLayers : (Array String -> msg) -> Sub msg
-
-{-
-port configureFss : ({ value: FSS.PortModel, layer: Layer.Index } -> msg) -> Sub msg
-
-port configureMirroredFss : ({ value: FSS.PortModel, layer: Layer.Index } -> msg) -> Sub msg
--}
 
 port changeProduct : (String -> msg) -> Sub msg
 
