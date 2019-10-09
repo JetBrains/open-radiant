@@ -1867,8 +1867,6 @@ port rotate : (Float -> msg) -> Sub msg
 port initLayers : (Array String -> msg) -> Sub msg
 
 {-
-port configureLorenz : ({ value: Lorenz.Model, layer: Layer.Index } -> msg) -> Sub msg
-
 port configureFss : ({ value: FSS.PortModel, layer: Layer.Index } -> msg) -> Sub msg
 
 port configureMirroredFss : ({ value: FSS.PortModel, layer: Layer.Index } -> msg) -> Sub msg
