@@ -1174,7 +1174,7 @@ view model =
                 ]
         renderedLayers =
             model.layers
-                |> Layers.render
+                |> Layers.render (getContext model)
                 |> RQ.make
                 |> RQ.apply
                         (always <| div [] []) -- FiXME

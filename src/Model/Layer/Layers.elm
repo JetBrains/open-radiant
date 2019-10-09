@@ -61,10 +61,35 @@ modify f (Index indexToChange) =
         )
 
 
-render : Layers -> List ( Index, View )
-render layers =
-    [] -- FIXME: implement
+render : Context -> Layers -> List ( Index, View )
+render ctx layers =
+    foldView
+        (\index ( visibility, blend, model ) ->
+            registry.byModel model
+                |> Maybe.map (\def ->
+                    def.view ctx (Just blend) model)
+        )
+        layers
 
+
+foldView
+    :  (Index -> x -> Maybe View)
+    -> List x
+    -> List ( Index, View )
+    -- FIXME: some layers could be lost if they don't match, use mapping instead
+foldView locView source =
+    let
+        foldingF x ( prevViews, index ) =
+            case locView (Index index) x of
+                Just view ->
+                    ( ( Index index, view ) :: prevViews
+                    , index + 1
+                    )
+                _ ->
+                    ( prevViews, index + 1 )
+    in
+        List.foldl foldingF ( [], 0 ) source
+            |> (\( views, _ ) -> views)
 
 
 foldUpdate
