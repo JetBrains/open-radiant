@@ -1,4 +1,4 @@
-module Layer.Background.Background exposing
+port module Layer.Background.Background exposing
     ( Model
     , StopState(..)
     , StopStates(..)
@@ -29,6 +29,12 @@ import Svg.Attributes as S exposing (style)
 import Viewport exposing (Viewport)
 
 import Model.Product as Product exposing (..)
+import Model.Layer.Layer exposing (..)
+import Model.Layer.Def exposing (Kind(..))
+import Model.Layer.Def as Layer exposing (Def, JsIndex, Index)
+import Model.Layer.Context exposing (..)
+
+import Model.Layer.Blend.Html as Html exposing (..)
 
 import Gradient as G exposing (..)
 import Gradient as Gradient exposing (decode)
@@ -36,6 +42,20 @@ import Gradient as Gradient exposing (decode)
 import Color
 import Color.Convert as Color exposing (..)
 import Color.Manipulate as Color exposing (..)
+
+
+def : Layer.Def Model (Html Msg) Msg Html.Blend
+def =
+    { id = "bg"
+    , kind = Html
+    , init = \_ -> ( init, Cmd.none )
+    , encode = encode
+    , decode = decode
+    , subscribe = subscriptions
+    , update = update
+    , view = view
+    , gui = Nothing
+    }
 
 
 type Msg
@@ -83,17 +103,42 @@ init =
     }
 
 
-view : Viewport {} -> Product.Palette -> Model -> Html msg
-view viewport palette model =
+update : Context -> Msg -> Model -> ( Model, Cmd Msg )
+update ctx msg model =
+    ( model, Cmd.none ) -- FIXME: implement
+
+
+view : Context -> Maybe Html.Blend -> Model -> Html Msg
+view ctx maybeBlend model =
     let
-        ( w, h ) =
-            ( Vec2.getX viewport.size
-            , Vec2.getY viewport.size
-            )
+        ( w, h ) = ctx.size
+            -- ( Vec2.getX viewport.size
+            -- , Vec2.getY viewport.size
+            -- )
     in
         div [ H.class "background-layer layer" ]
-            [ renderBackground ( floor w, floor h ) model.stops model.opacity palette model.orientation
+            [ renderBackground ( w, h ) model.stops model.opacity ctx.palette model.orientation
             ]
+
+
+
+subscriptions : Context -> Model -> Sub ( Index, Msg )
+subscriptions ctx model =
+    Sub.batch
+        [ switchBackgroundStop
+            (\{ layer, stopIndex, value } ->
+                ( Layer.Index layer
+                , SwitchStop stopIndex value
+                )
+            )
+        , switchGradientOrientation
+            (\{ layer, orientation } ->
+                ( Layer.Index layer
+                , SwitchGradientOrientation
+                        <| Gradient.decodeOrientation orientation
+                )
+            )
+        ]
 
 
 renderBackground : ( Int, Int ) -> StopStates -> Float -> Palette -> Orientation -> Svg msg
@@ -215,8 +260,8 @@ boolToStopState : Bool -> StopState
 boolToStopState v = if v then On else Off
 
 
-encode : Model -> E.Value
-encode model =
+encode : Context -> Model -> E.Value
+encode _ model =
     let
         encodeStopState state =
             E.string <|
@@ -267,8 +312,8 @@ decodeOrientation =
             )
 
 
-decode : D.Decoder Model
-decode =
+decode : Context -> D.Decoder Model
+decode _ =
     D.map3
         (\opacity stops orientation ->
             { opacity = opacity
@@ -279,3 +324,18 @@ decode =
         (D.field "opacity" D.float)
         (D.field "stops" decodeStops)
         (D.field "orientation" decodeOrientation)
+
+
+port switchBackgroundStop :
+    ( { layer : Layer.JsIndex
+      , stopIndex : Int
+      , value : Bool
+      }
+    -> msg) -> Sub msg
+
+port switchGradientOrientation :
+    (
+        { layer: Layer.JsIndex
+        , orientation : String
+        }
+    -> msg) -> Sub msg

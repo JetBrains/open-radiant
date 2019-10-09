@@ -180,19 +180,21 @@ adapt
                     _ -> -- FIXME: return Maybe/Result for the case when message / model doesn't match
                         adaptUpdateTuple <| source.init ctx
         , view =
-            \ctx layerModel maybeBlend ->
+            \ctx maybeBlend layerModel  ->
                 case a.extractModel layerModel of
                     Just model ->
                         a.convertView source.kind
-                            <| source.view ctx model
-                                <| a.extractBlend <| Maybe.withDefault NoBlend maybeBlend
+                            <| source.view
+                                ctx
+                                (a.extractBlend <| Maybe.withDefault NoBlend maybeBlend)
+                                model
                     Nothing -> ToHtml <| H.div [] []
         , subscribe =
             \ctx layerModel ->
                 case a.extractModel layerModel of
                     Just model ->
                         source.subscribe ctx model
-                            |> Sub.map (\f index -> a.convertMsg <| f index)
+                            |> Sub.map (Tuple.mapSecond a.convertMsg)
                     Nothing -> Sub.none
         , gui = Nothing -- FIXME
         }

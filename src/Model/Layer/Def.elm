@@ -30,8 +30,8 @@ type alias Def model view msg blend =
     , encode : Context -> model -> E.Value
     , decode : Context -> D.Decoder model
     , update : Context -> msg -> model -> ( model, Cmd msg )
-    , view : Context -> model -> Maybe blend -> view
-    , subscribe : Context -> model -> Sub (Index -> msg)
+    , view : Context -> Maybe blend -> model -> view
+    , subscribe : Context -> model -> Sub ( Index, msg )
     , gui : Maybe (Index -> model -> Nest msg)
     }
 

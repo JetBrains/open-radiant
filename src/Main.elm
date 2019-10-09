@@ -1186,14 +1186,6 @@ subscriptions model =
                 in ChangeNativeMetaballsEffects layer change)
         , iFeelLucky
             (\_ -> TriggerFeelLucky)
-        , switchBackgroundStop
-            (\{ layer, stopIndex, value } ->
-                SwitchBackgroundStop layer stopIndex value)
-        , switchGradientOrientation
-            (\{ layer, orientation } ->
-                SwitchGradientOrientation layer
-                    <| Gradient.decodeOrientation orientation
-            )
         -}
         , applyRandomizer ApplyRandomizer
         , import_ Import
@@ -2010,20 +2002,6 @@ port changeNativeMetaballsOrbit :
     ( { layer : Layer.IndexP
       , value : Float
       }
-    -> msg) -> Sub msg
-
-port switchBackgroundStop :
-    ( { layer : Layer.IndexP
-      , stopIndex : Int
-      , value : Bool
-      }
-    -> msg) -> Sub msg
-
-port switchGradientOrientation :
-    (
-        { layer: Layer.IndexP
-        , orientation : String
-        }
     -> msg) -> Sub msg
 -}
 

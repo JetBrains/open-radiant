@@ -44,12 +44,9 @@ update mapMsg ctx (Index layerToUpdate) msg layers =
 subscribe : (Index -> Msg -> msg) -> Context -> Layers -> Sub msg
 subscribe mapMsg ctx layers =
     let
-        foldingF index ( _, _, model ) =
+        foldingF ( _, _, model ) =
             registry.byModel model
-                |> Maybe.map (\def ->
-                    def.subscribe ctx model
-                        -- |> Sub.map ((|>) index))
-                        |> Sub.map (\f -> f index))
+                |> Maybe.map (\def -> def.subscribe ctx model)
     in
         foldSubscribe mapMsg foldingF layers
 
@@ -95,25 +92,22 @@ foldUpdate mapMsg locUpdate source =
 
 foldSubscribe
     :  (Index -> Msg -> msg)
-    -> (Index -> x -> Maybe (Sub Msg))
+    -> (x -> Maybe (Sub ( Index, Msg )))
     -> List x
     -> Sub msg
     -- FIXME: some layers could be lost if they don't match, use mapping instead
 foldSubscribe mapMsg locSubscribe source =
     let
-        foldingF x ( prevSubs, index ) =
-            case locSubscribe (Index index) x of
+        foldingF x prevSubs =
+            case locSubscribe x of
                 Just sub ->
-                    -- ( Sub.map (\f index_ -> (mapMsg index_ <| f index_)) sub :: prevSubs
-                    ( Sub.map (mapMsg <| Index index) sub :: prevSubs
-                    , index + 1
-                    )
+                    Sub.map
+                        (\( msgIndex, msg ) -> mapMsg msgIndex msg)
+                        sub
+                    :: prevSubs
                 _ ->
-                    ( prevSubs
-                    , index + 1
-                    )
+                    prevSubs
     in
-        List.foldl foldingF ( [], 0 ) source
-            |> (\( subs, _ ) -> subs)
+        List.foldl foldingF [] source
             |> Sub.batch
 
