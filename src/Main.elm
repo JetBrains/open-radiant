@@ -1101,6 +1101,7 @@ subscriptions model =
                 case Product.decode productStr of
                     Ok product -> ChangeProduct product
                     Err error -> AddError <| "Failed to decode product: " ++ error)
+        , Layers.subscribe ToLayer (getContext model) model.layers
         {-
         , changeFssRenderMode (\{value, layer} ->
             FSS.decodeRenderMode value |> ChangeFssRenderMode layer)

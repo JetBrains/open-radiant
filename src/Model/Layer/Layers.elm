@@ -11,28 +11,6 @@ type alias Layers = List Layer
 type alias Initial = List ( Visibility, Blend, DefId )
 
 
-fold
-    :  (Index -> Msg -> msg)
-    -> (Index -> x -> Maybe ( Layer, Cmd Msg ) )
-    -> List x
-    -> ( Layers, Cmd msg )
-    -- FIXME: some layers could be lost if they don't match, use mapping instead
-fold mapMsg f source =
-    let
-        foldingF x ( prevLayers, prevCmds, index ) =
-            case f (Index index) x of
-                Just ( layer, cmd ) ->
-                    ( layer :: prevLayers
-                    , Cmd.map (mapMsg <| Index index) cmd :: prevCmds, index + 1
-                    )
-                _ ->
-                    ( prevLayers, prevCmds, index + 1 )
-    in
-        List.foldl foldingF ( [], [], 0 ) source
-            |> (\( layers, commands, _ ) -> ( layers, commands ))
-            |> Tuple.mapSecond Cmd.batch
-
-
 init
     :  (Index -> Msg -> msg)
     -> Context
@@ -46,19 +24,34 @@ init mapMsg ctx initial =
                 |> Maybe.map (\( model, cmd ) ->
                         ( ( visibility, blend, model ), cmd ))
     in
-        fold mapMsg foldingF initial
+        foldUpdate mapMsg foldingF initial
 
 
 update : (Index -> Msg -> msg) -> Context -> Index -> Msg -> Layers -> ( Layers, Cmd msg )
-update mapMsg ctx (Index indexToUpdate) msg layers =
+update mapMsg ctx (Index layerToUpdate) msg layers =
     let
-        foldingF index ( visibility, blend, model ) =
-            registry.byModel model
-                |> Maybe.map (\def -> def.update ctx msg model)
-                |> Maybe.map (\( newModel, cmd ) ->
-                        ( ( visibility, blend, newModel ), cmd ))
+        foldingF (Index index) ( visibility, blend, model ) =
+            if index == layerToUpdate then
+                registry.byModel model
+                    |> Maybe.map (\def -> def.update ctx msg model)
+                    |> Maybe.map (\( newModel, cmd ) ->
+                            ( ( visibility, blend, newModel ), cmd ))
+            else Just ( ( visibility, blend, model ), Cmd.none )
     in
-        fold mapMsg foldingF layers
+        foldUpdate mapMsg foldingF layers
+
+
+subscribe : (Index -> Msg -> msg) -> Context -> Layers -> Sub msg
+subscribe mapMsg ctx layers =
+    let
+        foldingF index ( _, _, model ) =
+            registry.byModel model
+                |> Maybe.map (\def ->
+                    def.subscribe ctx model
+                        -- |> Sub.map ((|>) index))
+                        |> Sub.map (\f -> f index))
+    in
+        foldSubscribe mapMsg foldingF layers
 
 
 modify : (Layer -> Layer) -> Index -> Layers -> Layers
@@ -74,3 +67,53 @@ modify f (Index indexToChange) =
 render : Layers -> List ( Index, View )
 render layers =
     [] -- FIXME: implement
+
+
+
+foldUpdate
+    :  (Index -> Msg -> msg)
+    -> (Index -> x -> Maybe ( Layer, Cmd Msg ) )
+    -> List x
+    -> ( Layers, Cmd msg )
+    -- FIXME: some layers could be lost if they don't match, use mapping instead
+foldUpdate mapMsg locUpdate source =
+    let
+        foldingF x ( prevLayers, prevCmds, index ) =
+            case locUpdate (Index index) x of
+                Just ( layer, cmd ) ->
+                    ( layer :: prevLayers
+                    , Cmd.map (mapMsg <| Index index) cmd :: prevCmds
+                    , index + 1
+                    )
+                _ ->
+                    ( prevLayers, prevCmds, index + 1 )
+    in
+        List.foldl foldingF ( [], [], 0 ) source
+            |> (\( layers, commands, _ ) -> ( layers, commands ))
+            |> Tuple.mapSecond Cmd.batch
+
+
+foldSubscribe
+    :  (Index -> Msg -> msg)
+    -> (Index -> x -> Maybe (Sub Msg))
+    -> List x
+    -> Sub msg
+    -- FIXME: some layers could be lost if they don't match, use mapping instead
+foldSubscribe mapMsg locSubscribe source =
+    let
+        foldingF x ( prevSubs, index ) =
+            case locSubscribe (Index index) x of
+                Just sub ->
+                    -- ( Sub.map (\f index_ -> (mapMsg index_ <| f index_)) sub :: prevSubs
+                    ( Sub.map (mapMsg <| Index index) sub :: prevSubs
+                    , index + 1
+                    )
+                _ ->
+                    ( prevSubs
+                    , index + 1
+                    )
+    in
+        List.foldl foldingF ( [], 0 ) source
+            |> (\( subs, _ ) -> subs)
+            |> Sub.batch
+
