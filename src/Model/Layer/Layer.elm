@@ -16,9 +16,10 @@ import WebGL as WebGL
 import Model.Layer.Def exposing (..)
 import Model.Layer.Def as Def exposing (Index)
 
-import Model.Layer.Blend.Html as HtmlBlend
-import Model.Layer.Blend.WebGL as WGLBlend
+import Model.Layer.Blend.Html as Html exposing (Blend)
+import Model.Layer.Blend.WebGL as WebGL exposing (Blend, BlendChange)
 
+import Layer.Background.Background as Background exposing (..)
 import Layer.Fluid.Fluid as Fluid exposing (..)
 
 
@@ -41,8 +42,8 @@ type alias Registry =
 
 
 type Blend
-    = ForWebGL WGLBlend.Blend
-    | ForHtml HtmlBlend.Blend
+    = ForWebGL WebGL.Blend
+    | ForHtml Html.Blend
     | NoBlend
 
 
@@ -53,14 +54,14 @@ type Visibility
 
 
 type Model
-    = Background ()
+    = Background Background.Model
     | Cover ()
     | Unknown
     -- TODO: add mirrored FSS
 
 
 type Msg
-    = BackgroundMsg ()
+    = BackgroundMsg Background.Msg
     | CoverMsg ()
 
 
@@ -68,9 +69,11 @@ type Adaptation model view msg blend =
     Adaptation
         { convertModel : model -> Model
         , convertMsg : msg -> Msg
-        , convertView : Kind -> view -> View
         , extractModel : Model -> Maybe model
         , extractMsg : Msg -> Maybe msg
+        , convertView : view -> View
+        -- , extractView : View -> Maybe view
+        -- , convertBlend : blend -> Blend
         , extractBlend : Blend -> Maybe blend
         }
 
@@ -80,8 +83,24 @@ register
     -> Adaptation model view msg blend
     -> Registry
     -> Registry
-register def adaptation registerAt =
-    registerAt
+register def (Adaptation adaptation) registerAt =
+    let
+        adaptedDef = adapt (Adaptation adaptation) def
+    in
+        { registerAt
+        | byId = \otherId ->
+            if otherId == def.id
+                then Just adaptedDef
+                else registerAt.byId otherId
+        , byModel = \model ->
+            case adaptation.extractModel model of
+                Just _ -> Just adaptedDef
+                _ -> registerAt.byModel model
+        , byMsg = \msg ->
+            case adaptation.extractMsg msg of
+                Just _ -> Just adaptedDef
+                _ -> registerAt.byMsg msg
+        }
 
 
 registry : Registry
@@ -90,7 +109,45 @@ registry =
     , byModel = always Nothing
     , byMsg = always Nothing
     }
-    -- FIXME: fill with all known types of layers
+
+    |> register Background.def
+        (htmlAdaptation
+            Background
+            BackgroundMsg
+            (\model ->
+                case model of
+                    Background bgModel -> Just bgModel
+                    _ -> Nothing)
+            (\msg ->
+                case msg of
+                    BackgroundMsg bgMsg -> Just bgMsg
+                    _ -> Nothing)
+        )
+
+
+htmlAdaptation
+    :  (model -> Model)
+    -> (msg -> Msg)
+    -> (Model -> Maybe model)
+    -> (Msg -> Maybe msg)
+    -> Adaptation model (Html msg) msg Html.Blend
+htmlAdaptation
+    convertModel
+    convertMsg
+    extractModel
+    extractMsg =
+    (Adaptation
+            { convertModel = convertModel
+            , convertMsg = convertMsg
+            , extractModel = extractModel
+            , extractMsg = extractMsg
+            , convertView = (\htmlView ->
+                Html.map convertMsg htmlView
+                    |> ToHtml)
+            , extractBlend =
+                extractHtmlBlend
+            }
+        )
 
 
 isVisible : Layer -> Bool
@@ -140,7 +197,7 @@ alterBlend changeF ( visibility, curBlend, model ) =
     ( visibility, changeF curBlend, model )
 
 
-alterWebGlBlend : WGLBlend.BlendChange -> Layer -> Layer
+alterWebGlBlend : WebGL.BlendChange -> Layer -> Layer
 alterWebGlBlend changeF =
     alterBlend
         (\blend ->
@@ -148,6 +205,19 @@ alterWebGlBlend changeF =
                 ForWebGL wglBlend -> changeF wglBlend |> ForWebGL
                 _ -> blend
         )
+
+extractHtmlBlend : Blend -> Maybe Html.Blend
+extractHtmlBlend blend =
+    case blend of
+        ForHtml htmlBlend -> Just htmlBlend
+        _ -> Nothing
+
+
+extractWebGLBlend : Blend -> Maybe WebGL.Blend
+extractWebGLBlend blend =
+    case blend of
+        ForWebGL webGlBlend -> Just webGlBlend
+        _ -> Nothing
 
 
 adapt
@@ -183,7 +253,7 @@ adapt
             \ctx maybeBlend layerModel  ->
                 case a.extractModel layerModel of
                     Just model ->
-                        a.convertView source.kind
+                        a.convertView
                             <| source.view
                                 ctx
                                 (a.extractBlend <| Maybe.withDefault NoBlend maybeBlend)

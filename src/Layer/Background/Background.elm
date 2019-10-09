@@ -1,16 +1,7 @@
 port module Layer.Background.Background exposing
-    ( Model
-    , StopState(..)
-    , StopStates(..)
-    , init
-    , view
-    , encode
-    , decode
-    , switchStop
-    , indexToStopId
-    , boolToStopState
-    , defaultOrientation
-    , decodeOrientation
+    ( def
+    , Model
+    , Msg
     )
 
 
@@ -29,7 +20,6 @@ import Svg.Attributes as S exposing (style)
 import Viewport exposing (Viewport)
 
 import Model.Product as Product exposing (..)
-import Model.Layer.Layer exposing (..)
 import Model.Layer.Def exposing (Kind(..))
 import Model.Layer.Def as Layer exposing (Def, JsIndex, Index)
 import Model.Layer.Context exposing (..)
@@ -105,7 +95,24 @@ init =
 
 update : Context -> Msg -> Model -> ( Model, Cmd Msg )
 update ctx msg model =
-    ( model, Cmd.none ) -- FIXME: implement
+    case msg of
+        SwitchStop stopIndex value ->
+            (
+                { model
+                | stops = switchStop
+                            (indexToStopId stopIndex)
+                            (boolToStopState value)
+                            model.stops
+                }
+            , Cmd.none
+            )
+        SwitchGradientOrientation orientation ->
+            (
+                { model
+                | orientation = orientation
+                }
+            , Cmd.none
+            )
 
 
 view : Context -> Maybe Html.Blend -> Model -> Html Msg
