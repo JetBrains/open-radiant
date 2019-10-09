@@ -202,6 +202,7 @@ getContext model =
     , mode = model.mode
     , size = getRuleSizeOrZeroes model.size
     , palette = Product.getPalette model.product
+    , origin = model.origin
     }
 
 

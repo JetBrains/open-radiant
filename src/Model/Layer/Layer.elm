@@ -20,6 +20,7 @@ import Model.Layer.Blend.Html as Html exposing (Blend)
 import Model.Layer.Blend.WebGL as WebGL exposing (Blend, BlendChange)
 
 import Layer.Background.Background as Background exposing (..)
+import Layer.Cover.Cover as Cover exposing (..)
 import Layer.Fluid.Fluid as Fluid exposing (..)
 
 
@@ -32,13 +33,6 @@ type View
 
 
 -- type alias CreateLayer = Kind {- -> Model -} -> Maybe Layer
-
-
-type alias Registry =
-    { byId : DefId -> Maybe (Def Model View Msg Blend)
-    , byModel : Model -> Maybe (Def Model View Msg Blend)
-    , byMsg : Msg -> Maybe (Def Model View Msg Blend)
-    }
 
 
 type Blend
@@ -55,7 +49,7 @@ type Visibility
 
 type Model
     = Background Background.Model
-    | Cover ()
+    | Cover Cover.Model
     | Unknown
     -- TODO: add mirrored FSS
 
@@ -76,6 +70,13 @@ type Adaptation model view msg blend =
         -- , convertBlend : blend -> Blend
         , extractBlend : Blend -> Maybe blend
         }
+
+
+type alias Registry =
+    { byId : DefId -> Maybe (Def Model View Msg Blend)
+    , byModel : Model -> Maybe (Def Model View Msg Blend)
+    , byMsg : Msg -> Maybe (Def Model View Msg Blend)
+    }
 
 
 register
@@ -101,28 +102,6 @@ register def (Adaptation adaptation) registerAt =
                 Just _ -> Just adaptedDef
                 _ -> registerAt.byMsg msg
         }
-
-
-registry : Registry
-registry =
-    { byId = always Nothing
-    , byModel = always Nothing
-    , byMsg = always Nothing
-    }
-
-    |> register Background.def
-        (htmlAdaptation
-            Background
-            BackgroundMsg
-            (\model ->
-                case model of
-                    Background bgModel -> Just bgModel
-                    _ -> Nothing)
-            (\msg ->
-                case msg of
-                    BackgroundMsg bgMsg -> Just bgMsg
-                    _ -> Nothing)
-        )
 
 
 htmlAdaptation
@@ -268,3 +247,39 @@ adapt
                     Nothing -> Sub.none
         , gui = Nothing -- FIXME
         }
+
+
+registry : Registry
+registry =
+    { byId = always Nothing
+    , byModel = always Nothing
+    , byMsg = always Nothing
+    }
+
+    |> register Background.def
+        (htmlAdaptation
+            Background
+            BackgroundMsg
+            (\model ->
+                case model of
+                    Background bgModel -> Just bgModel
+                    _ -> Nothing)
+            (\msg ->
+                case msg of
+                    BackgroundMsg bgMsg -> Just bgMsg
+                    _ -> Nothing)
+        )
+
+    |> register Cover.def
+        (htmlAdaptation
+            Cover
+            CoverMsg
+            (\model ->
+                case model of
+                    Cover coverModel -> Just coverModel
+                    _ -> Nothing)
+            (\msg ->
+                case msg of
+                    CoverMsg coverMsg -> Just coverMsg
+                    _ -> Nothing)
+        )

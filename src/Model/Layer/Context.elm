@@ -9,4 +9,5 @@ type alias Context =
     , product : Product
     , size : ( Int, Int )
     , palette : Palette
+    , origin : ( Int, Int )
     }
