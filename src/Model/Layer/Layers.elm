@@ -117,15 +117,15 @@ modify f (Index indexToChange) =
         )
 
 
-render : Context -> Layers -> List ( Index, View )
+render : Context -> Layers -> List ( Index, ZOrder, View )
 render ctx layers =
     layers |>
         List.map
-            (\(Layer { blend, index } model) ->
+            (\(Layer { index, zOrder, blend } model) ->
                 registry.byModel model
                     |> Maybe.map (\def ->
                         def.view ctx (Just blend) model)
-                    |> Maybe.map (\view -> ( Index index, view ))
+                    |> Maybe.map (\view -> ( Index index, ZOrder zOrder, view ))
             )
         |> List.filterMap identity
 

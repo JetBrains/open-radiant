@@ -23,15 +23,15 @@ import WebGL as WebGL
 -- type alias LayerToHtml     = Layer.Model -> Viewport {} -> Int -> Layer.Def -> Html Msg
 
 type QueueItem
-    = HtmlGroup (Array (Layer.Index, Html Layer.Msg))
-    | WebGLGroup (Array (Layer.Index, WebGL.Entity))
+    = HtmlGroup (Array (Layer.Index, Layer.ZOrder, Html Layer.Msg))
+    | WebGLGroup (Array (Layer.Index, Layer.ZOrder, WebGL.Entity))
 type alias RenderQueue = Array QueueItem
 
 
-make : List ( Layer.Index, Layer.View ) -> RenderQueue
+make : List ( Layer.Index, Layer.ZOrder, Layer.View ) -> RenderQueue
 make renderedLayers =
     let
-        addToQueue ( index, layerView ) renderQueue =
+        addToQueue ( index, zOrder, layerView ) renderQueue =
             let
                 indexOfThelastInQueue = Array.length renderQueue - 1
                 lastInQueue = renderQueue |> Array.get indexOfThelastInQueue
@@ -42,13 +42,13 @@ make renderedLayers =
                             renderQueue
                                 |> Array.set indexOfThelastInQueue
                                     (existingEntities
-                                        |> Array.push (index, entity)
+                                        |> Array.push (index, zOrder, entity)
                                         |> WebGLGroup)
                         _ ->
                             renderQueue
                                 |> Array.push
                                     (Array.empty
-                                        |> Array.push (index, entity)
+                                        |> Array.push (index, zOrder, entity)
                                         |> WebGLGroup)
                 Layer.ToHtml html ->
                     case lastInQueue of
@@ -56,22 +56,23 @@ make renderedLayers =
                             renderQueue
                                 |> Array.set indexOfThelastInQueue
                                     (existingHtml
-                                        |> Array.push (index, html)
+                                        |> Array.push (index, zOrder, html)
                                         |> HtmlGroup)
                         _ ->
                             renderQueue
                                 |> Array.push
                                     (Array.empty
-                                        |> Array.push (index, html)
+                                        |> Array.push (index, zOrder, html)
                                         |> HtmlGroup)
     in
         renderedLayers
+            |> List.reverse
             |> List.foldl addToQueue Array.empty
 
 
 apply
-    :  (List (Layer.Index, Html Layer.Msg) -> Html Msg)
-    -> (List (Layer.Index, WebGL.Entity) -> Html Msg)
+    :  (List (Layer.Index, Layer.ZOrder, Html Layer.Msg) -> Html Msg)
+    -> (List (Layer.Index, Layer.ZOrder, WebGL.Entity) -> Html Msg)
     -> RenderQueue
     -> Html Msg
 apply wrapHtml wrapEntities queue =

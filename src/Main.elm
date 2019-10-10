@@ -1166,7 +1166,7 @@ view model =
                 , Events.onClick TriggerPause
                 ]
                 <| List.map
-                    (\( index, html ) -> Html.map (ToLayer index) html)
+                    (\( index, _, html ) -> Html.map (ToLayer index) html)
                     htmls
         wrapEntities entities =
             WebGL.toHtmlWith
@@ -1181,7 +1181,7 @@ view model =
                 , style "display" (if visible then "block" else "none")
                 , Events.onClick TriggerPause
                 ]
-                <| List.map Tuple.second entities
+                <| List.map (\(_, _, e) -> e) entities
         renderedLayers =
             model.layers
                 |> Layers.render (getContext model)
