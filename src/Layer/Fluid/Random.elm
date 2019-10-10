@@ -17,6 +17,7 @@ import Model.Product exposing (ColorId(..))
 
 import Layer.Fluid.Model exposing (..)
 
+
 generator : ( Int, Int ) -> Randomization -> Random.Generator Model
 generator size randomization =
     case randomization of

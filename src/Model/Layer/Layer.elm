@@ -24,7 +24,18 @@ import Layer.Cover.Cover as Cover exposing (..)
 import Layer.Fluid.Fluid as Fluid exposing (..)
 
 
-type alias Layer = ( Visibility, Blend, Model )
+type ZOrder = ZOrder Int
+
+
+type Layer =
+    Layer
+        { index : Int
+        , visibility : Visibility
+        , blend : Blend
+        , zOrder : Int
+        , opacity : Float
+        }
+        Model
 
 
 type View
@@ -79,67 +90,34 @@ type alias Registry =
     }
 
 
-register
-    :  Def model view msg blend
-    -> Adaptation model view msg blend
-    -> Registry
-    -> Registry
-register def (Adaptation adaptation) registerAt =
-    let
-        adaptedDef = adapt (Adaptation adaptation) def
-    in
-        { registerAt
-        | byId = \otherId ->
-            if otherId == def.id
-                then Just adaptedDef
-                else registerAt.byId otherId
-        , byModel = \model ->
-            case adaptation.extractModel model of
-                Just _ -> Just adaptedDef
-                _ -> registerAt.byModel model
-        , byMsg = \msg ->
-            case adaptation.extractMsg msg of
-                Just _ -> Just adaptedDef
-                _ -> registerAt.byMsg msg
+layer : Index -> ZOrder -> Visibility -> Blend -> Model -> Layer
+layer (Index index) (ZOrder zOrder) visibility blend model =
+    Layer
+        { visibility = visibility
+        , blend = blend
+        , zOrder = zOrder
+        , index = index
+        , opacity = 1.0
         }
-
-
-htmlAdaptation
-    :  (model -> Model)
-    -> (msg -> Msg)
-    -> (Model -> Maybe model)
-    -> (Msg -> Maybe msg)
-    -> Adaptation model (Html msg) msg Html.Blend
-htmlAdaptation
-    convertModel
-    convertMsg
-    extractModel
-    extractMsg =
-    (Adaptation
-            { convertModel = convertModel
-            , convertMsg = convertMsg
-            , extractModel = extractModel
-            , extractMsg = extractMsg
-            , convertView = (\htmlView ->
-                Html.map convertMsg htmlView
-                    |> ToHtml)
-            , extractBlend =
-                extractHtmlBlend
-            }
-        )
+        model
 
 
 isVisible : Layer -> Bool
-isVisible ( visibility, _, _) = visibility /= Hidden
+isVisible (Layer { visibility } _)  = visibility /= Hidden
 
 
 getId : Layer -> Maybe DefId
-getId ( _, _, model ) =
+getId (Layer _ model) =
     registry.byModel model |> Maybe.map .id
 
 
+getModel : Layer -> Model
+getModel (Layer _ model) =
+    model
+
+
 isOn : Layer -> Bool
-isOn ( visibility, _, _ ) =
+isOn (Layer { visibility } _) =
     case visibility of
         Visible -> True
         Locked -> True
@@ -147,33 +125,57 @@ isOn ( visibility, _, _ ) =
 
 
 hide : Layer -> Layer
-hide ( _ , blend, model ) =
-    ( Hidden, blend, model )
+hide (Layer def model) =
+    Layer
+        { def
+        | visibility = Hidden
+        }
+        model
 
 
 show : Layer -> Layer
-show ( _ , blend, model ) =
-    ( Visible, blend, model )
+show (Layer def model) =
+    Layer
+        { def
+        | visibility = Visible
+        }
+        model
 
 
 lock : Layer -> Layer
-lock ( _ , blend, model ) =
-    ( Locked, blend, model )
+lock (Layer def model) =
+    Layer
+        { def
+        | visibility = Locked
+        }
+        model
 
 
 unlock : Layer -> Layer
-unlock ( _ , blend, model ) =
-    ( Visible, blend, model )
+unlock = show
+
+
+replaceModel : Model -> Layer -> Layer
+replaceModel newModel (Layer def _) =
+    Layer def newModel
 
 
 changeBlend : Blend -> Layer -> Layer
-changeBlend newBlend ( visibility, _, model ) =
-    ( visibility, newBlend, model )
+changeBlend newBlend (Layer def model) =
+    Layer
+        { def
+        | blend = newBlend
+        }
+        model
 
 
 alterBlend : (Blend -> Blend) -> Layer -> Layer
-alterBlend changeF ( visibility, curBlend, model ) =
-    ( visibility, changeF curBlend, model )
+alterBlend changeF (Layer ({ blend } as def) model) =
+    Layer
+        { def
+        | blend = changeF blend
+        }
+        model
 
 
 alterWebGlBlend : WebGL.BlendChange -> Layer -> Layer
@@ -247,6 +249,56 @@ adapt
                     Nothing -> Sub.none
         , gui = Nothing -- FIXME
         }
+
+
+register
+    :  Def model view msg blend
+    -> Adaptation model view msg blend
+    -> Registry
+    -> Registry
+register def (Adaptation adaptation) registerAt =
+    let
+        adaptedDef = adapt (Adaptation adaptation) def
+    in
+        { registerAt
+        | byId = \otherId ->
+            if otherId == def.id
+                then Just adaptedDef
+                else registerAt.byId otherId
+        , byModel = \model ->
+            case adaptation.extractModel model of
+                Just _ -> Just adaptedDef
+                _ -> registerAt.byModel model
+        , byMsg = \msg ->
+            case adaptation.extractMsg msg of
+                Just _ -> Just adaptedDef
+                _ -> registerAt.byMsg msg
+        }
+
+
+htmlAdaptation
+    :  (model -> Model)
+    -> (msg -> Msg)
+    -> (Model -> Maybe model)
+    -> (Msg -> Maybe msg)
+    -> Adaptation model (Html msg) msg Html.Blend
+htmlAdaptation
+    convertModel
+    convertMsg
+    extractModel
+    extractMsg =
+    (Adaptation
+            { convertModel = convertModel
+            , convertMsg = convertMsg
+            , extractModel = extractModel
+            , extractMsg = extractMsg
+            , convertView = (\htmlView ->
+                Html.map convertMsg htmlView
+                    |> ToHtml)
+            , extractBlend =
+                extractHtmlBlend
+            }
+        )
 
 
 registry : Registry

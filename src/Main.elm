@@ -139,17 +139,23 @@ initialLayers : AppMode -> Layers.Initial
 initialLayers mode =
     let
         layers =
-            [ ( if mode == Ads then Layer.Hidden else Layer.Visible
-              , Layer.ForHtml HtmlBlend.default
-              , "cover" ) -- TODO: `Cover.id` & s.o.
-            , ( Layer.Hidden, Layer.ForWebGL WGLBlend.default, "metaballs" )
-            , ( Layer.Visible, Layer.ForWebGL WGLBlend.default, "metaballs" )
-            , ( Layer.Locked, Layer.ForHtml HtmlBlend.default, "background" )
+            [ { visibility = if mode == Ads then Layer.Hidden else Layer.Visible
+              , blend = Layer.ForHtml HtmlBlend.default
+              , fromDef = "cover" } -- TODO: `Cover.id` & s.o.
+            , { visibility = Layer.Hidden
+              , blend = Layer.ForWebGL WGLBlend.default
+              , fromDef = "metaballs" }
+            , { visibility = Layer.Visible
+              , blend = Layer.ForWebGL WGLBlend.default
+              , fromDef = "metaballs" }
+            , { visibility = Layer.Locked
+              , blend = Layer.ForHtml HtmlBlend.default
+              , fromDef = "background" }
             ]
     in
         layers
-            |> List.filter (\(_, _, defId) ->
-                case ( defId, mode ) of
+            |> List.filter (\{ fromDef } ->
+                case ( fromDef, mode ) of
                     ( "cover", Ads ) -> False
                     _ -> True
             )

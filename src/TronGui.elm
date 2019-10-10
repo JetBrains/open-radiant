@@ -10,7 +10,7 @@ import Model.AppMode exposing (AppMode(..))
 import Model.Core as Core exposing (..)
 import Model.Product as Product exposing (Product(..))
 import Model.SizeRule exposing (..)
-import Model.Layer.Layer as Layer exposing (Model(..))
+import Model.Layer.Layer as Layer exposing (Model(..), getModel)
 import Model.Layer.Def as Layer exposing (Index)
 import Model.Layer.Blend.Html as HtmlBlend
 import Model.Layer.Blend.WebGL as WGLBlend
@@ -111,8 +111,8 @@ gui from =
         layerButtons =
             from.layers
                 |> List.filter
-                    (\(_, _, model) ->
-                        case ( model, from.mode ) of
+                    (\layer ->
+                        case ( Layer.getModel layer, from.mode ) of
                             ( Cover _, Production ) -> False
                             _ -> True
                     )

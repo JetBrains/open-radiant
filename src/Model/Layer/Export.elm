@@ -99,30 +99,31 @@ unknown = "<unknown>"
 
 
 encodeForPort : Context -> Layer -> PortDef
-encodeForPort ctx (( visibility, blend, model ) as layer) =
-    case registry.byModel model of
-        Just def ->
-            { def = def.id
-            , kind =  encodeKind def.kind
-            , isOn = isOn layer
-            , visible = encodeVisibility visibility
-            , blend = encodePortBlend blend
-            , model = model
-                |> encodeModel ctx
-                |> Maybe.withDefault (E.string unknown)
-                |> E.encode 2
-            }
-        Nothing ->
+encodeForPort ctx (Layer props model as layer) =
+    let
+        unknownDef =
             { def = unknown
             , kind =  unknown
             , isOn = isOn layer
-            , visible = encodeVisibility visibility
-            , blend = encodePortBlend blend
+            , visible = encodeVisibility props.visibility
+            , blend = encodePortBlend props.blend
+            , zOrder = props.zOrder
+            , index = props.index
+            , opacity = props.opacity
             , model = model
                 |> encodeModel ctx
                 |> Maybe.withDefault (E.string unknown)
                 |> E.encode 2
             }
+    in
+        case registry.byModel model of
+            Just def ->
+                { unknownDef
+                | def = def.id
+                , kind =  encodeKind def.kind
+                }
+            Nothing ->
+                unknownDef
 
 
 decodeFromPort
@@ -137,25 +138,31 @@ decodeFromPort ctx portDef  =
                 |> Result.mapError LayerModelDecodeFailed
                 |> Result.map
                     (\model ->
-                        ( decodeVisibility portDef.visible
-                            |> Maybe.withDefault Hidden
-                        , case decodeKind portDef.kind
-                                |> Maybe.withDefault Html of
-                            WebGL ->
-                                portDef.blend
-                                    |> Tuple.first
-                                    |> Maybe.withDefault WGLBlend.default
-                                    -- TODO: produce BlendDecodeError?
-                                    |> ForWebGL
-                            _ ->
-                                portDef.blend
-                                    |> Tuple.second
-                                    |> Maybe.map HtmlBlend.decode
-                                    |> Maybe.withDefault HtmlBlend.default
-                                    -- TODO: produce BlendDecodeError?
-                                    |> ForHtml
-                        , model
-                        )
+                        Layer
+                            { blend =
+                                case decodeKind portDef.kind
+                                    |> Maybe.withDefault Html of
+                                    WebGL ->
+                                        portDef.blend
+                                            |> Tuple.first
+                                            |> Maybe.withDefault WGLBlend.default
+                                            -- TODO: produce BlendDecodeError?
+                                            |> ForWebGL
+                                    _ ->
+                                        portDef.blend
+                                            |> Tuple.second
+                                            |> Maybe.map HtmlBlend.decode
+                                            |> Maybe.withDefault HtmlBlend.default
+                                            -- TODO: produce BlendDecodeError?
+                                            |> ForHtml
+                            , visibility =
+                                decodeVisibility portDef.visible
+                                    |> Maybe.withDefault Visible
+                            , opacity = portDef.opacity
+                            , zOrder = portDef.zOrder
+                            , index = portDef.index
+                            }
+                            model
                     )
                 |> Result.mapError List.singleton
         Nothing ->
@@ -165,37 +172,45 @@ decodeFromPort ctx portDef  =
 
 
 encode : Context -> Layer -> E.Value
-encode ctx (( visibility, blend, model ) as layer) =
-    case registry.byModel model of
-        Just def ->
-            E.object
+encode ctx (Layer props model as layer) =
+    -- FIXME: store props inside the separate object
+    [ ( "blend", encodeBlend props.blend |> E.string)
+    , ( "blendDesc", encodeBlendDesc props.blend |> E.string )
+    , ( "visible", encodeVisibility props.visibility |> E.string )
+    , ( "opacity", props.opacity |> E.float )
+    , ( "zOrder", props.zOrder |> E.int )
+    , ( "index", props.index |> E.int )
+    , ( "isOn", isOn layer |> E.bool )
+    , ( "model", encodeModel ctx model
+                |> Maybe.withDefault (E.string unknown) )
+    -- , ( "mesh", E.string "" )
+    ]
+    ++ (
+        case registry.byModel model of
+            Just def ->
                 [ ( "def", def.id |> E.string )
-                -- , ( "name", layerDef.name |> E.string )
                 , ( "kind", encodeKind def.kind |> E.string)
-                , ( "blend", encodeBlend blend |> E.string)
-                , ( "blendDesc", encodeBlendDesc blend |> E.string )
-                , ( "visible", encodeVisibility visibility |> E.string )
-                , ( "isOn", isOn layer |> E.bool )
-                , ( "model", encodeModel ctx model
-                            |> Maybe.withDefault (E.string unknown) )
-                -- , ( "mesh", E.string "" )
                 ]
-        Nothing ->
-            E.object
+            Nothing ->
                 [ ( "def", unknown |> E.string )
-                , ( "kind", unknown |> E.string )
-                , ( "blend", unknown |> E.string )
-                , ( "blendDesc", unknown |> E.string )
-                , ( "isOn", False |> E.bool )
-                , ( "visible", encodeVisibility Hidden |> E.string )
-                , ( "model", unknown |> E.string )
+                , ( "kind", unknown |> E.string)
                 ]
+        )
+    |> E.object
 
 
 decode : Context -> D.Decoder Layer
 decode ctx =
     let
-        createLayer defId kindStr blendStr visibilityStr layerModelStr =
+        createLayer
+            defId
+            kindStr
+            index
+            blendStr
+            visibilityStr
+            opacity
+            zOrder
+            layerModelStr =
             case registry.byId defId of
                 Just def ->
                     layerModelStr
@@ -203,33 +218,44 @@ decode ctx =
                         |> resultToDecoder_ D.errorToString
                         |> D.map
                             (\model ->
-                                ( decodeVisibility visibilityStr
-                                    |> Maybe.withDefault Hidden
-                                , case decodeKind kindStr
-                                        |> Maybe.withDefault Html of
-                                    WebGL ->
-                                        WGLBlend.decodeOne blendStr
-                                            |> Maybe.withDefault WGLBlend.default
-                                            -- TODO: produce BlendDecodeError?
-                                            |> ForWebGL
-                                    _ ->
-                                        HtmlBlend.decode blendStr
-                                            -- TODO: produce BlendDecodeError?
-                                            |> ForHtml
-                                , model
-                                )
+
+                                Layer
+                                    { blend =
+                                        case decodeKind kindStr
+                                            |> Maybe.withDefault Html of
+                                        WebGL ->
+                                            WGLBlend.decodeOne blendStr
+                                                |> Maybe.withDefault WGLBlend.default
+                                                -- TODO: produce BlendDecodeError?
+                                                |> ForWebGL
+                                        _ ->
+                                            HtmlBlend.decode blendStr
+                                                -- TODO: produce BlendDecodeError?
+                                                |> ForHtml
+                                    , visibility =
+                                        decodeVisibility visibilityStr
+                                            |> Maybe.withDefault Visible
+                                    , opacity = opacity
+                                    , zOrder = zOrder
+                                    , index = index
+                                    }
+                                    model
+
                             )
                 Nothing ->
                     -- ( Hidden
                     -- , NoBlend
                     -- , Unknown
                     -- ) |> D.succeed
-                    D.fail <| "unknown ID " ++ defId
+                    D.fail <| "unknown Def ID " ++ defId
     in
-        D.map5 createLayer
+        D.map8 createLayer
             (D.field "def" D.string)
             (D.field "kind" D.string)
+            (D.field "index" D.int)
             (D.field "blend" D.string)
             (D.field "visible" D.string)
+            (D.field "opacity" D.float)
+            (D.field "zOrder" D.int)
             (D.field "model" D.string)
             |> D.andThen identity

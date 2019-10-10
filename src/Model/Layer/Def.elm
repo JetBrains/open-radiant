@@ -59,11 +59,14 @@ type alias PortBlend =
     ( Maybe WebGL.Blend, Maybe String )
 
 
-type alias PortDef =
+type alias PortDef = -- FIXME: actually it's not `PortDef`, but `PortLayer`
     { def : String
     , kind : String
     , blend : PortBlend
     , visible : String
+    , opacity : Float
+    , zOrder : Int
+    , index : Int
     , isOn : Bool
     , model : String
     }
