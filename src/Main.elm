@@ -45,6 +45,10 @@ import Model.Layer.Layers as Layers
 import Model.Layer.Blend.Html as HtmlBlend
 import Model.Layer.Blend.WebGL as WGLBlend
 
+import Layer.Background.Background as Background
+import Layer.Cover.Cover as Cover
+import Layer.NativeMetaballs.NativeMetaballs as NativeMetaballs
+
 import Gui.Gui as Gui
 import Gui.Mouse exposing (Position)
 import TronGui as Gui
@@ -139,18 +143,22 @@ initialLayers : AppMode -> Layers.Initial
 initialLayers mode =
     let
         layers =
-            [ { visibility = if mode == Ads then Layer.Hidden else Layer.Visible
+            [ { fromDef = Cover.id
+              , visibility = if mode == Ads then Layer.Hidden else Layer.Visible
               , blend = Layer.ForHtml HtmlBlend.default
-              , fromDef = "cover" } -- TODO: `Cover.id` & s.o.
-            , { visibility = Layer.Hidden
+              }
+            , { fromDef = NativeMetaballs.id
+              , visibility = Layer.Hidden
               , blend = Layer.ForWebGL WGLBlend.default
-              , fromDef = "metaballs" }
-            , { visibility = Layer.Visible
+              }
+            , { fromDef = NativeMetaballs.id
+              , visibility = Layer.Visible
               , blend = Layer.ForWebGL WGLBlend.default
-              , fromDef = "metaballs" }
-            , { visibility = Layer.Locked
+              }
+            , { fromDef = Background.id
+              , visibility = Layer.Locked
               , blend = Layer.ForHtml HtmlBlend.default
-              , fromDef = "background" }
+              }
             ]
     in
         layers

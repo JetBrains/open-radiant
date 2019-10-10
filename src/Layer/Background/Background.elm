@@ -1,5 +1,6 @@
 port module Layer.Background.Background exposing
-    ( def
+    ( id
+    , def
     , Model
     , Msg
     )
@@ -15,12 +16,12 @@ import Math.Vector2 as Vec2 exposing (..)
 
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
-import Svg.Attributes as S exposing (style)
+import Svg.Attributes as S exposing (style, id)
 
 import Viewport exposing (Viewport)
 
 import Model.Product as Product exposing (..)
-import Model.Layer.Def exposing (Kind(..))
+import Model.Layer.Def exposing (Kind(..), DefId)
 import Model.Layer.Def as Layer exposing (Def, JsIndex, Index)
 import Model.Layer.Context exposing (..)
 
@@ -34,9 +35,13 @@ import Color.Convert as Color exposing (..)
 import Color.Manipulate as Color exposing (..)
 
 
+id : DefId
+id = "background"
+
+
 def : Layer.Def Model (Html Msg) Msg Html.Blend
 def =
-    { id = "background"
+    { id = id
     , kind = Html
     , init = \_ -> ( init, Cmd.none )
     , encode = encode
@@ -226,7 +231,7 @@ gradientToSvg ( w, h ) gradientId { stops, orientation } =
         [ defs
             [ ]
             [ gradientKind orientation
-                [ id gradientId
+                [ S.id gradientId
                 , x1 "0%"
                 , y1 "0%"
                 -- , x2 "0%"

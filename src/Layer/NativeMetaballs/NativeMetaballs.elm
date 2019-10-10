@@ -1,13 +1,13 @@
 module Layer.NativeMetaballs.NativeMetaballs exposing
-    ( Model
+    ( id
+    , def
+    , Model
+    , Msg
     -- , PortModel
     , init
     , initial
     -- , export
     , view
-    , generate
-    , generator
-    , Orbit
     , defaultRange
     )
 
@@ -26,13 +26,43 @@ import Gradient exposing (Orientation(..))
 import Model.Product as Product
 import Model.Product exposing (ColorId(..))
 import Model.Range exposing (..)
-import Model.Html.Blend as Blend
+import Model.Layer.Blend.Html as Html exposing (Blend)
+import Model.Layer.Blend.Html as Blend exposing (encode)
+import Model.Layer.Def as Layer exposing (Def, DefId, Kind(..))
 
-import Layer.Fluid.Fluid as Fluid exposing
+import Layer.Fluid.Fluid as Fluid
+import Layer.Fluid.Model as Fluid exposing
     ( Model
-    , generate, generator
     , Orbit(..), Ranges
     )
+import Layer.Fluid.Random as Fluid exposing
+    ( generate, generator )
+import Layer.Fluid.Export as FluidIE
+
+
+id : DefId
+id = "native-metaballs"
+
+
+def : Layer.Def Model (H.Html Msg) Msg Html.Blend
+def =
+    { id = id
+    , kind = JS
+    , init = \ctx ->
+        let
+            model = init
+        in
+            ( model
+            , Cmd.none
+            )
+    , encode = FluidIE.encode
+    , decode = FluidIE.decode
+    , subscribe = \_ _ -> Sub.none
+    , update = \_ _ model -> ( model, Cmd.none )
+    , view = \_ _ _ -> H.div [] []
+    , gui = Nothing
+    }
+
 
 
 type Msg
@@ -71,7 +101,7 @@ init =
 --     }
 
 
-view : Blend.Blend -> Int -> Model -> H.Html a
+view : Html.Blend -> Int -> Model -> H.Html a
 view blend index _ =
     H.canvas
         [ H.id <| "native-metaballs-" ++ String.fromInt index
@@ -92,19 +122,6 @@ defaultRange =
         , y = fRange -10 10
         }
     }
-
-
-generate : (Model -> msg) -> Random.Generator Model -> Cmd msg
-generate =
-    Fluid.generate
-
-
-generator
-    :  ( Int, Int )
-    -> Fluid.Randomization
-    -> Random.Generator Model
-generator =
-    Fluid.generator
 
 
 groupOffset = { x = 0.65, y = 0.45 }

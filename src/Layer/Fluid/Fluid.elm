@@ -1,5 +1,6 @@
 port module Layer.Fluid.Fluid exposing
-    ( def
+    ( id
+    , def
     , loadTextures, injectTextures, packTextures
     )
 
@@ -44,10 +45,13 @@ import Layer.Fluid.Export as IE exposing (..)
 -- type alias GradientsToLoad =
 --     List Base64Url
 
+id : DefId
+id = "fluid"
+
 
 def : Layer.Def Model () Msg WebGL.Blend
 def =
-    { id = "fluid"
+    { id = id
     , kind = WebGL
     , init = \ctx ->
         let

@@ -1,5 +1,6 @@
 module Layer.Cover.Cover exposing
-    ( init
+    ( id
+    , init
     , view
     , def
     , Model
@@ -18,15 +19,18 @@ import Model.Product as Product exposing (Product)
 import Model.Product exposing (..)
 
 import Model.Layer.Context exposing (Context)
-import Model.Layer.Def exposing (Kind(..))
+import Model.Layer.Def exposing (Kind(..), DefId)
 import Model.Layer.Def as Layer exposing (Def)
 import Model.Layer.Def as Def exposing (unit)
 
 
+id : DefId
+id = "cover"
+
 
 def : Layer.Def Model (Html ()) () Html.Blend
 def =
-    { id = "cover"
+    { id = id
     , kind = Html
     , init = \_ -> ( init, Cmd.none )
     , encode = always <| always <| E.object []

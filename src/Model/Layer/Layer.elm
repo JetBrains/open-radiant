@@ -21,7 +21,7 @@ import Model.Layer.Blend.WebGL as WebGL exposing (Blend, BlendChange)
 
 import Layer.Background.Background as Background exposing (..)
 import Layer.Cover.Cover as Cover exposing (..)
-import Layer.Fluid.Fluid as Fluid exposing (..)
+import Layer.NativeMetaballs.NativeMetaballs as NativeMetaballs exposing (..)
 
 
 type ZOrder = ZOrder Int
@@ -61,6 +61,7 @@ type Visibility
 type Model
     = Background Background.Model
     | Cover Cover.Model
+    | NativeMetaballs NativeMetaballs.Model
     | Unknown
     -- TODO: add mirrored FSS
 
@@ -68,6 +69,7 @@ type Model
 type Msg
     = BackgroundMsg Background.Msg
     | CoverMsg ()
+    | NativeMetaballsMsg NativeMetaballs.Msg
 
 
 type Adaptation model view msg blend =
@@ -333,5 +335,19 @@ registry =
             (\msg ->
                 case msg of
                     CoverMsg coverMsg -> Just coverMsg
+                    _ -> Nothing)
+        )
+
+    |> register NativeMetaballs.def
+        (htmlAdaptation
+            NativeMetaballs
+            NativeMetaballsMsg
+            (\model ->
+                case model of
+                    NativeMetaballs nmModel -> Just nmModel
+                    _ -> Nothing)
+            (\msg ->
+                case msg of
+                    NativeMetaballsMsg nmMsg -> Just nmMsg
                     _ -> Nothing)
         )

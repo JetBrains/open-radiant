@@ -381,7 +381,7 @@ function start(document, model, constants, funcs) {
       console.log(layer);
       const index = layers.length - 1 - revIndex;
       //const folder = gui.addFolder('Layer ' + index + ' (' + layer.kind + ')');
-      const folder = gui.addFolder(layer.def.toLowerCase());
+      const folder = gui.addFolder(layer.def.toLowerCase() + ' (' + index + ')');
 
       addLayerProps(folder, config, layer, index);
       if (layer.king == 'webgl') {
