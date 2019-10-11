@@ -1,4 +1,4 @@
-module Layer.Fractal exposing
+module Layer.Fractal.Fractal exposing
     ( Model
     , Mesh
     , makeEntity

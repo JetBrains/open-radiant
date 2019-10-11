@@ -1,4 +1,4 @@
-module Layer.Metaballs exposing
+module Layer.Metaballs.Metaballs exposing
     ( Model
     , init
     , view
@@ -17,6 +17,9 @@ import Svg as S exposing (..)
 import Svg.Attributes as SA exposing (..)
 
 import Model.Product as Product
+
+
+type Msg = Rebuild Model
 
 
 -- v = 0.5

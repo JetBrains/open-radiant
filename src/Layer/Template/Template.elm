@@ -1,4 +1,4 @@
-module Layer.Template exposing
+module Layer.Template.Template exposing
     ( Model
     , Mesh
     , makeEntity

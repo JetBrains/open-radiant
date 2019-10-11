@@ -1,19 +1,21 @@
-module Layer.NativeMetaballs exposing
-    ( Model
+port module Layer.NativeMetaballs.NativeMetaballs exposing
+    ( id
+    , def
+    , Model
+    , Msg
     -- , PortModel
     , init
     , initial
     -- , export
     , view
-    , generate
-    , generator
-    , Orbit
     , defaultRange
     )
 
 
 import Html as H
 import Html.Attributes as H
+
+import Json.Encode as E
 
 import Math.Vector2 as Vec2 exposing (..)
 
@@ -26,14 +28,59 @@ import Gradient exposing (Orientation(..))
 import Model.Product as Product
 import Model.Product exposing (ColorId(..))
 import Model.Range exposing (..)
-import Model.Html.Blend as Blend
+import Model.Layer.Blend.Html as Html exposing (Blend)
+import Model.Layer.Blend.Html as Blend exposing (encode)
+import Model.Layer.Def exposing (Index(..), indexToString)
+import Model.Layer.Def as Layer exposing (Def, DefId, Kind(..))
+import Model.Layer.Context exposing (Context)
 
-import Layer.Fluid as Fluid exposing
+import Layer.Fluid.Fluid as Fluid
+import Layer.Fluid.Model as Fluid exposing
     ( Model
-    , generate, generator
     , Orbit(..), Ranges
+    , Randomization(..)
     )
+import Layer.Fluid.Random as Fluid exposing
+    ( generate, generator )
+import Layer.Fluid.Export as FluidIE
 
+
+id : DefId
+id = "native-metaballs"
+
+
+def : Layer.Def Model (H.Html Msg) Msg Html.Blend
+def =
+    { id = id
+    , kind = JS
+    , init = \_ ctx ->
+        let
+            model = init
+        in
+            ( model
+            , Fluid.generate
+                Update
+                (Fluid.generator
+                    ctx.size
+                    (RandomizeInitial ctx.palette <| initial ctx.size)
+                )
+
+            )
+    , encode = FluidIE.encode
+    , decode = FluidIE.decode
+    , subscribe = \_ _ -> Sub.none
+    , update = update
+    , view = view
+    , gui = Nothing
+    }
+
+
+
+type Msg
+    = Update Model -- called when random model was generated in any way
+    | ChangeVariety Gaussian.Variety
+    | ChangeOrbit Orbit
+    | ChangeEffects Fluid.EffectsChange
 
 
 type alias Model = Fluid.Model
@@ -42,10 +89,31 @@ type alias Model = Fluid.Model
 type alias Orbit = Fluid.Orbit
 
 
+update : Index -> Context -> Msg -> Model -> ( Model, Cmd Msg )
+update (Index index) ctx msg model =
+    case msg of
+        Update newModel -> -- called when random model was generated in any way
+            ( newModel
+            , updateNativeMetaballs
+                { index = index -- index
+                , size = ctx.size
+                , palette = ctx.palette |> Product.encodePalette
+                , layerModel = FluidIE.encode ctx newModel
+                }
+            )
+        _ -> ( model, Cmd.none )
+
+
 -- type alias PortModel =
 --     { palette: Product.Palette
 --     , temp : String
 --     }
+
+subscribe : Context -> Model -> Sub ( Layer.Index, Cmd Msg )
+subscribe ctx model =
+    Sub.batch
+        [
+        ]
 
 
 init : Model
@@ -65,11 +133,15 @@ init =
 --     }
 
 
-view : Blend.Blend -> Int -> Model -> H.Html a
-view blend index _ =
+view : Index -> Context -> Maybe Html.Blend -> Model -> H.Html Msg
+view index ctx maybeBlend model =
     H.canvas
-        [ H.id <| "native-metaballs-" ++ String.fromInt index
-        , H.style "mix-blend-mode" <| Blend.encode blend
+        [ H.class "native-metaballs"
+        , H.id <| "native-metaballs-" ++ indexToString index
+        , H.style "mix-blend-mode" <|
+            (maybeBlend
+                |> Maybe.withDefault Blend.Normal
+                |> Blend.encode)
         ]
         [] -- FIXME: use actual layer index
 
@@ -86,19 +158,6 @@ defaultRange =
         , y = fRange -10 10
         }
     }
-
-
-generate : (Model -> msg) -> Random.Generator Model -> Cmd msg
-generate =
-    Fluid.generate
-
-
-generator
-    :  ( Int, Int )
-    -> Fluid.Randomization
-    -> Random.Generator Model
-generator =
-    Fluid.generator
 
 
 groupOffset = { x = 0.65, y = 0.45 }
@@ -235,3 +294,11 @@ initial ( w, h ) =
             )
     , effects = Fluid.defaultEffects
     }
+
+
+port updateNativeMetaballs :
+    { index: Layer.JsIndex
+    , size: (Int, Int)
+    , layerModel : E.Value
+    , palette: List String
+    } -> Cmd msg

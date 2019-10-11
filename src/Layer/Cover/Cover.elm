@@ -1,16 +1,45 @@
-module Layer.Cover exposing
-    ( init
+module Layer.Cover.Cover exposing
+    ( id
+    , init
     , view
+    , def
+    , Model
     )
 
 import Html exposing (..)
 import Html.Attributes exposing (style, class, attribute, contenteditable)
-import Model.Html.Blend as Blend
-import Json.Encode as E
 
+import Json.Encode as E
+import Json.Decode as D
+
+import Model.Layer.Blend.Html as Html
+import Model.Layer.Blend.Html as Blend exposing (encode)
 import Model.AppMode exposing (AppMode(..))
 import Model.Product as Product exposing (Product)
 import Model.Product exposing (..)
+
+import Model.Layer.Context exposing (Context)
+import Model.Layer.Def exposing (Kind(..), DefId, Index)
+import Model.Layer.Def as Layer exposing (Def)
+import Model.Layer.Def as Def exposing (unit)
+
+
+id : DefId
+id = "cover"
+
+
+def : Layer.Def Model (Html ()) () Html.Blend
+def =
+    { id = id
+    , kind = Html
+    , init = \_ _ -> ( init, Cmd.none )
+    , encode = always <| always <| E.object []
+    , decode = always <| D.succeed init
+    , subscribe = \_ _ -> Sub.none
+    , update = \_ _ _ model -> ( model, Cmd.none )
+    , view = view
+    , gui = Nothing
+    }
 
 
 type alias Model = {}
@@ -30,9 +59,11 @@ init : Model
 init = {}
 
 
-view : AppMode -> Product -> (Int, Int) -> (Int, Int) -> Blend.Blend -> Html a
-view mode product ( w, h ) ( x, y ) blend =
+view : Index -> Context -> Maybe Html.Blend -> Model -> Html ()
+view idx ctx maybeBlend model =
     let
+        ( w, h ) = ctx.size
+        ( x, y ) = ctx.origin
         scale = toFloat w / defaultWidth
         centerX = (toFloat w / 2) - toFloat x
         centerY = (toFloat h / 2) - toFloat y
@@ -51,8 +82,15 @@ view mode product ( w, h ) ( x, y ) blend =
                 -- , ("text-transform", "uppercase")
             , style "color" "white"
             ]
-        ( if (mode == Production) || (mode == Player) || (mode == TronUi Production) then
-            [ productName product ( centerX, centerY ) blend ( 0.8 * scale )
+        ( if
+            (ctx.mode == Production)
+            || (ctx.mode == Player)
+            || (ctx.mode == TronUi Production) then
+            [ productName
+                    ctx.product
+                    ( centerX, centerY )
+                    ( maybeBlend |> Maybe.withDefault Blend.Normal )
+                    ( 0.8 * scale )
             , logo ( logoX, logoY ) Blend.Normal ( 0.6 * scale )
             ]
           else
@@ -63,8 +101,7 @@ view mode product ( w, h ) ( x, y ) blend =
         )
 
 
-
-productName : Product -> ( Float, Float ) -> Blend.Blend -> Float -> Html a
+productName : Product -> ( Float, Float ) -> Html.Blend -> Float -> Html a
 productName product pos blend scale =
     let
         textPath = "./assets/" ++ Product.getTextLinePath product
@@ -80,7 +117,7 @@ productName product pos blend scale =
 
 
 
-logo : ( Float, Float ) -> Blend.Blend -> Float -> Html a
+logo : ( Float, Float ) -> Html.Blend -> Float -> Html a
 logo ( logoX, logoY ) blend scale =
     let
         logoPath = "./assets/" ++ Product.getLogoPath Product.JetBrains
@@ -94,7 +131,7 @@ logo ( logoX, logoY ) blend scale =
             scale
 
 
-image : String -> String -> ( Float, Float ) -> ( Int, Int ) -> Blend.Blend -> Float -> Html a
+image : String -> String -> ( Float, Float ) -> ( Int, Int ) -> Html.Blend -> Float -> Html a
 image imagePath imgClass ( posX, posY ) ( imageWidth, imageHeight ) blend scale =
     div
         [ class imgClass

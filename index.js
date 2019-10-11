@@ -485,37 +485,46 @@ setTimeout(() => {
             // }
         });
 
-        app.ports.requestFssRebuild.subscribe(({ layer : index, model, value : fssModel }) => {
-            const layer = model.layers[index];
-            //console.log(model.layers);
-            //console.log('requestFssRebuild', index, model.layers[index], is.fss(layer));
-            if (is.fss(layer)) {
-                // console.log('forced to rebuild FSS layer', index);
-                // FIXME: just use layer.model instead of `fssModel`
-                const fssScene = buildFSS(model, fssModel);
-                fssScenes[index] = fssScene;
-                app.ports.rebuildFss.send({ value: fssScene, layer: index });
-                layer.scene = fssScene;
-            }
+        if (app.ports.requestFssRebuild) {
+            app.ports.requestFssRebuild.subscribe(({ layer : index, model, value : fssModel }) => {
+                const layer = model.layers[index];
+                //console.log(model.layers);
+                //console.log('requestFssRebuild', index, model.layers[index], is.fss(layer));
+                if (is.fss(layer)) {
+                    // console.log('forced to rebuild FSS layer', index);
+                    // FIXME: just use layer.model instead of `fssModel`
+                    const fssScene = buildFSS(model, fssModel);
+                    fssScenes[index] = fssScene;
+                    app.ports.rebuildFss.send({ value: fssScene, layer: index });
+                    layer.scene = fssScene;
+                }
+            });
+        } else  console.error('No port `requestFssRebuild` was detected');
+    });
+
+    if (app.ports.buildFluidGradientTextures) {
+        app.ports.buildFluidGradientTextures.subscribe(([ index, layerModel ]) => {
+            //if (is.fluid(layer)) {
+                const gradients = buildGradients(layerModel);
+                app.ports.loadFluidGradientTextures.send({ value: gradients, layer: index });
+            //}
         });
-    });
+    } else console.error('No port `buildFluidGradientTextures` was detected');
 
-    app.ports.buildFluidGradientTextures.subscribe(([ index, layerModel ]) => {
-        //if (is.fluid(layer)) {
-            const gradients = buildGradients(layerModel);
-            app.ports.loadFluidGradientTextures.send({ value: gradients, layer: index });
-        //}
-    });
-
-    app.ports.updateNativeMetaballs.subscribe(({ index, size, layerModel, palette }) => {
-        requestAnimationFrame(() => {
-            updateOrInitNativeMetaballs(size, layerModel, palette, index);
+    if (app.ports.updateNativeMetaballs) {
+        app.ports.updateNativeMetaballs.subscribe(({ index, size, layerModel, palette }) => {
+            console.log('received');
+            requestAnimationFrame(() => {
+                updateOrInitNativeMetaballs(size, layerModel, palette, index);
+            });
         });
-    });
+    } else console.error('No port `updateNativeMetaballs` was detected');
 
-    app.ports.sendNativeMetaballsEffects.subscribe(({ index, subject, value }) => {
-        updateNativeMetaballsEffects(subject, value, index);
-    });
+    if (app.ports.sendNativeMetaballsEffects) {
+        app.ports.sendNativeMetaballsEffects.subscribe(({ index, subject, value }) => {
+            updateNativeMetaballsEffects(subject, value, index);
+        });
+    } else console.error('No port `sendNativeMetaballsEffects` was detected');
 
     app.ports.bang.send(null);
 

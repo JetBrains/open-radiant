@@ -1,4 +1,4 @@
-module Layer.Canvas exposing
+module Layer.Canvas.Canvas exposing
     ( Model
     , init
     , view
