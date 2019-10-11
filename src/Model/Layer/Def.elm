@@ -26,11 +26,11 @@ type Kind
 type alias Def model view msg blend =
     { id : DefId
     , kind : Kind
-    , init : Context -> ( model, Cmd msg )
+    , init : Index -> Context -> ( model, Cmd msg )
     , encode : Context -> model -> E.Value
     , decode : Context -> D.Decoder model
-    , update : Context -> msg -> model -> ( model, Cmd msg )
-    , view : Context -> Maybe blend -> model -> view
+    , update : Index -> Context -> msg -> model -> ( model, Cmd msg )
+    , view : Index -> Context -> Maybe blend -> model -> view
     , subscribe : Context -> model -> Sub ( Index, msg )
     , gui : Maybe (Index -> model -> Nest msg)
     }
@@ -40,11 +40,11 @@ unit : Def () () () ()
 unit =
     { id = "unit"
     , kind = JS
-    , init = always ( (), Cmd.none )
+    , init = \_ _ -> ( (), Cmd.none )
     , encode = \_ _ -> E.object []
     , decode = always <| D.succeed ()
-    , update = \_ _ model -> ( model, Cmd.none )
-    , view = \_ _ _ -> ()
+    , update = \_ _ _ model -> ( model, Cmd.none )
+    , view = \_ _ _ _ -> ()
     , subscribe = \_ _ -> Sub.none
     , gui = Nothing
     }
@@ -70,3 +70,7 @@ type alias PortDef = -- FIXME: actually it's not `PortDef`, but `PortLayer`
     , isOn : Bool
     , model : String
     }
+
+
+indexToString : Index -> String
+indexToString (Index index) = String.fromInt index

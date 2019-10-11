@@ -53,7 +53,7 @@ def : Layer.Def Model () Msg WebGL.Blend
 def =
     { id = id
     , kind = WebGL
-    , init = \ctx ->
+    , init = \_ ctx ->
         let
             model = Model.init
         in
@@ -71,8 +71,8 @@ def =
     , encode = IE.encode
     , decode = IE.decode
     , subscribe = \_ _ -> Sub.none
-    , update = \_ _ model -> ( model, Cmd.none )
-    , view = \_ _ _ -> ()
+    , update = \_ _ _ model -> ( model, Cmd.none )
+    , view = \_ _ _ _ -> ()
     , gui = Nothing
     }
 

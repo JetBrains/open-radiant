@@ -29,7 +29,7 @@ init mapMsg ctx initial =
             (\( Index index, { visibility, blend, fromDef }  ) ->
 
                 registry.byId fromDef
-                    |> Maybe.map (\def -> def.init ctx)
+                    |> Maybe.map (\def -> def.init (Index index) ctx)
                     |> Maybe.map (\( model, cmd ) ->
                         ( layer (Index index) (ZOrder index) visibility blend model, cmd ))
 
@@ -68,7 +68,7 @@ update mapMsg ctx (Index layerToUpdate) msg layers =
                     case layer of
                         Layer _ model ->
                             registry.byModel model
-                                |> Maybe.map (\def -> def.update ctx msg model)
+                                |> Maybe.map (\def -> def.update (Index index) ctx msg model)
                                 |> Maybe.map (\( newModel, cmd ) ->
                                         ( layer |> replaceModel newModel, cmd ))
                                 |> Maybe.withDefault ( layer, Cmd.none )
@@ -124,7 +124,7 @@ render ctx layers =
             (\(Layer { index, zOrder, blend } model) ->
                 registry.byModel model
                     |> Maybe.map (\def ->
-                        def.view ctx (Just blend) model)
+                        def.view (Index index) ctx (Just blend) model)
                     |> Maybe.map (\view -> ( Index index, ZOrder zOrder, view ))
             )
         |> List.filterMap identity

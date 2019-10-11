@@ -217,7 +217,10 @@ adapt
     in
         { id = source.id
         , kind = source.kind
-        , init = adaptUpdateTuple << source.init
+        -- , init = adaptUpdateTuple << source.init
+        , init =
+            \index ctx ->
+                adaptUpdateTuple <| source.init index ctx
         , encode =
             \ctx layerModel ->
                 case a.extractModel layerModel of
@@ -225,19 +228,20 @@ adapt
                     Nothing -> E.string <| "wrong encoder for " ++ source.id
         , decode = D.map a.convertModel << source.decode
         , update =
-            \ctx mainMsg layerModel ->
+            \index ctx mainMsg layerModel ->
                 case ( a.extractMsg mainMsg, a.extractModel layerModel ) of
                     ( Just msg, Just model ) ->
                         adaptUpdateTuple <|
-                            source.update ctx msg model
+                            source.update index ctx msg model
                     _ -> -- FIXME: return Maybe/Result for the case when message / model doesn't match
-                        adaptUpdateTuple <| source.init ctx
+                        adaptUpdateTuple <| source.init index ctx
         , view =
-            \ctx maybeBlend layerModel  ->
+            \index ctx maybeBlend layerModel  ->
                 case a.extractModel layerModel of
                     Just model ->
                         a.convertView
                             <| source.view
+                                index
                                 ctx
                                 (a.extractBlend <| Maybe.withDefault NoBlend maybeBlend)
                                 model

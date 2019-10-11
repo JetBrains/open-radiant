@@ -1,4 +1,4 @@
-module Layer.NativeMetaballs.NativeMetaballs exposing
+port module Layer.NativeMetaballs.NativeMetaballs exposing
     ( id
     , def
     , Model
@@ -15,6 +15,8 @@ module Layer.NativeMetaballs.NativeMetaballs exposing
 import Html as H
 import Html.Attributes as H
 
+import Json.Encode as E
+
 import Math.Vector2 as Vec2 exposing (..)
 
 import Random
@@ -28,7 +30,9 @@ import Model.Product exposing (ColorId(..))
 import Model.Range exposing (..)
 import Model.Layer.Blend.Html as Html exposing (Blend)
 import Model.Layer.Blend.Html as Blend exposing (encode)
+import Model.Layer.Def exposing (Index(..), indexToString)
 import Model.Layer.Def as Layer exposing (Def, DefId, Kind(..))
+import Model.Layer.Context exposing (Context)
 
 import Layer.Fluid.Fluid as Fluid
 import Layer.Fluid.Model as Fluid exposing
@@ -48,7 +52,7 @@ def : Layer.Def Model (H.Html Msg) Msg Html.Blend
 def =
     { id = id
     , kind = JS
-    , init = \ctx ->
+    , init = \_ ctx ->
         let
             model = init
         in
@@ -58,8 +62,8 @@ def =
     , encode = FluidIE.encode
     , decode = FluidIE.decode
     , subscribe = \_ _ -> Sub.none
-    , update = \_ _ model -> ( model, Cmd.none )
-    , view = \_ _ _ -> H.div [] []
+    , update = update
+    , view = view
     , gui = Nothing
     }
 
@@ -78,10 +82,31 @@ type alias Model = Fluid.Model
 type alias Orbit = Fluid.Orbit
 
 
+update : Index -> Context -> Msg -> Model -> ( Model, Cmd Msg )
+update (Index index) ctx msg model =
+    case msg of
+        Update newModel -> -- called when random model was generated in any way
+            ( newModel
+            , updateNativeMetaballs
+                { index = index -- index
+                , size = ctx.size
+                , palette = ctx.palette |> Product.encodePalette
+                , layerModel = FluidIE.encode ctx model
+                }
+            )
+        _ -> ( model, Cmd.none )
+
+
 -- type alias PortModel =
 --     { palette: Product.Palette
 --     , temp : String
 --     }
+
+subscribe : Context -> Model -> Sub ( Layer.Index, Cmd Msg )
+subscribe ctx model =
+    Sub.batch
+        [
+        ]
 
 
 init : Model
@@ -101,11 +126,15 @@ init =
 --     }
 
 
-view : Html.Blend -> Int -> Model -> H.Html a
-view blend index _ =
+view : Index -> Context -> Maybe Html.Blend -> Model -> H.Html Msg
+view index ctx maybeBlend model =
     H.canvas
-        [ H.id <| "native-metaballs-" ++ String.fromInt index
-        , H.style "mix-blend-mode" <| Blend.encode blend
+        [ H.class "native-metaballs"
+        , H.id <| "native-metaballs-" ++ indexToString index
+        , H.style "mix-blend-mode" <|
+            (maybeBlend
+                |> Maybe.withDefault Blend.Normal
+                |> Blend.encode)
         ]
         [] -- FIXME: use actual layer index
 
@@ -258,3 +287,11 @@ initial ( w, h ) =
             )
     , effects = Fluid.defaultEffects
     }
+
+
+port updateNativeMetaballs :
+    { index: Layer.JsIndex
+    , size: (Int, Int)
+    , layerModel : E.Value
+    , palette: List String
+    } -> Cmd msg

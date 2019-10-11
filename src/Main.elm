@@ -40,7 +40,7 @@ import Model.Export as IE -- IE for import/export
 
 import Model.Layer.Layer exposing (Layer, Blend(..))
 import Model.Layer.Layer as Layer
-import Model.Layer.Def as Layer exposing (Index)
+import Model.Layer.Def as Layer exposing (Index, indexToString)
 import Model.Layer.Layers as Layers
 import Model.Layer.Blend.Html as HtmlBlend
 import Model.Layer.Blend.WebGL as WGLBlend
@@ -677,19 +677,6 @@ update msg model =
         -}
 
         {-
-        UpdateNativeMetaballs index nativeMetaballsModel ->
-            ( model |> updateNativeMetaballsModel index nativeMetaballsModel
-            , updateNativeMetaballs
-                { index = index
-                , size = getRuleSizeOrZeroes model.size
-                , palette = Product.getPalette model.product |> Product.encodePalette
-                , layerModel = NativeMetaballsModel nativeMetaballsModel
-                        |> IE.encodeLayerModel model.product
-                }
-            )
-        -}
-
-        {-
         RebuildFluid index fluidModel ->
             ( model |> updateFluidModel index fluidModel.groups
             , buildFluidGradientTextures
@@ -1174,7 +1161,11 @@ view model =
                 , Events.onClick TriggerPause
                 ]
                 <| List.map
-                    (\( index, _, html ) -> Html.map (ToLayer index) html)
+                    (\( index, _, html ) ->
+                        div
+                            [ H.id <| "layer-" ++ Layer.indexToString index ]
+                            [ Html.map (ToLayer index) html ]
+                    )
                     htmls
         wrapEntities entities =
             WebGL.toHtmlWith

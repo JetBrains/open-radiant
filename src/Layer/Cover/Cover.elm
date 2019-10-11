@@ -19,7 +19,7 @@ import Model.Product as Product exposing (Product)
 import Model.Product exposing (..)
 
 import Model.Layer.Context exposing (Context)
-import Model.Layer.Def exposing (Kind(..), DefId)
+import Model.Layer.Def exposing (Kind(..), DefId, Index)
 import Model.Layer.Def as Layer exposing (Def)
 import Model.Layer.Def as Def exposing (unit)
 
@@ -32,11 +32,11 @@ def : Layer.Def Model (Html ()) () Html.Blend
 def =
     { id = id
     , kind = Html
-    , init = \_ -> ( init, Cmd.none )
+    , init = \_ _ -> ( init, Cmd.none )
     , encode = always <| always <| E.object []
     , decode = always <| D.succeed init
     , subscribe = \_ _ -> Sub.none
-    , update = \_ _ model -> ( model, Cmd.none )
+    , update = \_ _ _ model -> ( model, Cmd.none )
     , view = view
     , gui = Nothing
     }
@@ -59,8 +59,8 @@ init : Model
 init = {}
 
 
-view : Context -> Maybe Html.Blend -> Model -> Html ()
-view ctx maybeBlend model =
+view : Index -> Context -> Maybe Html.Blend -> Model -> Html ()
+view idx ctx maybeBlend model =
     let
         ( w, h ) = ctx.size
         ( x, y ) = ctx.origin

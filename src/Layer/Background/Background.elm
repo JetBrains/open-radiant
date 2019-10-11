@@ -43,7 +43,7 @@ def : Layer.Def Model (Html Msg) Msg Html.Blend
 def =
     { id = id
     , kind = Html
-    , init = \_ -> ( init, Cmd.none )
+    , init = \_ _ -> ( init, Cmd.none )
     , encode = encode
     , decode = decode
     , subscribe = subscriptions
@@ -98,8 +98,8 @@ init =
     }
 
 
-update : Context -> Msg -> Model -> ( Model, Cmd Msg )
-update ctx msg model =
+update : Index -> Context -> Msg -> Model -> ( Model, Cmd Msg )
+update _ ctx msg model =
     case msg of
         SwitchStop stopIndex value ->
             (
@@ -120,8 +120,8 @@ update ctx msg model =
             )
 
 
-view : Context -> Maybe Html.Blend -> Model -> Html Msg
-view ctx maybeBlend model =
+view : Index -> Context -> Maybe Html.Blend -> Model -> Html Msg
+view _ ctx maybeBlend model =
     let
         ( w, h ) = ctx.size
             -- ( Vec2.getX viewport.size
