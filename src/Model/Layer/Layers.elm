@@ -58,38 +58,22 @@ update
     -> Layer.Msg
     -> Layers
     -> ( Layers, Cmd msg )
-update mapMsg ctx (Index layerToUpdate) msg layers =
-    layers
-        |> List.indexedMap Tuple.pair
-        |> List.map (Tuple.mapFirst Index)
-        |> List.map
-            (\( Index index, layer ) ->
+update mapMsg ctx (Index layerToUpdate) msg =
+    updateMap
+        mapMsg
+        (\((Layer { index } model) as layer) ->
 
                 if index == layerToUpdate then
 
-                    case layer of
-                        Layer _ model ->
-                            registry.byModel model
-                                |> Maybe.map (\def -> def.update (Index index) ctx msg model)
-                                |> Maybe.map (\( newModel, cmd ) ->
-                                        ( layer |> replaceModel newModel, cmd ))
-                                |> Maybe.withDefault ( layer, Cmd.none )
+                    registry.byModel model
+                        |> Maybe.map (\def -> def.update (Index index) ctx msg model)
+                        |> Maybe.map (\( newModel, cmd ) ->
+                                ( layer |> replaceModel newModel, cmd ))
+                        |> Maybe.withDefault ( layer, Cmd.none )
 
                 else ( layer, Cmd.none )
 
-            )
-        |> List.foldr -- we shouldn't lose any layers here since we just add them back
-                (\( layer, cmd ) ( prevLayers, prevCmds ) ->
-
-                    let (Layer { index } _) = layer
-                    in
-                        ( layer :: prevLayers
-                        , Cmd.map (mapMsg <| Index index) cmd :: prevCmds
-                        )
-
-                )
-                ( [], [] )
-        |> Tuple.mapSecond Cmd.batch
+        )
 
 
 broadcast
@@ -99,39 +83,23 @@ broadcast
     -> Broadcast.Msg
     -> Layers
     -> ( Layers, Cmd msg )
-broadcast mapMsg ctx (Index layerToBroadcastTo) broadcastMsg layers =
-    layers
-        |> List.indexedMap Tuple.pair
-        |> List.map (Tuple.mapFirst Index)
-        |> List.map
-            (\( Index index, layer ) ->
+broadcast mapMsg ctx (Index layerToBroadcastTo) broadcastMsg =
+    updateMap
+        mapMsg
+        (\((Layer { index } model) as layer) ->
 
-                if index == layerToBroadcastTo then
+            if index == layerToBroadcastTo then
 
-                    case layer of
-                        Layer _ model ->
-                            registry.byModel model
-                                |> Maybe.map (\def ->
-                                    def.response (Index index) ctx broadcastMsg model)
-                                |> Maybe.map (\( newModel, cmd ) ->
-                                    ( layer |> replaceModel newModel, cmd ))
-                                |> Maybe.withDefault ( layer, Cmd.none )
+                registry.byModel model
+                    |> Maybe.map (\def ->
+                        def.response (Index index) ctx broadcastMsg model)
+                    |> Maybe.map (\( newModel, cmd ) ->
+                        ( layer |> replaceModel newModel, cmd ))
+                    |> Maybe.withDefault ( layer, Cmd.none )
 
-                else ( layer, Cmd.none )
+            else ( layer, Cmd.none )
 
-            )
-        |> List.foldr -- we shouldn't lose any layers here since we just add them back
-                (\( layer, cmd ) ( prevLayers, prevCmds ) ->
-
-                    let (Layer { index } _) = layer
-                    in
-                        ( layer :: prevLayers
-                        , Cmd.map (mapMsg <| Index index) cmd :: prevCmds
-                        )
-
-                )
-                ( [], [] )
-        |> Tuple.mapSecond Cmd.batch
+        )
 
 
 broadcastAll
@@ -140,35 +108,19 @@ broadcastAll
     -> Broadcast.Msg
     -> Layers
     -> ( Layers, Cmd msg )
-broadcastAll mapMsg ctx broadcastMsg layers =
-    layers
-        |> List.indexedMap Tuple.pair
-        |> List.map (Tuple.mapFirst Index)
-        |> List.map
-            (\( Index index, layer ) ->
+broadcastAll mapMsg ctx broadcastMsg =
+    updateMap
+        mapMsg
+        (\((Layer { index } model) as layer) ->
 
-                case layer of
-                    Layer _ model ->
-                        registry.byModel model
-                            |> Maybe.map (\def ->
-                                def.response (Index index) ctx broadcastMsg model)
-                            |> Maybe.map (\( newModel, cmd ) ->
-                                    ( layer |> replaceModel newModel, cmd ))
-                            |> Maybe.withDefault ( layer, Cmd.none )
+            registry.byModel model
+                |> Maybe.map (\def ->
+                    def.response (Index index) ctx broadcastMsg model)
+                |> Maybe.map (\( newModel, cmd ) ->
+                        ( layer |> replaceModel newModel, cmd ))
+                |> Maybe.withDefault ( layer, Cmd.none )
 
-            )
-        |> List.foldr -- we shouldn't lose any layers here since we just add them back
-                (\( layer, cmd ) ( prevLayers, prevCmds ) ->
-
-                    let (Layer { index } _) = layer
-                    in
-                        ( layer :: prevLayers
-                        , Cmd.map (mapMsg <| Index index) cmd :: prevCmds
-                        )
-
-                )
-                ( [], [] )
-        |> Tuple.mapSecond Cmd.batch
+        )
 
 
 subscribe
@@ -214,3 +166,24 @@ render ctx layers =
         |> List.filterMap identity
 
 
+
+updateMap -- do not expose
+    :  (Index -> Layer.Msg -> msg)
+    -> (Layer -> ( Layer, Cmd Layer.Msg ))
+    -> Layers
+    -> ( Layers, Cmd msg )
+updateMap mapMsg mapF layers =
+    layers
+        |> List.map mapF
+        |> List.foldr -- we shouldn't lose any layers here since we just add them back
+                (\( layer, cmd ) ( prevLayers, prevCmds ) ->
+
+                    let (Layer { index } _) = layer
+                    in
+                        ( layer :: prevLayers
+                        , Cmd.map (mapMsg <| Index index) cmd :: prevCmds
+                        )
+
+                )
+                ( [], [] )
+        |> Tuple.mapSecond Cmd.batch

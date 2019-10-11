@@ -110,15 +110,12 @@ response (Index index) ctx broadcastMsg model =
     case broadcastMsg of
         Broadcast.TurnOn ->
             ( model
-            , if List.length model.groups <= 0
-                then
-                    Fluid.generate
-                        Update
-                        (Fluid.generator
-                            ctx.size
-                            (RandomizeInitial ctx.palette <| initial ctx.size)
-                        )
-                else Cmd.none
+            , updateNativeMetaballs
+                { index = index -- index
+                , size = ctx.size
+                , palette = ctx.palette |> Product.encodePalette
+                , layerModel = FluidIE.encode ctx model
+                }
             )
         _ -> ( model, Cmd.none )
 
