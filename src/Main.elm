@@ -416,11 +416,6 @@ update msg model =
             in
                 ( newModel
                 , cmds
-                {-
-                , if hasNativeMetaballsLayers newModel
-                    then generateAllInitialNativeMetaballs newModel
-                    else Cmd.none
-                -}
                 )
 
         TurnOff index ->
@@ -436,11 +431,6 @@ update msg model =
             in
                 ( newModel
                 , cmds
-                {-
-                , if hasNativeMetaballsLayers newModel
-                    then updateAllNativeMetaballsWith newModel
-                    else Cmd.none
-                -}
                 )
 
         {-

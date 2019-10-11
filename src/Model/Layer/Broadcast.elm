@@ -10,10 +10,12 @@ type Msg
     | TurnOn
     | TurnOff
     -- TODO: Animate, TurnOn, TurnOff,.etc.
+    -- = ToAll ToAllMsg
+    -- | ToTarget TargetMsg
 
 
--- type Global
+-- type ToAllMsg
 --     = IFeelLucky
 
--- type Local
+-- type ToTargetMsg
 --     = TurnOn

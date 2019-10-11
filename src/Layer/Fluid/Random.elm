@@ -14,6 +14,7 @@ import Math.Vector2 as Vec2 exposing (..)
 import Model.Range exposing (..)
 import Model.Product as Product
 import Model.Product exposing (ColorId(..))
+import Model.Layer.Context exposing (Context)
 
 import Layer.Fluid.Model exposing (..)
 
@@ -22,11 +23,13 @@ generator : ( Int, Int ) -> Randomization -> Random.Generator Model
 generator size randomization =
     case randomization of
         RandomizeInitial palette initialModel ->
-            generateFromInitialState size defaultRange palette initialModel
-        RandomizeDynamics range palette variety orbit model ->
-            generateDynamics size range palette variety orbit model
+            fromInitialStateGenerator size defaultRange palette initialModel
+        RandomizeDynamics range palette variety orbit staticModel ->
+            dynamicsGenerator size range palette variety orbit staticModel
         RandomizeAll range palette variety orbit ->
-            generateEverything size range palette variety orbit
+            everythingGenerator size range palette variety orbit
+        RandomizeStatics ranges model ->
+            staticsGenerator size ranges model
 
 
 generateOrigin : Random.Generator Vec2
@@ -36,14 +39,14 @@ generateOrigin =
         (Random.float -0.1 0.1)
 
 
-generateEverything
+everythingGenerator
     : ( Int, Int )
     -> Ranges
     -> Product.Palette
     -> Gauss.Variety
     -> Orbit
     -> Random.Generator Model
-generateEverything ( w, h ) range palette variety orbit =
+everythingGenerator ( w, h ) range palette variety orbit =
     let
         gaussInFloatRange fRange gaussX =
             Gauss.inFloatRange gaussX variety fRange |> Gauss.unwrap
@@ -131,14 +134,14 @@ generateEverything ( w, h ) range palette variety orbit =
                 })
 
 
-generateFromInitialState
+fromInitialStateGenerator
     :  ( Int, Int )
     -> Ranges
     -> Product.Palette
     -- -> StaticModelWithGradients
     -> StaticModel
     -> Random.Generator Model
-generateFromInitialState ( w, h ) range palette initialState =
+fromInitialStateGenerator ( w, h ) range palette initialState =
     let
         -- [ color1, color2, color3 ] =
         --     case palette of
@@ -200,7 +203,67 @@ generateFromInitialState ( w, h ) range palette initialState =
                 )
 
 
-generateDynamics
+staticsGenerator
+    :  ( Int, Int )
+    -> Ranges
+    -> Model
+    -> Random.Generator Model
+staticsGenerator ( w, h ) range curModel =
+    let
+        -- [ color1, color2, color3 ] =
+        --     case palette of
+        --         [ c1, c2, c3 ]::_ -> [ c1, c2, c3 ]
+        generateBall curBall =
+            Random.map3
+                (\radius originX originY ->
+                    { curBall
+                    | origin = vec2 originX originY
+                    , radius = radius
+                    }
+                )
+                (randomFloatInRange range.radius)
+                (randomFloatInRange (fRange 0 <| toFloat w))
+                (randomFloatInRange (fRange 0 <| toFloat h))
+
+        generateStop prevStop =
+            Random.constant prevStop
+
+        generateGroup source =
+            Random.map2
+                Tuple.pair
+                (Random.traverse generateBall source.balls)
+                (Random.traverse generateStop source.gradient.stops
+                    |> Random.map
+                        (\stops ->
+                            { stops = stops
+                            , orientation = source.gradient.orientation
+                            }
+                        )
+                )
+            |> Random.map
+                (\(balls, gradient) ->
+                    { source
+                    | balls = balls
+                    , gradient = gradient
+                    }
+                )
+
+    in
+        Gauss.generateX
+            |> Random.andThen
+                (\gaussX ->
+                    curModel.groups
+                        |> Random.traverse generateGroup
+                        |> Random.map
+                                (\groups ->
+                                    { curModel
+                                    | groups = groups
+                                    }
+                                )
+                )
+
+
+dynamicsGenerator
      : ( Int, Int )
     -> Ranges
     -> Product.Palette
@@ -208,7 +271,7 @@ generateDynamics
     -> Orbit
     -> StaticModel
     -> Random.Generator Model
-generateDynamics ( w, h ) range palette variety orbit staticModel =
+dynamicsGenerator ( w, h ) range palette variety orbit staticModel =
     let
         -- [ color1, color2, color3 ] =
         --     case palette of
@@ -371,3 +434,44 @@ generateGradientsFor putIntoMsg palette model =
                     }
             )
             (Random.list groupsCount <| gradientGenerator)
+
+
+generateInitial : (Model -> msg) -> Context -> StaticModel -> Cmd msg
+generateInitial msg ctx initial =
+    generate
+        msg
+        (generator
+            ctx.size
+            (RandomizeInitial ctx.palette initial)
+        )
+
+
+generateDynamics : (Model -> msg) -> Context -> Model -> Cmd msg
+generateDynamics msg ctx model =
+    generate
+        msg
+        (generator
+            ctx.size
+            (RandomizeDynamics defaultRange ctx.palette model.variety model.orbit
+                <| extractStatics model)
+        )
+
+
+generateStatics : (Model -> msg) -> Context -> Model -> Cmd msg
+generateStatics msg ctx model =
+    generate
+        msg
+        (generator
+            ctx.size
+            (RandomizeStatics defaultRange model)
+        )
+
+
+generateAll : (Model -> msg) -> Context -> Model -> Cmd msg
+generateAll msg ctx model =
+    generate
+        msg
+        (generator
+            ctx.size
+            (RandomizeAll defaultRange ctx.palette model.variety model.orbit)
+        )

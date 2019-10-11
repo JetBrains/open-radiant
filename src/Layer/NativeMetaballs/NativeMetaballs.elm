@@ -59,12 +59,7 @@ def =
             model = init
         in
             ( model
-            , Fluid.generate
-                Update
-                (Fluid.generator
-                    ctx.size
-                    (RandomizeInitial ctx.palette <| initial ctx.size)
-                )
+            , generateInitial ctx
             )
     , encode = FluidIE.encode
     , decode = FluidIE.decode
@@ -96,7 +91,7 @@ update (Index index) ctx msg model =
         Update newModel -> -- called when random model was generated in any way
             ( newModel
             , updateNativeMetaballs
-                { index = index -- index
+                { index = index
                 , size = ctx.size
                 , palette = ctx.palette |> Product.encodePalette
                 , layerModel = FluidIE.encode ctx newModel
@@ -310,6 +305,26 @@ initial ( w, h ) =
             )
     , effects = Fluid.defaultEffects
     }
+
+
+generateInitial : Context -> Cmd Msg
+generateInitial ctx =
+    Fluid.generateInitial Update ctx <| initial ctx.size
+
+
+generateDynamics : Context -> Model -> Cmd Msg
+generateDynamics ctx model =
+    Fluid.generateDynamics Update ctx model
+
+
+generateStatics : Context -> Model -> Cmd Msg
+generateStatics ctx model =
+    Fluid.generateStatics Update ctx model
+
+
+generateAll : Context -> Model -> Cmd Msg
+generateAll ctx model =
+    Fluid.generateAll Update ctx model
 
 
 port updateNativeMetaballs :

@@ -96,7 +96,7 @@ type Base64Url = Base64Url String
 
 type Randomization
     = RandomizeInitial Product.Palette StaticModel
-    -- | RandomizeDynamics Ranges Product.Palette Variety Orbit StaticModel
+    | RandomizeStatics Ranges Model
     | RandomizeDynamics Ranges Product.Palette Gauss.Variety Orbit StaticModel
     | RandomizeAll Ranges Product.Palette Gauss.Variety Orbit
 
