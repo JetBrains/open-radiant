@@ -20,9 +20,9 @@ import Layer.Fluid.Model as Model exposing (defaultRange)
 encodeEffectsChange : EffectsChange -> { subject : String, value : Float }
 encodeEffectsChange change =
     case change of
-        ChangeBlur v -> { subject = "blur", value = v }
-        ChangeFat v -> { subject = "fat", value = v }
-        ChangeRing v -> { subject = "ring", value = v }
+        ChangeBlur v ->  { subject = "blur", value = v }
+        ChangeFat v ->   { subject = "fat", value = v }
+        ChangeRing v ->  { subject = "ring", value = v }
         ChangeNothing -> { subject = "nothing", value = -1.0 }
 
 

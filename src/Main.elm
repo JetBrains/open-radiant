@@ -837,7 +837,7 @@ update msg model =
                     ( { model
                       | layers = newLayers
                       }
-                    , Cmd.none
+                    , cmds
                     )
 
         SavePng ->

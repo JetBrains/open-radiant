@@ -503,6 +503,7 @@ setTimeout(() => {
 
     if (app.ports.updateNativeMetaballs) {
         app.ports.updateNativeMetaballs.subscribe(({ index, size, layerModel, palette }) => {
+            console.log('received');
             requestAnimationFrame(() => {
                 updateOrInitNativeMetaballs(size, layerModel, palette, index);
             });

@@ -38,6 +38,7 @@ import Layer.Fluid.Fluid as Fluid
 import Layer.Fluid.Model as Fluid exposing
     ( Model
     , Orbit(..), Ranges
+    , Randomization(..)
     )
 import Layer.Fluid.Random as Fluid exposing
     ( generate, generator )
@@ -57,7 +58,13 @@ def =
             model = init
         in
             ( model
-            , Cmd.none
+            , Fluid.generate
+                Update
+                (Fluid.generator
+                    ctx.size
+                    (RandomizeInitial ctx.palette <| initial ctx.size)
+                )
+
             )
     , encode = FluidIE.encode
     , decode = FluidIE.decode
@@ -91,7 +98,7 @@ update (Index index) ctx msg model =
                 { index = index -- index
                 , size = ctx.size
                 , palette = ctx.palette |> Product.encodePalette
-                , layerModel = FluidIE.encode ctx model
+                , layerModel = FluidIE.encode ctx newModel
                 }
             )
         _ -> ( model, Cmd.none )
