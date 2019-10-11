@@ -26,7 +26,7 @@ generator size randomization =
             fromInitialStateGenerator size defaultRange palette initialModel
         RandomizeDynamics range palette variety orbit staticModel ->
             dynamicsGenerator size range palette variety orbit staticModel
-        RandomizeAll range palette variety orbit ->
+        RandomizeEverything range palette variety orbit ->
             everythingGenerator size range palette variety orbit
         RandomizeStatics ranges model ->
             staticsGenerator size ranges model
@@ -467,11 +467,11 @@ generateStatics msg ctx model =
         )
 
 
-generateAll : (Model -> msg) -> Context -> Model -> Cmd msg
-generateAll msg ctx model =
+generateEverything : (Model -> msg) -> Context -> Model -> Cmd msg
+generateEverything msg ctx model =
     generate
         msg
         (generator
             ctx.size
-            (RandomizeAll defaultRange ctx.palette model.variety model.orbit)
+            (RandomizeEverything defaultRange ctx.palette model.variety model.orbit)
         )

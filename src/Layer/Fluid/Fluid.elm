@@ -60,7 +60,7 @@ def =
             ( model
             , Random.generate
                 Rebuild
-                (Model.RandomizeAll
+                (Model.RandomizeEverything
                     Model.defaultRange
                     ctx.palette
                     model.variety

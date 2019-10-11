@@ -103,6 +103,10 @@ update (Index index) ctx msg model =
 response : Index -> Context -> Broadcast.Msg -> Model -> ( Model, Cmd Msg )
 response (Index index) ctx broadcastMsg model =
     case broadcastMsg of
+        Broadcast.IFeelLucky ->
+            ( model
+            , generateEverything ctx model
+            )
         Broadcast.ChangeProduct product ->
             ( model
             , generateDynamics ctx model
@@ -326,9 +330,9 @@ generateStatics ctx model =
     Fluid.generateStatics Update ctx model
 
 
-generateAll : Context -> Model -> Cmd Msg
-generateAll ctx model =
-    Fluid.generateAll Update ctx model
+generateEverything : Context -> Model -> Cmd Msg
+generateEverything ctx model =
+    Fluid.generateEverything Update ctx model
 
 
 port updateNativeMetaballs :

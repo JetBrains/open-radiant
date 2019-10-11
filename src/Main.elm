@@ -520,10 +520,16 @@ update msg model =
                 )
 
         TriggerFeelLucky ->
-            ( model
-            , Cmd.none
-            --- , generateAllNativeMetaballs model
-            )
+            let
+                ( newLayers, cmds ) =
+                    model.layers
+                        |> Layers.broadcastAll ToLayer (getContext model) B.IFeelLucky
+            in
+                ( { model
+                  | layers = newLayers
+                  }
+                , Cmd.batch <| cmds :: [ Nav.pushUrlFrom model ]
+                )
 
         {- Configure index _ ->
             ( model |> updateLayer index
@@ -1156,9 +1162,9 @@ subscriptions model =
                             "ring" -> Fluid.ChangeRing value
                             _ -> Fluid.ChangeNothing
                 in ChangeNativeMetaballsEffects layer change)
+        -}
         , iFeelLucky
             (\_ -> TriggerFeelLucky)
-        -}
         , applyRandomizer ApplyRandomizer
         , import_ Import
         , pause (\_ -> Pause)

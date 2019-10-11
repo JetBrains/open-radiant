@@ -98,7 +98,7 @@ type Randomization
     = RandomizeInitial Product.Palette StaticModel
     | RandomizeStatics Ranges Model
     | RandomizeDynamics Ranges Product.Palette Gauss.Variety Orbit StaticModel
-    | RandomizeAll Ranges Product.Palette Gauss.Variety Orbit
+    | RandomizeEverything Ranges Product.Palette Gauss.Variety Orbit
 
 
 type alias Ranges =
