@@ -27,7 +27,7 @@ import Algorithm.Gaussian as Gaussian exposing (Variety)
 
 import Model.Layer.Layer exposing (..)
 import Model.Layer.Layer as Layer exposing (Registry)
-import Model.Layer.Def as Layer exposing (PortDef, Index)
+import Model.Layer.Def as Layer exposing (Index)
 import Model.Layer.Context as Layer exposing (Context)
 import Model.Layer.Layers exposing (Layers)
 import Model.AppMode exposing (..)
@@ -130,7 +130,7 @@ type alias Model = -- TODO: Result Error { ... }
 
 type alias PortModel =
     { background : String
-    , layers : List Layer.PortDef
+    , layers : List Layer.PortLayer
     , mode : String
     , mouse : ( Int, Int )
     , now : Float

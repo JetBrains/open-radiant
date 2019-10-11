@@ -23,6 +23,10 @@ type Kind
     | JS
 
 
+type BroadcastMsg
+    = Lucky
+
+
 type alias Def model view msg blend =
     { id : DefId
     , kind : Kind
@@ -30,6 +34,7 @@ type alias Def model view msg blend =
     , encode : Context -> model -> E.Value
     , decode : Context -> D.Decoder model
     , update : Index -> Context -> msg -> model -> ( model, Cmd msg )
+    , response : Index -> Context -> BroadcastMsg -> model -> ( model, Cmd msg )
     , view : Index -> Context -> Maybe blend -> model -> view
     , subscribe : Context -> model -> Sub ( Index, msg )
     , gui : Maybe (Index -> model -> Nest msg)
@@ -40,37 +45,59 @@ unit : Def () () () ()
 unit =
     { id = "unit"
     , kind = JS
-    , init = \_ _ -> ( (), Cmd.none )
-    , encode = \_ _ -> E.object []
-    , decode = always <| D.succeed ()
-    , update = \_ _ _ model -> ( model, Cmd.none )
-    , view = \_ _ _ _ -> ()
-    , subscribe = \_ _ -> Sub.none
+    , init = initWith ()
+    , encode = noEncode
+    , decode = decodeTo ()
+    , update = passUpdate
+    , response = passResponse
+    , view = singleView ()
+    , subscribe = noSubscriptions
     , gui = Nothing
     }
 
 
--- kinda Either, but for ports:
---    ( Just WebGLBlend, Nothing ) --> WebGL Blend
---    ( Nothing, Just String ) --> HTML Blend
---    ( Nothing, Nothing ) --> None
---    ( Just WebGLBlend, Just String ) --> ¯\_(ツ)_/¯
-type alias PortBlend =
-    ( Maybe WebGL.Blend, Maybe String )
+passUpdate : Index -> Context -> msg -> model -> ( model, Cmd msg )
+passUpdate = \_ _ _ model -> ( model, Cmd.none )
 
 
-type alias PortDef = -- FIXME: actually it's not `PortDef`, but `PortLayer`
-    { def : String
-    , kind : String
-    , blend : PortBlend
-    , visible : String
-    , opacity : Float
-    , zOrder : Int
-    , index : Int
-    , isOn : Bool
-    , model : String
-    }
+passResponse : Index -> Context -> BroadcastMsg -> model -> ( model, Cmd msg )
+passResponse = \_ _ _ model -> ( model, Cmd.none )
+
+
+singleView : view -> Index -> Context -> Maybe blend -> model -> view
+singleView v = \_ _ _ _ -> v
+
+
+initWith : model -> Index -> Context -> ( model, Cmd msg )
+initWith m = \_ _ -> ( m, Cmd.none )
+
+
+noEncode : Context -> model -> E.Value
+noEncode = \_ _ -> E.object []
+
+
+decodeTo : model -> Context -> D.Decoder model
+decodeTo v = \_ -> D.succeed v
+
+
+noSubscriptions : Context -> model -> Sub ( Index, msg )
+noSubscriptions = \_ _ -> Sub.none
 
 
 indexToString : Index -> String
 indexToString (Index index) = String.fromInt index
+
+
+empty : DefId -> Kind -> model -> view -> Def model view () ()
+empty id kind initialModel initalView =
+    { id = id
+    , kind = kind
+    , init = initWith initialModel
+    , encode = noEncode
+    , decode = decodeTo initialModel
+    , subscribe = noSubscriptions
+    , update = passUpdate
+    , response = passResponse
+    , view = singleView initalView
+    , gui = Nothing
+    }

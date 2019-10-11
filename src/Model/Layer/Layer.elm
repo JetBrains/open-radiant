@@ -92,6 +92,30 @@ type alias Registry =
     }
 
 
+
+-- kinda Either, but for ports:
+--    ( Just WebGLBlend, Nothing ) --> WebGL Blend
+--    ( Nothing, Just String ) --> HTML Blend
+--    ( Nothing, Nothing ) --> None
+--    ( Just WebGLBlend, Just String ) --> ¯\_(ツ)_/¯
+type alias PortBlend =
+    ( Maybe WebGL.Blend, Maybe String )
+
+
+type alias PortLayer =
+    { def : String
+    , kind : String
+    , blend : PortBlend
+    , visible : String
+    , opacity : Float
+    , zOrder : Int
+    , index : Int
+    , isOn : Bool
+    , model : String
+    }
+
+
+
 layer : Index -> ZOrder -> Visibility -> Blend -> Model -> Layer
 layer (Index index) (ZOrder zOrder) visibility blend model =
     Layer
@@ -253,6 +277,14 @@ adapt
                         source.subscribe ctx model
                             |> Sub.map (Tuple.mapSecond a.convertMsg)
                     Nothing -> Sub.none
+        , response =
+            \index ctx broadcastMsg layerModel ->
+                case ( a.extractModel layerModel ) of
+                    Just model ->
+                        adaptUpdateTuple <|
+                            source.response index ctx broadcastMsg model
+                    _ -> -- FIXME: return Maybe/Result for the case when message / model doesn't match
+                        adaptUpdateTuple <| source.init index ctx
         , gui = Nothing -- FIXME
         }
 

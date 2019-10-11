@@ -21,7 +21,8 @@ import Model.Product exposing (..)
 import Model.Layer.Context exposing (Context)
 import Model.Layer.Def exposing (Kind(..), DefId, Index)
 import Model.Layer.Def as Layer exposing (Def)
-import Model.Layer.Def as Def exposing (unit)
+import Model.Layer.Def as Layer exposing
+    (initWith, passUpdate, passResponse, noEncode, decodeTo, noSubscriptions)
 
 
 id : DefId
@@ -32,11 +33,12 @@ def : Layer.Def Model (Html ()) () Html.Blend
 def =
     { id = id
     , kind = Html
-    , init = \_ _ -> ( init, Cmd.none )
-    , encode = always <| always <| E.object []
-    , decode = always <| D.succeed init
-    , subscribe = \_ _ -> Sub.none
-    , update = \_ _ _ model -> ( model, Cmd.none )
+    , init = Layer.initWith init
+    , encode = Layer.noEncode
+    , decode = Layer.decodeTo init
+    , subscribe = Layer.noSubscriptions
+    , update = Layer.passUpdate
+    , response = Layer.passResponse
     , view = view
     , gui = Nothing
     }

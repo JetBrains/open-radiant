@@ -22,7 +22,7 @@ import Viewport exposing (Viewport)
 
 import Model.Product as Product exposing (..)
 import Model.Layer.Def exposing (Kind(..), DefId)
-import Model.Layer.Def as Layer exposing (Def, JsIndex, Index)
+import Model.Layer.Def as Layer exposing (Def, JsIndex, Index, passResponse, initWith)
 import Model.Layer.Context exposing (..)
 
 import Model.Layer.Blend.Html as Html exposing (..)
@@ -43,11 +43,12 @@ def : Layer.Def Model (Html Msg) Msg Html.Blend
 def =
     { id = id
     , kind = Html
-    , init = \_ _ -> ( init, Cmd.none )
+    , init = Layer.initWith init
     , encode = encode
     , decode = decode
     , subscribe = subscriptions
     , update = update
+    , response = Layer.passResponse
     , view = view
     , gui = Nothing
     }

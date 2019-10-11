@@ -30,7 +30,7 @@ import Model.Product exposing (ColorId(..))
 import Model.Range exposing (..)
 import Model.Layer.Blend.Html as Html exposing (Blend)
 import Model.Layer.Blend.Html as Blend exposing (encode)
-import Model.Layer.Def exposing (Index(..), indexToString)
+import Model.Layer.Def exposing (Index(..), indexToString, BroadcastMsg)
 import Model.Layer.Def as Layer exposing (Def, DefId, Kind(..))
 import Model.Layer.Context exposing (Context)
 
@@ -70,6 +70,7 @@ def =
     , decode = FluidIE.decode
     , subscribe = \_ _ -> Sub.none
     , update = update
+    , response = response
     , view = view
     , gui = Nothing
     }
@@ -102,6 +103,11 @@ update (Index index) ctx msg model =
                 }
             )
         _ -> ( model, Cmd.none )
+
+
+response : Index -> Context -> BroadcastMsg -> Model -> ( Model, Cmd Msg )
+response (Index index) ctx msg model =
+    ( model, Cmd.none )
 
 
 -- type alias PortModel =

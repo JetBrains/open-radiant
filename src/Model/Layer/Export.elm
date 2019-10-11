@@ -98,7 +98,7 @@ encodeModel ctx model =
 unknown = "<unknown>"
 
 
-encodeForPort : Context -> Layer -> PortDef
+encodeForPort : Context -> Layer -> PortLayer
 encodeForPort ctx (Layer props model as layer) =
     let
         unknownDef =
@@ -128,7 +128,7 @@ encodeForPort ctx (Layer props model as layer) =
 
 decodeFromPort
     :  Context
-    -> PortDef
+    -> PortLayer
     -> Result (List DecodeError) Layer
 decodeFromPort ctx portDef  =
     case registry.byId portDef.def of

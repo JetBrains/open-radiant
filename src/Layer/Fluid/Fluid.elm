@@ -70,9 +70,10 @@ def =
             )
     , encode = IE.encode
     , decode = IE.decode
-    , subscribe = \_ _ -> Sub.none
-    , update = \_ _ _ model -> ( model, Cmd.none )
-    , view = \_ _ _ _ -> ()
+    , subscribe = Layer.noSubscriptions
+    , update = Layer.passUpdate
+    , response = Layer.passResponse
+    , view = Layer.singleView ()
     , gui = Nothing
     }
 
