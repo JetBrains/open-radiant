@@ -121,11 +121,14 @@ render : Context -> Layers -> List ( Index, ZOrder, View )
 render ctx layers =
     layers |>
         List.map
-            (\(Layer { index, zOrder, blend } model) ->
-                registry.byModel model
-                    |> Maybe.map (\def ->
-                        def.view (Index index) ctx (Just blend) model)
-                    |> Maybe.map (\view -> ( Index index, ZOrder zOrder, view ))
+            (\(Layer { index, zOrder, blend, visibility } model) ->
+                case visibility of
+                    Hidden -> Nothing
+                    _ ->
+                        registry.byModel model
+                            |> Maybe.map (\def ->
+                                def.view (Index index) ctx (Just blend) model)
+                            |> Maybe.map (\view -> ( Index index, ZOrder zOrder, view ))
             )
         |> List.filterMap identity
 
