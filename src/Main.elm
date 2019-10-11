@@ -480,10 +480,16 @@ update msg model =
         -}
 
         ChangeProduct product ->
-            let modelWithProduct = { model | product = product }
+            let
+                modelWithProduct = { model | product = product }
+                ( newLayers, cmds ) =
+                    modelWithProduct.layers
+                        |> Layers.broadcastAll ToLayer (getContext model) (B.ChangeProduct product)
             in
-                ( modelWithProduct
-                , Cmd.none
+                ( { modelWithProduct
+                  | layers = newLayers
+                  }
+                , Cmd.batch <| cmds :: [ Nav.pushUrlFrom modelWithProduct ]
                 {-
                 , Cmd.batch
                     [ if hasFssLayers modelWithProduct

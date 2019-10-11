@@ -31,6 +31,7 @@ type alias Def model view msg blend =
     , encode : Context -> model -> E.Value
     , decode : Context -> D.Decoder model
     , update : Index -> Context -> msg -> model -> ( model, Cmd msg )
+    -- maybe having Cmd to response to broadcast message is enough
     , response : Index -> Context -> Broadcast.Msg -> model -> ( model, Cmd msg )
     , view : Index -> Context -> Maybe blend -> model -> view
     , subscribe : Context -> model -> Sub ( Index, msg )

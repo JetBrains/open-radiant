@@ -103,6 +103,10 @@ update (Index index) ctx msg model =
 response : Index -> Context -> Broadcast.Msg -> Model -> ( Model, Cmd Msg )
 response (Index index) ctx broadcastMsg model =
     case broadcastMsg of
+        Broadcast.ChangeProduct product ->
+            ( model
+            , generateDynamics ctx model
+            )
         Broadcast.TurnOn ->
             ( model
             , updateNativeMetaballs
