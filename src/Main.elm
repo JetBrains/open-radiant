@@ -40,6 +40,7 @@ import Model.Export as IE -- IE for import/export
 
 import Model.Layer.Layer exposing (Layer, Blend(..))
 import Model.Layer.Layer as Layer
+import Model.Layer.Broadcast as B
 import Model.Layer.Def as Layer exposing (Index, indexToString)
 import Model.Layer.Layers as Layers
 import Model.Layer.Blend.Html as HtmlBlend
@@ -404,15 +405,17 @@ update msg model =
 
         TurnOn index ->
             let
+                ( newLayers, cmds ) =
+                    model.layers
+                        |> Layers.modify Layer.show index
+                        |> Layers.broadcast ToLayer (getContext model) index B.TurnOn
                 newModel =
                     { model
-                    | layers =
-                        model.layers
-                            |> Layers.modify Layer.show index
+                    | layers = newLayers
                     }
             in
                 ( newModel
-                , Cmd.none
+                , cmds
                 {-
                 , if hasNativeMetaballsLayers newModel
                     then generateAllInitialNativeMetaballs newModel
@@ -422,15 +425,17 @@ update msg model =
 
         TurnOff index ->
             let
+                ( newLayers, cmds ) =
+                    model.layers
+                        |> Layers.modify Layer.hide index
+                        |> Layers.broadcast ToLayer (getContext model) index B.TurnOff
                 newModel =
                     { model
-                    | layers =
-                        model.layers
-                            |> Layers.modify Layer.hide index
+                    | layers = newLayers
                     }
             in
                 ( newModel
-                , Cmd.none
+                , cmds
                 {-
                 , if hasNativeMetaballsLayers newModel
                     then updateAllNativeMetaballsWith newModel

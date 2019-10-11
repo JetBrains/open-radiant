@@ -328,9 +328,11 @@ function start(document, model, constants, funcs) {
           funcs.shiftColor(index)(null, null, value);
         });
       }
-      if (is.fluid(layer) || is.nativeMetaballs(layer)) {
+      if (layer.visible != 'locked') {
         const visibitySwitch = folder.add(config, 'visible' + index).name('visible');
         visibitySwitch.onFinishChange(val => switchLayer(index, val));
+      }
+      if (is.fluid(layer) || is.nativeMetaballs(layer)) {
         folder.add(config, 'bang' + index).name('bang');
         if (is.fluid(layer)) {
           folder.add(config, 'rebuildGradients' + index).name('regenerate gradients');

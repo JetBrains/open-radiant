@@ -8,6 +8,7 @@ import Json.Encode as E
 import Model.Layer.Blend.WebGL as WebGL
 
 import Model.Layer.Context exposing (Context)
+import Model.Layer.Broadcast as Broadcast exposing (Msg)
 
 
 type alias DefId = String
@@ -23,10 +24,6 @@ type Kind
     | JS
 
 
-type BroadcastMsg
-    = Lucky
-
-
 type alias Def model view msg blend =
     { id : DefId
     , kind : Kind
@@ -34,7 +31,7 @@ type alias Def model view msg blend =
     , encode : Context -> model -> E.Value
     , decode : Context -> D.Decoder model
     , update : Index -> Context -> msg -> model -> ( model, Cmd msg )
-    , response : Index -> Context -> BroadcastMsg -> model -> ( model, Cmd msg )
+    , response : Index -> Context -> Broadcast.Msg -> model -> ( model, Cmd msg )
     , view : Index -> Context -> Maybe blend -> model -> view
     , subscribe : Context -> model -> Sub ( Index, msg )
     , gui : Maybe (Index -> model -> Nest msg)
@@ -60,7 +57,7 @@ passUpdate : Index -> Context -> msg -> model -> ( model, Cmd msg )
 passUpdate = \_ _ _ model -> ( model, Cmd.none )
 
 
-passResponse : Index -> Context -> BroadcastMsg -> model -> ( model, Cmd msg )
+passResponse : Index -> Context -> Broadcast.Msg -> model -> ( model, Cmd msg )
 passResponse = \_ _ _ model -> ( model, Cmd.none )
 
 

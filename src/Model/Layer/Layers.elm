@@ -2,7 +2,9 @@ module Model.Layer.Layers exposing (..)
 
 import Model.Layer.Def exposing (DefId, Index(..))
 import Model.Layer.Layer exposing (..)
+import Model.Layer.Layer as Layer exposing (Msg)
 import Model.Layer.Context exposing (Context)
+import Model.Layer.Broadcast as Broadcast exposing (Msg)
 
 
 type alias Layers = List Layer
@@ -17,7 +19,7 @@ type alias Initial =
 
 
 init
-    :  (Index -> Msg -> msg)
+    :  (Index -> Layer.Msg -> msg)
     -> Context
     -> Initial
     -> ( Layers, Cmd msg ) -- TODO: Result (List String)
@@ -50,10 +52,10 @@ init mapMsg ctx initial =
 
 
 update
-    :  (Index -> Msg -> msg)
+    :  (Index -> Layer.Msg -> msg)
     -> Context
     -> Index
-    -> Msg
+    -> Layer.Msg
     -> Layers
     -> ( Layers, Cmd msg )
 update mapMsg ctx (Index layerToUpdate) msg layers =
@@ -90,8 +92,87 @@ update mapMsg ctx (Index layerToUpdate) msg layers =
         |> Tuple.mapSecond Cmd.batch
 
 
+broadcast
+    :  (Index -> Layer.Msg -> msg)
+    -> Context
+    -> Index
+    -> Broadcast.Msg
+    -> Layers
+    -> ( Layers, Cmd msg )
+broadcast mapMsg ctx (Index layerToBroadcastTo) broadcastMsg layers =
+    layers
+        |> List.indexedMap Tuple.pair
+        |> List.map (Tuple.mapFirst Index)
+        |> List.map
+            (\( Index index, layer ) ->
+
+                if index == layerToBroadcastTo then
+
+                    case layer of
+                        Layer _ model ->
+                            registry.byModel model
+                                |> Maybe.map (\def ->
+                                    def.response (Index index) ctx broadcastMsg model)
+                                |> Maybe.map (\( newModel, cmd ) ->
+                                    ( layer |> replaceModel newModel, cmd ))
+                                |> Maybe.withDefault ( layer, Cmd.none )
+
+                else ( layer, Cmd.none )
+
+            )
+        |> List.foldr -- we shouldn't lose any layers here since we just add them back
+                (\( layer, cmd ) ( prevLayers, prevCmds ) ->
+
+                    let (Layer { index } _) = layer
+                    in
+                        ( layer :: prevLayers
+                        , Cmd.map (mapMsg <| Index index) cmd :: prevCmds
+                        )
+
+                )
+                ( [], [] )
+        |> Tuple.mapSecond Cmd.batch
+
+
+broadcastAll
+    :  (Index -> Layer.Msg -> msg)
+    -> Context
+    -> Broadcast.Msg
+    -> Layers
+    -> ( Layers, Cmd msg )
+broadcastAll mapMsg ctx broadcastMsg layers =
+    layers
+        |> List.indexedMap Tuple.pair
+        |> List.map (Tuple.mapFirst Index)
+        |> List.map
+            (\( Index index, layer ) ->
+
+                case layer of
+                    Layer _ model ->
+                        registry.byModel model
+                            |> Maybe.map (\def ->
+                                def.response (Index index) ctx broadcastMsg model)
+                            |> Maybe.map (\( newModel, cmd ) ->
+                                    ( layer |> replaceModel newModel, cmd ))
+                            |> Maybe.withDefault ( layer, Cmd.none )
+
+            )
+        |> List.foldr -- we shouldn't lose any layers here since we just add them back
+                (\( layer, cmd ) ( prevLayers, prevCmds ) ->
+
+                    let (Layer { index } _) = layer
+                    in
+                        ( layer :: prevLayers
+                        , Cmd.map (mapMsg <| Index index) cmd :: prevCmds
+                        )
+
+                )
+                ( [], [] )
+        |> Tuple.mapSecond Cmd.batch
+
+
 subscribe
-    :  (Index -> Msg -> msg)
+    :  (Index -> Layer.Msg -> msg)
     -> Context
     -> Layers
     -> Sub msg
