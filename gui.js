@@ -88,9 +88,13 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
       }
 
       if (is.fluid(layer) || is.nativeMetaballs(layer)) {
-        this['bang' + index] = () => funcs.refreshFluid(index);
+
         if (is.fluid(layer)) {
+          this['bang' + index] = () => funcs.refreshFluid(index);
           this['rebuildGradients' + index] = () => funcs.rebuildFluidGradients(index);
+        }
+        if (is.nativeMetaballs(layer)) {
+          this['bang' + index] = () => funcs.refreshNativeMetaballs(index);
         }
         this['variety'+index] = layer.model.variety;
         this['orbit'+index] = layer.model.orbit;
@@ -428,7 +432,7 @@ function start(document, model, constants, funcs) {
     //     gui.addFolder()
     // });
 
-    return { config, update };
+    return { config, update : update(gui) };
 }
 
 module.exports = start;

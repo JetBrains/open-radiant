@@ -192,7 +192,6 @@ const prepareImportExport = () => {
     //         alert('Failed to parse or send, incorrect format?');
     //     }
     // });
-
 }
 
 const savePng = (hiddenLink, { size, coverSize, product, background }) => {
@@ -424,6 +423,8 @@ setTimeout(() => {
                     { app.ports.iFeelLucky.send(null); }
                 , refreshFluid : (index) =>
                     { app.ports.refreshFluid.send({ layer: index }); }
+                , refreshNativeMetaballs : (index) =>
+                    { app.ports.refreshNativeMetaballs.send({ layer: index }); }
                 , changeFluidVariety : index => value =>
                     { app.ports.changeFluidVariety.send({ layer: index, value }); }
                 , changeFluidOrbit : index => value =>
@@ -454,6 +455,15 @@ setTimeout(() => {
             //     // TODO: apply the mode change in GUI and so change the size selection
             //     update();
             // });
+
+            app.ports.updateNativeMetaballs.subscribe(({ index, size, layerModel, palette }) => {
+                config['variety'+index] = layerModel.variety;
+                config['orbit'+index] = layerModel.orbit;
+                config['blur'+index] = layerModel.effects.blur;
+                config['fat'+index] = layerModel.effects.fat;
+                config['ring'+index] = layerModel.effects.ring;
+                update();
+            });
 
         }
 
