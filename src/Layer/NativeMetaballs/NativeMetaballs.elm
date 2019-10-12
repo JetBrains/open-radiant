@@ -73,7 +73,8 @@ def =
 
 
 type Msg
-    = Update Model -- called when random model was generated in any way
+    = Bang
+    | Update Model -- called when random model was generated in any way
     | ChangeVariety Gaussian.Variety
     | ChangeOrbit Orbit
     | ChangeEffects Fluid.EffectsChange
@@ -85,9 +86,24 @@ type alias Model = Fluid.Model
 type alias Orbit = Fluid.Orbit
 
 
+
+init : Model
+init =
+    let fluidDefault = Fluid.init
+    in
+        { fluidDefault
+        | variety = Variety 1000.0
+        , orbit = Orbit 0.5
+        }
+
+
 update : Index -> Context -> Msg -> Model -> ( Model, Cmd Msg )
 update (Index index) ctx msg model =
     case msg of
+        Bang ->
+            ( model
+            , generateStatics ctx model
+            )
         Update newModel -> -- called when random model was generated in any way
             ( newModel
             , updateNativeMetaballs
@@ -98,13 +114,19 @@ update (Index index) ctx msg model =
                 }
             )
         ChangeVariety value ->
-            ( { model | variety = value }
-            , generateDynamics ctx model
-            )
+            let
+                newModel = { model | variety = value }
+            in
+                ( newModel
+                , generateDynamics ctx newModel
+                )
         ChangeOrbit value ->
-            ( { model | orbit = value }
-            , generateDynamics ctx model
-            )
+            let
+                newModel = { model | orbit = value }
+            in
+                ( newModel
+                , generateDynamics ctx newModel
+                )
         ChangeEffects change ->
             let
                 encodedChange = FluidIE.encodeEffectsChange change
@@ -172,17 +194,13 @@ subscribe ctx model =
                             _ -> Fluid.ChangeNothing
                 in ( Index layer, ChangeEffects change )
             )
+        , refreshNativeMetaballs
+            (\{ layer } ->
+                ( Index layer
+                , Bang
+                )
+            )
         ]
-
-
-init : Model
-init =
-    let fluidDefault = Fluid.init
-    in
-        { fluidDefault
-        | variety = Variety 1000.0
-        , orbit = Orbit 0.5
-        }
 
 
 -- export : Model -> PortModel
@@ -396,6 +414,11 @@ port changeNativeMetaballsEffects :
       , subject: String
       , value: Float
     }
+    -> msg) -> Sub msg
+
+
+port refreshNativeMetaballs :
+    ( { layer : Layer.JsIndex }
     -> msg) -> Sub msg
 
 

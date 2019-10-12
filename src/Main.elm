@@ -1905,10 +1905,6 @@ port refreshFluid :
     ( { layer : LayerIndex }
     -> msg) -> Sub msg
 
-port refreshNativeMetaballs :
-    ( { layer : LayerIndex }
-    -> msg) -> Sub msg
-
 port changeFluidVariety :
     ( { layer : LayerIndex
       , value : Float

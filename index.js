@@ -240,6 +240,7 @@ const updateOrInitNativeMetaballs = (size, layerModel, palette, index) => {
         allNativeMetaballs[index] = nativeMetaballsModel;
         const debouncedResize = timing.debounce(function(newSize) {
             const prev = allNativeMetaballs[index];
+            if (!prev) return;
             // prev.resize(newSize);
             // prev.size = newSize;
             allNativeMetaballs[index] = nativeMetaballs.update(newSize, prev, prev.stop, index);
