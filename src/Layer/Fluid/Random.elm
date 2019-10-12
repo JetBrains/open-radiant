@@ -244,6 +244,14 @@ staticsGenerator ( w, h ) range curModel =
                 (\(balls, gradient) ->
                     { source
                     | balls = balls
+                        |> List.map
+                            (\ball ->
+                                { ball
+                                | origin =
+                                    ball.origin |>
+                                        Vec2.sub (vec2 (toFloat w / 2) (toFloat h / 2))
+                                }
+                            )
                     , gradient = gradient
                     }
                 )
