@@ -63,7 +63,7 @@ def =
             )
     , encode = FluidIE.encode
     , decode = FluidIE.decode
-    , subscribe = \_ _ -> Sub.none
+    , subscribe = subscribe
     , update = update
     , response = response
     , view = view
@@ -97,7 +97,25 @@ update (Index index) ctx msg model =
                 , layerModel = FluidIE.encode ctx newModel
                 }
             )
-        _ -> ( model, Cmd.none )
+        ChangeVariety value ->
+            ( { model | variety = value }
+            , generateDynamics ctx model
+            )
+        ChangeOrbit value ->
+            ( { model | orbit = value }
+            , generateDynamics ctx model
+            )
+        ChangeEffects change ->
+            let
+                encodedChange = FluidIE.encodeEffectsChange change
+            in
+                ( { model | effects = Fluid.applyEffectsChange change model.effects }
+                , sendNativeMetaballsEffects
+                    { index = index
+                    , subject = encodedChange.subject
+                    , value = encodedChange.value
+                    }
+                )
 
 
 response : Index -> Context -> Broadcast.Msg -> Model -> ( Model, Cmd Msg )
@@ -128,10 +146,32 @@ response (Index index) ctx broadcastMsg model =
 --     , temp : String
 --     }
 
-subscribe : Context -> Model -> Sub ( Layer.Index, Cmd Msg )
+subscribe : Context -> Model -> Sub ( Layer.Index, Msg )
 subscribe ctx model =
     Sub.batch
-        [
+        [ changeNativeMetaballsVariety
+            (\{ layer, value } ->
+                ( Index layer
+                , ChangeVariety <| Gaussian.Variety value
+                )
+            )
+        , changeNativeMetaballsOrbit
+            (\{ layer, value } ->
+                ( Index layer
+                , ChangeOrbit <| Fluid.Orbit value
+                )
+            )
+        , changeNativeMetaballsEffects
+            (\{ layer, subject, value } ->
+                let
+                    change =
+                        case subject of
+                            "blur" -> Fluid.ChangeBlur value
+                            "fat" -> Fluid.ChangeFat value
+                            "ring" -> Fluid.ChangeRing value
+                            _ -> Fluid.ChangeNothing
+                in ( Index layer, ChangeEffects change )
+            )
         ]
 
 
@@ -335,9 +375,43 @@ generateEverything ctx model =
     Fluid.generateEverything Update ctx model
 
 
+{- incoming -}
+
+
+port changeNativeMetaballsVariety :
+    ( { layer : Layer.JsIndex
+      , value : Float
+      }
+    -> msg) -> Sub msg
+
+port changeNativeMetaballsOrbit :
+    ( { layer : Layer.JsIndex
+      , value : Float
+      }
+    -> msg) -> Sub msg
+
+
+port changeNativeMetaballsEffects :
+    ( { layer: Layer.JsIndex
+      , subject: String
+      , value: Float
+    }
+    -> msg) -> Sub msg
+
+
+{- outgoing -}
+
+
 port updateNativeMetaballs :
     { index: Layer.JsIndex
     , size: (Int, Int)
     , layerModel : E.Value
     , palette: List String
+    } -> Cmd msg
+
+
+port sendNativeMetaballsEffects :
+    { index: Layer.JsIndex
+    , subject: String
+    , value: Float
     } -> Cmd msg

@@ -951,84 +951,6 @@ update msg model =
             )
         -}
 
-        {-
-        ChangeNativeMetaballsVariety index value ->
-            if hasNativeMetaballsLayers model then
-                let
-                    newModel =
-                        model |> updateLayerDef index
-                            (\layerDef ->
-                                case layerDef.model of
-                                    NativeMetaballsModel nmModel ->
-                                        { layerDef
-                                        | model =
-                                            NativeMetaballsModel { nmModel | variety = value }
-                                        }
-                                    _ -> layerDef
-                            )
-                in
-                    ( newModel
-                    , generateAllNativeMetaballsDynamics newModel-- FIXME: use actual index
-                    )
-            else ( model, Cmd.none )
-        -}
-
-        {-
-        ChangeNativeMetaballsOrbit index value ->
-            if hasNativeMetaballsLayers model then
-                let
-                    newModel =
-                        model |> updateLayerDef index
-                            (\layerDef ->
-                                case layerDef.model of
-                                    NativeMetaballsModel nmModel ->
-                                        { layerDef
-                                        | model =
-                                            NativeMetaballsModel { nmModel | orbit = value }
-                                        }
-                                    _ -> layerDef
-                            )
-                in
-                    ( newModel
-                    , generateAllNativeMetaballsDynamics newModel -- FIXME: use actual index
-                    )
-            else ( model, Cmd.none )
-        -}
-
-        {-
-        ChangeNativeMetaballsEffects index change ->
-            if hasNativeMetaballsLayers model then
-                let
-                    newModel =
-                        model |> updateLayerDef index
-                            (\layerDef ->
-                                case layerDef.model of
-                                    NativeMetaballsModel nmModel ->
-                                        { layerDef
-                                        | model =
-                                            NativeMetaballsModel { nmModel | effects = Fluid.applyEffectsChange change nmModel.effects }
-                                        }
-                                    _ -> layerDef
-                            )
-                    encodedChange = Fluid.encodeEffectsChange change
-                in
-                    ( newModel
-                    , sendNativeMetaballsEffects
-                        { index = index
-                        , subject = encodedChange.subject
-                        , value = encodedChange.value
-                        }
-                    )
-            else ( model, Cmd.none )
-        -}
-
-        -- UpdateNativeMetaballs layerIndex ->
-        --     ( model
-        --     , NativeMetaballs.prepare model.product
-        --         |> Tuple.pair layerIndex
-        --         |> updateNativeMetaballs
-        --     )
-
         NoOp -> ( model, Cmd.none )
 
 
@@ -1140,28 +1062,11 @@ subscriptions model =
         --     (\{ layer } -> UpdateNativeMetaballs layer)
         , refreshFluid
             (\{ layer } -> RequestNewFluid layer)
-        , refreshNativeMetaballs
-            (\{ layer } -> RequestNewNativeMetaballs layer)
         , changeFluidVariety
             (\{ layer, value } ->
                 ChangeFluidVariety layer (Gaussian.Variety value))
         , changeFluidOrbit
             (\{ layer, value } -> ChangeFluidOrbit layer (Fluid.Orbit value))
-        , changeNativeMetaballsVariety
-            (\{ layer, value } ->
-                ChangeNativeMetaballsVariety layer (Gaussian.Variety value))
-        , changeNativeMetaballsOrbit
-            (\{ layer, value } -> ChangeNativeMetaballsOrbit layer (Fluid.Orbit value))
-        , changeNativeMetaballsEffects
-            (\{ layer, subject, value } ->
-                let
-                    change =
-                        case subject of
-                            "blur" -> Fluid.ChangeBlur value
-                            "fat" -> Fluid.ChangeFat value
-                            "ring" -> Fluid.ChangeRing value
-                            _ -> Fluid.ChangeNothing
-                in ChangeNativeMetaballsEffects layer change)
         -}
         , iFeelLucky
             (\_ -> TriggerFeelLucky)
@@ -1969,8 +1874,6 @@ port changeAmplitude : ({ value: FSS.AmplitudeChange, layer: Layer.IndexP } -> m
 port shiftColor : ({ value: FSS.ColorShiftPatch, layer: Layer.IndexP } -> msg) -> Sub msg
 
 port changeOpacity : ({ value: FSS.Opacity, layer: Layer.IndexP } -> msg) -> Sub msg
-
-port changeNativeMetaballsEffects : ({ subject: String, value: Float, layer: Layer.IndexP } -> msg) -> Sub msg
 -}
 
 port iFeelLucky : (() -> msg) -> Sub msg
@@ -2017,18 +1920,6 @@ port changeFluidOrbit :
       , value : Float
       }
     -> msg) -> Sub msg
-
-port changeNativeMetaballsVariety :
-    ( { layer : Layer.IndexP
-      , value : Float
-      }
-    -> msg) -> Sub msg
-
-port changeNativeMetaballsOrbit :
-    ( { layer : Layer.IndexP
-      , value : Float
-      }
-    -> msg) -> Sub msg
 -}
 
 -- OUTGOING PORTS
@@ -2072,19 +1963,3 @@ port requestFitToWindow : () -> Cmd msg
 port requestWindowResize : ( Int, Int ) -> Cmd msg
 
 -- port rebuildOnClient : (FSS.SerializedScene, Int) -> Cmd msg
-
-{-
-port updateNativeMetaballs :
-    { index: LayerIndex
-    , size: (Int, Int)
-    , layerModel : E.Value
-    , palette: List String
-    } -> Cmd msg
-
-
-port sendNativeMetaballsEffects :
-    { index: LayerIndex
-    , subject: String
-    , value: Float
-    } -> Cmd msg
--}
