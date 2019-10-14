@@ -68,7 +68,7 @@ type Model
 
 type Msg
     = BackgroundMsg Background.Msg
-    | CoverMsg ()
+    | CoverMsg Cover.Msg
     | NativeMetaballsMsg NativeMetaballs.Msg
 
 

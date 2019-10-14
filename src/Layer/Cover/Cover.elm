@@ -1,9 +1,10 @@
-module Layer.Cover.Cover exposing
+port module Layer.Cover.Cover exposing
     ( id
     , init
     , view
     , def
     , Model
+    , Msg
     )
 
 import Html exposing (..)
@@ -29,22 +30,30 @@ id : DefId
 id = "cover"
 
 
-def : Layer.Def Model (Html ()) () Html.Blend
+def : Layer.Def Model (Html Msg) Msg Html.Blend
 def =
     { id = id
     , kind = Html
     , init = Layer.initWith init
-    , encode = Layer.noEncode
-    , decode = Layer.decodeTo init
-    , subscribe = Layer.noSubscriptions
-    , update = Layer.passUpdate
+    , encode = encode
+    , decode = decode
+    , subscribe = subscribe
+    , update = update
     , response = Layer.passResponse
     , view = view
     , gui = Nothing
     }
 
 
-type alias Model = {}
+type alias Model =
+    { productShown : Bool
+    }
+
+
+type Msg
+    = HideProduct
+    | ShowProduct
+
 
 
 defaultSize = 110
@@ -58,10 +67,21 @@ scaleFactor = 0.1
 
 
 init : Model
-init = {}
+init =
+    { productShown = True
+    }
 
 
-view : Index -> Context -> Maybe Html.Blend -> Model -> Html ()
+update : Index -> Context -> Msg -> Model -> ( Model, Cmd Msg )
+update index ctx msg model =
+    case msg of
+        ShowProduct ->
+            ( { model | productShown = True }, Cmd.none )
+        HideProduct ->
+            ( { model | productShown = False }, Cmd.none )
+
+
+view : Index -> Context -> Maybe Html.Blend -> Model -> Html Msg
 view idx ctx maybeBlend model =
     let
         ( w, h ) = ctx.size
@@ -88,11 +108,13 @@ view idx ctx maybeBlend model =
             (ctx.mode == Production)
             || (ctx.mode == Player)
             || (ctx.mode == TronUi Production) then
-            [ productName
+            [ if model.productShown then
+                productName
                     ctx.product
                     ( centerX, centerY )
                     ( maybeBlend |> Maybe.withDefault Blend.Normal )
                     ( 0.8 * scale )
+              else text ""
             , logo ( logoX, logoY ) Blend.Normal ( 0.6 * scale )
             ]
           else
@@ -101,6 +123,19 @@ view idx ctx maybeBlend model =
             --, logo product posX posY logoPath blend scale
             ]
         )
+
+
+subscribe : Context -> Model -> Sub ( Layer.Index, Msg )
+subscribe ctx model =
+    Sub.batch
+        [ switchCoverProductVisibility
+            (\{ layer, isProductShown } ->
+                if isProductShown then
+                    ( Layer.Index layer, ShowProduct )
+                else
+                    ( Layer.Index layer, HideProduct )
+            )
+        ]
 
 
 productName : Product -> ( Float, Float ) -> Html.Blend -> Float -> Html a
@@ -210,3 +245,27 @@ encodeStoredData s =
         , ( "width", E.int s.width )
         , ( "height", E.int s.height )
         ]
+
+
+encode : Context -> Model -> E.Value
+encode ctx model =
+    E.object
+        [ ( "productShown", E.bool model.productShown )
+        ]
+
+
+decode : Context -> D.Decoder Model
+decode ctx =
+    D.map
+        (\productShown ->
+            { productShown = productShown
+            }
+        )
+        (D.field "productShown" D.bool)
+
+
+port switchCoverProductVisibility :
+    ( { layer : Layer.JsIndex
+      , isProductShown : Bool
+      }
+    -> msg) -> Sub msg

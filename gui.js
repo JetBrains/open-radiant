@@ -87,6 +87,10 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
         this['brightness' + index] = layer.model.colorShift[2];
       }
 
+      if (is.cover(layer)) {
+        this['productShown'+index] = !!layer.model.productShown;
+      }
+
       if (is.fluid(layer) || is.nativeMetaballs(layer)) {
 
         if (is.fluid(layer)) {
@@ -104,7 +108,6 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
       }
 
       if (is.background(layer)) {
-        console.log (layer);
         const stopStates = layer.model.stops || [];
         const gradientType = layer.model.orientation || "linear";
         this['isRadial'+index] = gradientType == "radial";
@@ -331,6 +334,11 @@ function start(document, model, constants, funcs) {
       if (layer.visible != 'locked') {
         const visibitySwitch = folder.add(config, 'visible' + index).name('visible');
         visibitySwitch.onFinishChange(val => switchLayer(index, val));
+      }
+      if (is.cover(layer)) {
+        const productVisibilitySwitch =
+          folder.add(config, 'productShown' + index).name('product');
+        productVisibilitySwitch.onFinishChange(funcs.switchCoverProductVisibility(index));
       }
       if (is.fluid(layer) || is.nativeMetaballs(layer)) {
         folder.add(config, 'bang' + index).name('bang');

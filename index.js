@@ -437,12 +437,17 @@ setTimeout(() => {
                 , changeNativeMetaballsOrbit : index => value =>
                     { app.ports.changeNativeMetaballsOrbit.send({ layer: index, value }); }
                 , changeNativeMetaballsEffects : (index, subject) => value =>
-                    { app.ports.changeNativeMetaballsEffects.send({ layer: index, subject, value }); }
+                    { app.ports.changeNativeMetaballsEffects.send({ layer: index, subject, value });}
                 , switchBackgroundStop : (layerIndex, stopIndex) => value =>
                     { app.ports.switchBackgroundStop.send({ layer: layerIndex, stopIndex, value }); }
-                , switchBackgroundGradientType : (layerIndex) => isRadial =>
+                , switchBackgroundGradientType : layerIndex => isRadial =>
                     { const orientation = isRadial ? 'radial' : 'vertical';
-                      app.ports.switchGradientOrientation.send({ layer: layerIndex, orientation }); }
+                      app.ports.switchGradientOrientation.send({ layer: layerIndex, orientation });
+                    }
+                , switchCoverProductVisibility : layerIndex => isProductShown =>
+                    {  app.ports.switchCoverProductVisibility.send(
+                        { layer: layerIndex, isProductShown });
+                    }
                 , resize: (presetCode) =>
                     { app.ports.resize.send({
                         presetCode, viewport: [ window.innerWidth, window.innerHeight ]
