@@ -1,4 +1,4 @@
-const nm = require('./src/Layer/NativeMetaballs.js');
+const nm = require('./src/Layer/NativeMetaballs/NativeMetaballs.js');
 
 function build(size, model, palette, index, cb) {
     //console.log('build', size, model, palette);

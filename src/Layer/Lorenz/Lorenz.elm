@@ -1,4 +1,4 @@
-module Layer.Lorenz exposing
+port module Layer.Lorenz.Lorenz exposing
     ( Model
     , Mesh
     , init
@@ -12,6 +12,8 @@ import Math.Vector3 as Vec3 exposing (Vec3, vec3, getX, getY, getZ)
 import WebGL
 import WebGL.Settings exposing (Setting)
 import Math.Vector3 as Vec3 exposing (Vec3, vec3)
+
+import Model.Layer.Def as Layer exposing (JsIndex)
 
 import Viewport exposing (Viewport)
 
@@ -273,3 +275,6 @@ blue =
 yellow : Vec3
 yellow =
     vec3 1 0 1
+
+
+port configureLorenz : ({ value: Model, layer: Layer.JsIndex } -> msg) -> Sub msg

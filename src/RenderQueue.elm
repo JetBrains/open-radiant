@@ -1,10 +1,12 @@
 module RenderQueue exposing
-    ( groupLayers
+    ( make
     , apply
     )
 
-import Model.Core exposing (..)
-import Model.Layer exposing (..)
+import Model.Core exposing (Model, Msg(..))
+import Model.Layer.Layer as Layer
+import Model.Layer.Def as Layer exposing (Index)
+import Model.Layer.Layers exposing (Layers)
 import Model.SizeRule exposing (..)
 
 import Viewport exposing (Viewport)
@@ -17,79 +19,69 @@ import Html exposing (..)
 import WebGL as WebGL
 
 
-type alias LayerToEntities = Model -> Viewport {} -> Int -> LayerDef -> List WebGL.Entity
-type alias LayerToHtml     = Model -> Viewport {} -> Int -> LayerDef -> Html Msg
+-- type alias LayerToEntities = Layer.Model -> Viewport {} -> Int -> Layer.Def -> List WebGL.Entity
+-- type alias LayerToHtml     = Layer.Model -> Viewport {} -> Int -> Layer.Def -> Html Msg
 
-type RenderQueueItem = ToCanvas (Array WebGL.Entity) | ToHtml (Array (Html Msg))
-type alias RenderQueue = Array RenderQueueItem
+type QueueItem
+    = HtmlGroup (Array (Layer.Index, Layer.ZOrder, Html Layer.Msg))
+    | WebGLGroup (Array (Layer.Index, Layer.ZOrder, WebGL.Entity))
+type alias RenderQueue = Array QueueItem
 
 
-groupLayers : LayerToEntities -> LayerToHtml -> Model -> RenderQueue
-groupLayers layerToEntities layerToHtml model =
+make : List ( Layer.Index, Layer.ZOrder, Layer.View ) -> RenderQueue
+make renderedLayers =
     let
-        viewport = getViewportState model |> Viewport.find
-        addToQueue (index, layer) renderQueue =
+        addToQueue ( index, zOrder, layerView ) renderQueue =
             let
                 indexOfThelastInQueue = Array.length renderQueue - 1
                 lastInQueue = renderQueue |> Array.get indexOfThelastInQueue
-            in case layer.layer of
-                WebGLLayer _ _ ->
+            in case layerView of
+                Layer.ToWebGL entity ->
                     case lastInQueue of
-                        Nothing ->
-                            renderQueue
-                                |> Array.push
-                                    (layerToEntities model viewport index layer
-                                        |> Array.fromList
-                                        |> ToCanvas)
-                        Just (ToCanvas curEntities) ->
+                        Just (WebGLGroup existingEntities) ->
                             renderQueue
                                 |> Array.set indexOfThelastInQueue
-                                    (layerToEntities model viewport index layer
-                                        |> Array.fromList
-                                        |> Array.append curEntities
-                                        |> ToCanvas)
-                        Just _ ->
-                            renderQueue
-                                |> Array.push
-                                    (layerToEntities model viewport index layer
-                                        |> Array.fromList
-                                        |> ToCanvas)
-                HtmlLayer _ _ ->
-                    case lastInQueue of
-                        Nothing ->
+                                    (existingEntities
+                                        |> Array.push (index, zOrder, entity)
+                                        |> WebGLGroup)
+                        _ ->
                             renderQueue
                                 |> Array.push
                                     (Array.empty
-                                        |> Array.push (layerToHtml model viewport index layer)
-                                        |> ToHtml)
-                        Just (ToHtml curHtml) ->
+                                        |> Array.push (index, zOrder, entity)
+                                        |> WebGLGroup)
+                Layer.ToHtml html ->
+                    case lastInQueue of
+                        Just (HtmlGroup existingHtml) ->
                             renderQueue
                                 |> Array.set indexOfThelastInQueue
-                                    (Array.empty
-                                        |> Array.push (layerToHtml model viewport index layer)
-                                        |> Array.append curHtml
-                                        |> ToHtml)
-                        Just _ ->
+                                    (existingHtml
+                                        |> Array.push (index, zOrder, html)
+                                        |> HtmlGroup)
+                        _ ->
                             renderQueue
                                 |> Array.push
                                     (Array.empty
-                                        |> Array.push (layerToHtml model viewport index layer)
-                                        |> ToHtml)
+                                        |> Array.push (index, zOrder, html)
+                                        |> HtmlGroup)
     in
-        model.layers
-            |> List.indexedMap Tuple.pair
-            |> List.filter (Tuple.second >> .on)
+        renderedLayers
+            |> List.reverse
             |> List.foldl addToQueue Array.empty
 
 
-apply : (List (Html Msg) -> Html Msg) -> (List WebGL.Entity -> Html Msg) -> RenderQueue -> Html Msg
+apply
+    :  (List (Layer.Index, Layer.ZOrder, Html Layer.Msg) -> Html Msg)
+    -> (List (Layer.Index, Layer.ZOrder, WebGL.Entity) -> Html Msg)
+    -> RenderQueue
+    -> Html Msg
 apply wrapHtml wrapEntities queue =
     Array.toList queue
         |> List.map
             (\queueItem ->
                 case queueItem of
-                    ToCanvas entities -> wrapEntities <| Array.toList entities
-                    ToHtml elements -> wrapHtml <| Array.toList elements
+                    WebGLGroup entities -> wrapEntities <| Array.toList entities
+                    HtmlGroup htmls -> wrapHtml <| Array.toList htmls
             )
         |> div []
 

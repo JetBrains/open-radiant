@@ -1,4 +1,4 @@
-module Layer.Voronoi exposing (..)
+module Layer.Voronoi.Voronoi exposing (..)
 
 
 import WebGL

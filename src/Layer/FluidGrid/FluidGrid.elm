@@ -1,4 +1,4 @@
-module Layer.FluidGrid exposing
+module Layer.FluidGrid.FluidGrid exposing
     ( Model
     , init
     , view
@@ -23,6 +23,10 @@ import Html.Attributes as A exposing (..)
 --     | LeftSide
 --     | RightSide
 --     | TopSide
+
+type Msg
+    = RequestNew
+    | Rebuild Model
 
 
 type alias Size = { width : Int, height : Int }

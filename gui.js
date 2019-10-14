@@ -36,7 +36,7 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
     const sizePresetSet = getSizeSet(mode, constants);
 
     layers.forEach((layer, index) => {
-      if (layer.webglOrHtml == 'webgl') {
+      if (layer.kind == 'webgl') {
         if (mode !== 'prod') {
           if (layer.blend[0]) {
             const blend = layer.blend[0];
@@ -62,7 +62,7 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
           this['blendColor' + index] =
               layer.blend[0].color || [ 1, 0, 0, 0 ]; // FIXME: get RGBA components
         }
-      } else { // webglOrHtml != 'webgl'
+      } else { // kind != 'webgl'
           if (!is.background(layer)) {
             this['layer' + index + 'Blend'] = layer.blend[1] || 'normal';
           }
@@ -87,6 +87,10 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
         this['brightness' + index] = layer.model.colorShift[2];
       }
 
+      if (is.cover(layer)) {
+        this['productShown'+index] = !!layer.model.productShown;
+      }
+
       if (is.fluid(layer) || is.nativeMetaballs(layer)) {
 
         if (is.fluid(layer)) {
@@ -104,7 +108,6 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
       }
 
       if (is.background(layer)) {
-        console.log (layer);
         const stopStates = layer.model.stops || [];
         const gradientType = layer.model.orientation || "linear";
         this['isRadial'+index] = gradientType == "radial";
@@ -328,9 +331,16 @@ function start(document, model, constants, funcs) {
           funcs.shiftColor(index)(null, null, value);
         });
       }
-      if (is.fluid(layer) || is.nativeMetaballs(layer)) {
+      if (layer.visible != 'locked') {
         const visibitySwitch = folder.add(config, 'visible' + index).name('visible');
         visibitySwitch.onFinishChange(val => switchLayer(index, val));
+      }
+      if (is.cover(layer)) {
+        const productVisibilitySwitch =
+          folder.add(config, 'productShown' + index).name('product');
+        productVisibilitySwitch.onFinishChange(funcs.switchCoverProductVisibility(index));
+      }
+      if (is.fluid(layer) || is.nativeMetaballs(layer)) {
         folder.add(config, 'bang' + index).name('bang');
         if (is.fluid(layer)) {
           folder.add(config, 'rebuildGradients' + index).name('regenerate gradients');
@@ -380,14 +390,15 @@ function start(document, model, constants, funcs) {
     product.onFinishChange(updateProduct);
     sizePreset.onFinishChange(funcs.resize);
 
-    layers.concat([]).reverse().forEach((layer, revIndex) => {
+    layers.forEach((layer, index) => {
       // if ((mode == 'prod') && (layer.name == 'Cover')) return;
-      const index = layers.length - 1 - revIndex;
+      console.log(layer);
+      //const index = layers.length - 1 - revIndex;
       //const folder = gui.addFolder('Layer ' + index + ' (' + layer.kind + ')');
-      const folder = gui.addFolder(layer.name.toLowerCase());
+      const folder = gui.addFolder(layer.def.toLowerCase() + ' (' + index + ')');
 
       addLayerProps(folder, config, layer, index);
-      if (layer.webglOrHtml == 'webgl') {
+      if (layer.king == 'webgl') {
         addWebGLBlend(folder, config, layer, index);
       } else {
         if (!is.background(layer)) {

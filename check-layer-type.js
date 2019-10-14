@@ -1,11 +1,13 @@
-const isFss = layer => layer.kind == 'fss' || layer.kind == 'fss-mirror';
-const isFluid = layer => layer.kind == 'fluid';
-const isNativeMetaballs = layer => layer.kind == 'native-metaballs';
-const isBackground = layer => layer.kind == 'bg';
+const isFss = layer => layer.def == 'fss' || layer.def == 'fss-mirror';
+const isFluid = layer => layer.def == 'fluid';
+const isCover = layer => layer.def == 'cover';
+const isNativeMetaballs = layer => layer.def == 'native-metaballs';
+const isBackground = layer => layer.def == 'background';
 
 module.exports = {
-    fss: isFss, 
-    fluid: isFluid, 
+    cover: isCover,
+    fss: isFss,
+    fluid: isFluid,
     nativeMetaballs: isNativeMetaballs,
     background: isBackground
 };

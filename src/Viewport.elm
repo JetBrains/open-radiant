@@ -2,6 +2,7 @@ module Viewport exposing
     ( State
     , Viewport
     , find
+    , default
     --, lift
     )
 
@@ -32,6 +33,16 @@ type alias Viewport a =
     , origin : Vec2
     , paused :  Bool
     }
+
+
+default : Viewport {}
+default =
+    find
+        { theta = 0
+        , size = ( 0, 0 )
+        , origin = ( 0, 0 )
+        , paused = True
+        }
 
 
 find : State -> Viewport {}

@@ -1,4 +1,4 @@
-module Model.WebGL.Blend exposing
+module Model.Layer.Blend.WebGL exposing
     ( Blend
     , Color
     , Equation

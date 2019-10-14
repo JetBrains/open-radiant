@@ -6,18 +6,17 @@ import Gui.Gui as Gui
 import Gui.Def exposing (..)
 import Gui.Nest exposing (..)
 
-import Layer.FSS as FSS
-
 import Model.AppMode exposing (AppMode(..))
-import Model.Core exposing (..)
+import Model.Core as Core exposing (..)
 import Model.Product as Product exposing (Product(..))
 import Model.SizeRule exposing (..)
-import Model.Layer exposing (..)
-import Model.WebGL.Blend as WGLBlend
-import Model.Html.Blend as HtmlBlend
+import Model.Layer.Layer as Layer exposing (Model(..), getModel)
+import Model.Layer.Def as Layer exposing (Index)
+import Model.Layer.Blend.Html as HtmlBlend
+import Model.Layer.Blend.WebGL as WGLBlend
 
 
-gui : Model -> Gui.Model Msg
+gui : Core.Model -> Gui.Model Core.Msg
 gui from =
     let
         ( currentSizePresets, sizePresetsShape ) =
@@ -112,13 +111,15 @@ gui from =
         layerButtons =
             from.layers
                 |> List.filter
-                    (\{ name } ->
-                        case ( name, from.mode ) of
-                            ( "Cover", Production ) -> False
+                    (\layer ->
+                        case ( Layer.getModel layer, from.mode ) of
+                            ( Cover _, Production ) -> False
                             _ -> True
                     )
                 |> List.indexedMap
-                    (\layerIndex { name, layer, model } ->
+                    (\layerIndex _ ->
+                        Ghost <| "layer " ++ String.fromInt layerIndex
+                        {- FIXME: return back
                         case layer of
                             WebGLLayer webGllayer webglBlend ->
                                 case model of
@@ -129,6 +130,7 @@ gui from =
                             HtmlLayer _ htmlBlend ->
                                 Nested (String.toLower name) Collapsed
                                     <| htmlControls htmlBlend layerIndex
+                        -}
                     )
     in
         Gui.build <|
@@ -143,7 +145,7 @@ gui from =
 
 
 
-webglBlendGrid : AppMode -> WGLBlend.Blend -> LayerIndex -> Nest Msg
+webglBlendGrid : AppMode -> WGLBlend.Blend -> Layer.Index -> Nest Core.Msg
 webglBlendGrid mode currentBlend layerIndex =
     let
         blendFuncs =
@@ -222,96 +224,5 @@ webglBlendGrid mode currentBlend layerIndex =
             ]
 
 
-fssControls : AppMode -> FSS.Model -> WGLBlend.Blend -> LayerIndex -> Nest Msg
-fssControls mode fssModel currentBlend layerIndex =
-    let
-        { lightSpeed, faces, amplitude, vignette, iris, colorShift } = fssModel
-        { amplitudeX, amplitudeY, amplitudeZ } = amplitude
-        changeFacesX val = AlterFaces layerIndex
-                                    { xChange = Just <| round val, yChange = Nothing }
-        changeFacesY val = AlterFaces layerIndex
-                                    { xChange = Nothing, yChange = Just <| round val }
-        changeAmplutudeX val = AlterAmplitude layerIndex
-                                    <| FSS.AmplitudeChange (Just val) Nothing Nothing
-        changeAmplutudeY val = AlterAmplitude layerIndex
-                                    <| FSS.AmplitudeChange Nothing (Just val) Nothing
-        changeAmplutudeZ val = AlterAmplitude layerIndex
-                                    <| FSS.AmplitudeChange Nothing Nothing (Just val)
-        changeHue val = ShiftColor layerIndex
-                                    <| FSS.ColorShiftPatch (Just val) Nothing Nothing
-        changeSaturation val = ShiftColor layerIndex
-                                    <| FSS.ColorShiftPatch Nothing (Just val) Nothing
-        changeBrightness val = ShiftColor layerIndex
-                                    <| FSS.ColorShiftPatch Nothing Nothing (Just val)
-        toggleMirror state =
-            layerIndex |> if (state == TurnedOn) then MirrorOn else MirrorOff
-        toggleVisibility state =
-            layerIndex |> if (state == TurnedOn) then TurnOn else TurnOff
-        chooseMesh _ label =
-            FSS.decodeRenderMode label |> ChangeFssRenderMode layerIndex
-        defaultKnobSetup defaultVal =
-            { min = 0.0, max = 1.0, step = 0.05, roundBy = 100, default = defaultVal }
-        lightSpeedSetup =
-            { min = 0.0, max = 2000.0, step = 1.0, roundBy = 1
-            , default = toFloat lightSpeed }
-        facesKnobSetup defaultVal =
-            { min = 0.0, max = 100.0, step = 1.0, roundBy = 1, default = defaultVal }
-        colorShiftKnobSetup defaultVal =
-            { min = -1.0, max = 1.0, step = 0.05, roundBy = 100, default = defaultVal }
-    in
-        oneLine
-            [ Toggle "visible" TurnedOn toggleVisibility
-            , Toggle "mirror" TurnedOff toggleMirror
-            -- , Knob "opacity" TurnedOff <| toggleMirror layerIndex
-            , Knob "lights" lightSpeedSetup (toFloat lightSpeed)
-                <| round >> ChangeLightSpeed layerIndex
-            , Knob "col"
-                (facesKnobSetup <| toFloat faces.x)
-                (toFloat faces.y)
-                changeFacesX
-            , Knob "row"
-                (facesKnobSetup <| toFloat faces.y)
-                (toFloat faces.y)
-                changeFacesY
-            , Nested "fog" Collapsed <|
-                nestWithin ( 2, 1 )
-                    [ Knob "shine"
-                        (defaultKnobSetup vignette)
-                        vignette <| ChangeVignette layerIndex
-                    , Knob "density"
-                        (defaultKnobSetup iris)
-                        iris <| ChangeIris layerIndex
-                    ]
-            , Choice "mesh" Collapsed 0 chooseMesh <|
-                nestWithin ( 2, 1 )
-                    [ ChoiceItem "triangles"
-                    , ChoiceItem "lines"
-                    ]
-            , Nested "ranges" Collapsed <|
-                    nestWithin ( 3, 1 )
-                        [ Knob "horizontal"
-                            (defaultKnobSetup amplitudeX)
-                            amplitudeX changeAmplutudeX
-                        , Knob "vertical"
-                            (defaultKnobSetup amplitudeY)
-                            amplitudeY changeAmplutudeY
-                        , Knob "depth"
-                            (defaultKnobSetup amplitudeZ)
-                            amplitudeZ changeAmplutudeZ
-                        ]
-            , Nested "hsb" Collapsed <|
-                nestWithin ( 3, 1 )
-                    [ Knob "hue"
-                        (colorShiftKnobSetup colorShift.hue)
-                        colorShift.hue changeHue
-                    , Knob "saturation"
-                        (colorShiftKnobSetup colorShift.saturation)
-                        colorShift.saturation changeSaturation
-                    , Knob "brightness"
-                        (colorShiftKnobSetup colorShift.brightness)
-                        colorShift.brightness changeBrightness
-                    ]
-            , Nested "blend" Collapsed
-                <| webglBlendGrid mode currentBlend layerIndex
-            ]
+
 
