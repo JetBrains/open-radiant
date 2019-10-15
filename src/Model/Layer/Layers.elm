@@ -1,8 +1,9 @@
 module Model.Layer.Layers exposing (..)
 
-import Model.Layer.Def exposing (DefId, Index(..), makeIndex, getIndex)
+import Model.Layer.Def exposing (DefId, Index(..), Kind, makeIndex, getIndex)
 import Model.Layer.Layer exposing (..)
 import Model.Layer.Layer as Layer exposing (Msg)
+import Model.Layer.Export exposing (encodeKind)
 import Model.Layer.Context exposing (Context)
 import Model.Layer.Broadcast as Broadcast exposing (Msg)
 
@@ -189,12 +190,25 @@ updateMap mapMsg mapF layers =
         |> Tuple.mapSecond Cmd.batch
 
 
-collectIds : Layers -> List ( Index, String )
-collectIds layers =
+collectStats : Layers ->
+    List
+        { index : Int
+        , def : DefId
+        , kind : Kind
+        , visibility : Visibility
+        }
+collectStats layers =
     layers
-        |> List.map (\(Layer { index } model) ->
+        |> List.map (\(Layer { index, visibility } model) ->
                 registry.byModel model
-                    |> Maybe.map (\def -> ( makeIndex index, def.id ) )
+                    |> Maybe.map
+                        (\def ->
+                            { index = index
+                            , def = def.id
+                            , kind = def.kind
+                            , visibility = visibility
+                            }
+                        )
             )
         |> List.filterMap identity
 

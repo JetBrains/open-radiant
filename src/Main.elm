@@ -42,6 +42,7 @@ import Model.Layer.Layer exposing (Layer, Blend(..))
 import Model.Layer.Layer as Layer
 import Model.Layer.Broadcast as B
 import Model.Layer.Def as Layer exposing (Index, indexToString)
+import Model.Layer.Export as Layer exposing (encodeKind)
 import Model.Layer.Layers as Layers
 import Model.Layer.Blend.Html as HtmlBlend
 import Model.Layer.Blend.WebGL as WGLBlend
@@ -874,9 +875,16 @@ update msg model =
                 { size = getRuleSize model.size |> Maybe.withDefault ( -1, -1 )
                 , product = Product.encode model.product
                 , background = model.background
-                , layerIds =
-                    Layers.collectIds model.layers
-                        |> List.map (Tuple.mapFirst Layer.indexToJs)
+                , layers =
+                    Layers.collectStats model.layers
+                        |> List.map
+                            (\{ index, def, kind, visibility } ->
+                                { index = index
+                                , def = def
+                                , kind = Layer.encodeKind kind
+                                , visibility = Layer.encodeVisibility visibility
+                                }
+                            )
                 }
             )
 
@@ -1939,7 +1947,13 @@ port triggerSavePng :
     { size : ( Int, Int )
     , product : String
     , background : String
-    , layerIds : List ( Layer.JsIndex, String )
+    , layers :
+        List
+            { index : Layer.JsIndex
+            , def : String
+            , kind : String
+            , visibility : String
+            }
     } -> Cmd msg
     -- FIXME: Remove, use Browser.DOM task instead
 
