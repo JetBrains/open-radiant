@@ -376,11 +376,11 @@ update msg model =
             in
                 ( newModelWithSize
                 , Cmd.batch
-                    [ newModelWithSize |> getSizeUpdate |> sizeChanged
+                    -- [ newModelWithSize |> getModelUpdate |> sizeChanged
                     -- , if hasFssLayers newModelWithSize
                     --     then rebuildAllFssLayersWith newModelWithSize
                     --     else Cmd.none
-                    , requestWindowResize ( width, height )
+                    [ requestWindowResize ( width, height )
                     , Nav.pushUrlFrom newModelWithSize
                     ]
                 )
@@ -870,7 +870,14 @@ update msg model =
 
         SavePng ->
             ( model
-            , model |> getSizeUpdate |> triggerSavePng
+            , triggerSavePng
+                { size = getRuleSize model.size |> Maybe.withDefault ( -1, -1 )
+                , product = Product.encode model.product
+                , background = model.background
+                , layerIds =
+                    Layers.collectIds model.layers
+                        |> List.map (Tuple.mapFirst Layer.indexToJs)
+                }
             )
 
         Randomize ->
@@ -1001,10 +1008,10 @@ subscriptions model =
                     Err error -> AddError <| "Failed to decode product: " ++ error)
         , Layers.subscribe ToLayer (getContext model) model.layers
         , changeWGLBlend (\{ layer, value } ->
-            ChangeWGLBlend (Layer.Index layer) value
+            ChangeWGLBlend (Layer.makeIndex layer) value
           )
         , changeHtmlBlend (\{ layer, value } ->
-            ChangeHtmlBlend (Layer.Index layer) <| HtmlBlend.decode value
+            ChangeHtmlBlend (Layer.makeIndex layer) <| HtmlBlend.decode value
           )
         {-
         , changeFssRenderMode (\{value, layer} ->
@@ -1076,8 +1083,8 @@ subscriptions model =
         , continue (\_ -> Continue)
         , triggerPause (\_ -> TriggerPause)
         , hideControls (\_ -> HideControls)
-        , turnOn (Layer.Index >> TurnOn)
-        , turnOff (Layer.Index >> TurnOff)
+        , turnOn (Layer.makeIndex >> TurnOn)
+        , turnOff (Layer.makeIndex >> TurnOff)
         -- , mirrorOn MirrorOn
         -- , mirrorOff MirrorOff
         , savePng (\_ -> SavePng)
@@ -1182,18 +1189,6 @@ document : Model -> Browser.Document Msg
 document model =
     { title = "Elmsfeuer, Radiant"
     , body = [ view model ]
-    }
-
-
-getSizeUpdate : Model -> SizeUpdate
-getSizeUpdate model =
-    { size = getRuleSize model.size |> Maybe.withDefault ( -1, -1 )
-    , sizeRule = SizeRule.encode model.size
-    , product = Product.encode model.product
-    -- , coverSize = Product.getCoverTextSize model.product
-    , background = model.background
-    , sizeConstant = -1
-    -- , mode = encodeMode model.mode
     }
 
 
@@ -1920,16 +1915,6 @@ port changeFluidOrbit :
 
 -- OUTGOING PORTS
 
-type alias SizeUpdate =
-    { size: ( Int, Int )
-    , sizeRule : String
-    , product: String
-    -- , coverSize: Size
-    , background: String
-    , sizeConstant: Int
-    -- , mode: String
-    }
-
 port startGui : ( PortModel, Constants ) -> Cmd msg
 
 {-
@@ -1940,7 +1925,7 @@ port requestFssRebuild :
     } -> Cmd msg
 -}
 
-port sizeChanged : SizeUpdate -> Cmd msg
+-- port sizeChanged : ModelUpdate -> Cmd msg
 
 port modeChanged : String -> Cmd msg
 
@@ -1950,7 +1935,13 @@ port export_ : String -> Cmd msg
 
 port exportZip_ : String -> Cmd msg
 
-port triggerSavePng : SizeUpdate -> Cmd msg -- FIXME: Remove, use Browser.DOM task instead
+port triggerSavePng :
+    { size : ( Int, Int )
+    , product : String
+    , background : String
+    , layerIds : List ( Layer.JsIndex, String )
+    } -> Cmd msg
+    -- FIXME: Remove, use Browser.DOM task instead
 
 port requestRandomize : PortModel -> Cmd msg
 

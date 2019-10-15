@@ -20,7 +20,7 @@ import Model.Product as Product exposing (Product)
 import Model.Product exposing (..)
 
 import Model.Layer.Context exposing (Context)
-import Model.Layer.Def exposing (Kind(..), DefId, Index)
+import Model.Layer.Def exposing (Kind(..), DefId, Index, makeIndex)
 import Model.Layer.Def as Layer exposing (Def)
 import Model.Layer.Def as Layer exposing
     (initWith, passUpdate, passResponse, noEncode, decodeTo, noSubscriptions)
@@ -131,9 +131,9 @@ subscribe ctx model =
         [ switchCoverProductVisibility
             (\{ layer, isProductShown } ->
                 if isProductShown then
-                    ( Layer.Index layer, ShowProduct )
+                    ( makeIndex layer, ShowProduct )
                 else
-                    ( Layer.Index layer, HideProduct )
+                    ( makeIndex layer, HideProduct )
             )
         ]
 

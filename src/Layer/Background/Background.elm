@@ -22,7 +22,7 @@ import Viewport exposing (Viewport)
 
 import Model.Product as Product exposing (..)
 import Model.Layer.Def exposing (Kind(..), DefId)
-import Model.Layer.Def as Layer exposing (Def, JsIndex, Index, passResponse, initWith)
+import Model.Layer.Def as Layer exposing (Def, JsIndex, Index, passResponse, initWith, makeIndex)
 import Model.Layer.Context exposing (..)
 
 import Model.Layer.Blend.Html as Html exposing (..)
@@ -140,13 +140,13 @@ subscriptions ctx model =
     Sub.batch
         [ switchBackgroundStop
             (\{ layer, stopIndex, value } ->
-                ( Layer.Index layer
+                ( Layer.makeIndex layer
                 , SwitchStop stopIndex value
                 )
             )
         , switchGradientOrientation
             (\{ layer, orientation } ->
-                ( Layer.Index layer
+                ( Layer.makeIndex layer
                 , SwitchGradientOrientation
                         <| Gradient.decodeOrientation orientation
                 )

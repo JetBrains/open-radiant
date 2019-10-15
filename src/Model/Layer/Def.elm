@@ -1,4 +1,11 @@
-module Model.Layer.Def exposing (..)
+module Model.Layer.Def exposing
+    ( DefId, Index, JsIndex
+    , makeIndex, getIndex
+    , indexToString, indexToJs
+    , Kind(..), Def
+    , unit
+    , passUpdate, passResponse, singleView, initWith, noEncode, decodeTo, noSubscriptions
+    )
 
 import Gui.Def exposing (Nest)
 
@@ -82,8 +89,20 @@ noSubscriptions : Context -> model -> Sub ( Index, msg )
 noSubscriptions = \_ _ -> Sub.none
 
 
+makeIndex : Int -> Index
+makeIndex = Index
+
+
+getIndex : Index -> Int
+getIndex (Index index) = index
+
+
 indexToString : Index -> String
-indexToString (Index index) = String.fromInt index
+indexToString = getIndex >> String.fromInt
+
+
+indexToJs : Index -> JsIndex
+indexToJs = getIndex
 
 
 empty : DefId -> Kind -> model -> view -> Def model view () ()

@@ -117,12 +117,12 @@ type alias PortLayer =
 
 
 layer : Index -> ZOrder -> Visibility -> Blend -> Model -> Layer
-layer (Index index) (ZOrder zOrder) visibility blend model =
+layer index (ZOrder zOrder) visibility blend model =
     Layer
         { visibility = visibility
         , blend = blend
         , zOrder = zOrder
-        , index = index
+        , index = getIndex index
         , opacity = 1.0
         }
         model
