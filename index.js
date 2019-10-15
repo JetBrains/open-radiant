@@ -215,15 +215,15 @@ const savePng = (hiddenLink, { size, product, background, layers }) => {
         }
         if (def == 'cover') {
             return [ ...prev
-                   , { selector : '#layer-' + index + ' .product-name-layer', collect : 'selector' }
-                   , { selector : '#layer-' + index + ' .logo-layer', collect : 'selector' }
+                   , { selector : '#layer-' + index + ' .product-name-layer', collect : 'stored' }
+                   , { selector : '#layer-' + index + ' .logo-layer', collect : 'stored' }
                    ];
         }
         if (kind == 'webgl' || kind == 'js') {
             return [ ...prev, { selector : '#layer-' + index + ' canvas', collect : 'canvas' } ];
         }
         if (kind == 'html') {
-            return [ ...prev, { selector : '#layer-' + index + ' > div', collect : 'selector' } ];
+            return [ ...prev, { selector : '#layer-' + index + ' > div', collect : 'html' } ];
         }
         // `collect` could be equals to 'image', also, but we don't handle it
         return prev;
@@ -250,13 +250,13 @@ const savePng = (hiddenLink, { size, product, background, layers }) => {
             fetchNext(toFetch.slice(1));
         };
         if (current.collect == 'html') {
-            drawToCanvas.html(document.querySelector(current.selector), trgCanvas, width, height, step)
-        } else if (current.collect == 'selector') {
-            drawToCanvas.selector(current.selector, trgCanvas, step);
+            drawToCanvas.html(current.selector, trgCanvas, width, height, step)
+        } else if (current.collect == 'stored') {
+            drawToCanvas.stored(current.selector, trgCanvas, step);
+        } else if (current.collect == 'image') {
+            drawToCanvas.image(current.src, () => {}, trgCanvas, 0, 0, width, height, step);
         } else if (current.collect == 'canvas') {
-            const srcCanvas = document.querySelector(current.selector);
-            trgContext.drawImage(srcCanvas, 0, 0);
-            drawToCanvas.html(document.querySelector(current.selector), trgCanvas, width, height, step);
+            drawToCanvas.canvas(current.selector, trgCanvas, step);
             // drawToCanvas.selector(current.selector, trgCanvas, step);
         } else {
             console.error('Unknown collect spec: ', current.collect);

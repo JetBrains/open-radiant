@@ -1,4 +1,9 @@
-const htmlToCanvas = (node, canvas, width, height, whenDone) => {
+const htmlToCanvas = (selector, canvas, width, height, whenDone) => {
+    const node = document.querySelector(selector);
+    if (!node) {
+        console.error('no element with selector `' + selector + '` was found');
+        return;
+    }
     const context = canvas.getContext('2d');
     const data =
         '<svg xmlns="http://www.w3.org/2000/svg" width="'+width+'px" height="'+height+'px">' +
@@ -45,30 +50,43 @@ const imageToCanvas = (src, transform, canvas, x, y, width, height, whenDone) =>
     //document.body.appendChild(image);
 }
 
-const selectorToCanvas = (selector, trgCanvas, whenDone) => {
+const storedToCanvas = (selector, trgCanvas, whenDone) => {
     const selectedNode = document.querySelector(selector);
-    if (selectedNode) {
-        const state = JSON.parse(selectedNode.getAttribute('data-stored'));
-        imageToCanvas(state.imagePath,
-            function(image, context) {
-                context.resetTransform();
-                context.translate(state.posX, state.posY);
-                context.scale(state.scale, state.scale);
-                context.translate(-(state.width / 2), -(state.height / 2));
-                context.globalCompositeOperation = state.blend;
-                image.width = state.width;
-                image.height = state.height;
-            },
-            trgCanvas, 0, 0, state.width, state.height,
-            whenDone
-        );
-    } else {
-        whenDone(trgCanvas);
+    if (!selectedNode) {
+        console.error('no element with selector `' + selector + '` was found');
+        return;
     }
+    const state = JSON.parse(selectedNode.getAttribute('data-stored'));
+    imageToCanvas(state.imagePath,
+        function(image, context) {
+            context.resetTransform();
+            context.translate(state.posX, state.posY);
+            context.scale(state.scale, state.scale);
+            context.translate(-(state.width / 2), -(state.height / 2));
+            context.globalCompositeOperation = state.blend;
+            image.width = state.width;
+            image.height = state.height;
+        },
+        trgCanvas, 0, 0, state.width, state.height,
+        whenDone
+    );
+}
+
+const canvasToCanvas = (selector, trgCanvas, whenDone) => {
+    const selectedNode = document.querySelector(selector);
+    if (!selectedNode) {
+        console.error('no element with selector `' + selector + '` was found');
+        return;
+    }
+    const srcCanvas = selectedNode;
+    const trgContext = trgCanvas.getContext('2d');
+    trgContext.drawImage(srcCanvas, 0, 0);
+    whenDone();
 }
 
 module.exports = {
     html: htmlToCanvas,
     image: imageToCanvas,
-    selector: selectorToCanvas
+    stored: storedToCanvas,
+    canvas: canvasToCanvas
 };
