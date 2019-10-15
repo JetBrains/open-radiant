@@ -392,7 +392,7 @@ function start(document, model, constants, funcs) {
 
     layers.forEach((layer, index) => {
       // if ((mode == 'prod') && (layer.name == 'Cover')) return;
-      console.log(layer);
+      //console.log(layer);
       //const index = layers.length - 1 - revIndex;
       //const folder = gui.addFolder('Layer ' + index + ' (' + layer.kind + ')');
       const folder = gui.addFolder(layer.def.toLowerCase() + ' (' + index + ')');

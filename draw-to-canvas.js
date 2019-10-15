@@ -33,6 +33,37 @@ const htmlToCanvas = (selector, canvas, width, height, whenDone) => {
     // context.canvas.height = height;
 }
 
+const svgToCanvas = (selector, canvas, width, height, whenDone) => {
+    const svg = document.querySelector(selector);
+    if (!svg) {
+        console.error('no element with selector `' + selector + '` was found');
+        return;
+    }
+    const context = canvas.getContext('2d');
+    // get svg data
+    const xml = new XMLSerializer().serializeToString(svg);
+
+    const image = new Image();
+    image.setAttribute('crossOrigin', 'anonymous');
+
+    // make it base64
+    const svg64 = btoa(xml);
+    const b64Start = 'data:image/svg+xml;base64,';
+
+    // prepend a "header"
+    const image64 = b64Start + svg64;
+
+    // set it as the source of the img element
+    image.addEventListener('load', () => {
+        URL.revokeObjectURL(image64);
+        // draw the image onto the canvas
+        context.drawImage(image, 0, 0);
+        if (whenDone) whenDone(canvas);
+    }, false);
+
+    image.src = image64;
+}
+
 const imageToCanvas = (src, transform, canvas, x, y, width, height, whenDone) => {
     const context = canvas.getContext('2d');
     const image = new Image();
@@ -44,6 +75,7 @@ const imageToCanvas = (src, transform, canvas, x, y, width, height, whenDone) =>
     image.addEventListener('load', () => {
         transform(image, context);
         context.drawImage(image, 0, 0, width, height);
+        context.resetTransform();
         if (whenDone) whenDone(canvas);
     }, false);
     image.src = src;
@@ -78,15 +110,20 @@ const canvasToCanvas = (selector, trgCanvas, whenDone) => {
         console.error('no element with selector `' + selector + '` was found');
         return;
     }
-    const srcCanvas = selectedNode;
-    const trgContext = trgCanvas.getContext('2d');
-    trgContext.drawImage(srcCanvas, 0, 0);
-    whenDone();
+    requestAnimationFrame(() => {
+        const srcCanvas = selectedNode;
+        const trgContext = trgCanvas.getContext('2d');
+        //trgContext.globalCompositeOperation = 'copy';
+        trgContext.resetTransform();
+        trgContext.drawImage(srcCanvas, 0, 0);
+        whenDone();
+    });
 }
 
 module.exports = {
     html: htmlToCanvas,
     image: imageToCanvas,
+    svg: svgToCanvas,
     stored: storedToCanvas,
     canvas: canvasToCanvas
 };

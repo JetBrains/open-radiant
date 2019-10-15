@@ -205,13 +205,13 @@ const savePng = (hiddenLink, { size, product, background, layers }) => {
     const trgContext = trgCanvas.getContext('2d');
     hiddenLink.download = width + 'x'+ height + '-' + product + '.png';
     // console.log(layers);
-    const toFetch = layers.reduce((prev, { index, def, kind, visibility }) => {
+    const toFetch = layers.concat([]).reverse().reduce((prev, { index, def, kind, visibility }) => {
         // console.log(index, def, kind, visibility);
         if (visibility == 'hidden') {
             return prev;
         }
         if (def == 'background') {
-            return [ ...prev, { selector : '#layer-' + index + ' svg', collect : 'html' } ];
+            return [ ...prev, { selector : '#layer-' + index + ' svg', collect : 'svg' } ];
         }
         if (def == 'cover') {
             return [ ...prev
@@ -244,13 +244,15 @@ const savePng = (hiddenLink, { size, product, background, layers }) => {
             return;
         }
         const current = toFetch[0];
-        // console.log(current.selector, current.collect);
+        //console.log(current.selector, current.collect);
         const step = () => {
             //console.log('applied', current.selector, current.collect);
             fetchNext(toFetch.slice(1));
         };
         if (current.collect == 'html') {
-            drawToCanvas.html(current.selector, trgCanvas, width, height, step)
+            drawToCanvas.html(current.selector, trgCanvas, width, height, step);
+        } else if (current.collect == 'svg') {
+            drawToCanvas.svg(current.selector, trgCanvas, width, height, step);
         } else if (current.collect == 'stored') {
             drawToCanvas.stored(current.selector, trgCanvas, step);
         } else if (current.collect == 'image') {
@@ -265,11 +267,10 @@ const savePng = (hiddenLink, { size, product, background, layers }) => {
     }
 
     requestAnimationFrame(() => { // without that, image buffer will be empty
-        const trgContext = trgCanvas.getContext('2d');
+        //const trgContext = trgCanvas.getContext('2d');
         trgCanvas.style.display = 'block';
-        trgContext.fillStyle = background;
-        trgContext.fillRect(0, 0, width, height);
-        // trgContext.drawImage(srcCanvas, 0, 0);
+        //trgContext.fillStyle = background;
+        //trgContext.fillRect(0, 0, width, height);
         fetchNext(toFetch);
     });
 }
@@ -561,7 +562,6 @@ setTimeout(() => {
 
     if (app.ports.updateNativeMetaballs) {
         app.ports.updateNativeMetaballs.subscribe(({ index, size, layerModel, palette }) => {
-            console.log('received');
             requestAnimationFrame(() => {
                 updateOrInitNativeMetaballs(size, layerModel, palette, index);
             });

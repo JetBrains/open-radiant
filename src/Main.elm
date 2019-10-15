@@ -1144,16 +1144,7 @@ view model =
                 _ -> False
     in div
         [ H.class <| "mode-" ++ Mode.encode model.mode ]
-        [ if not isInPlayerMode then canvas [ H.id "js-save-buffer" ] [ ] else div [] []
-        , if hasErrors model
-            then
-                div [ H.id "error-pane", H.class "has-errors" ]
-                    ( case model.errors of
-                        Errors errorsList ->
-                            errorsList |> List.map (\err -> span [] [ text err ])
-                    )
-            else div [ H.id "error-pane" ] []
-        , renderedLayers --|> RQ.apply wrapHtml wrapEntities
+        [ renderedLayers --|> RQ.apply wrapHtml wrapEntities
         , if model.controlsVisible && not isInPlayerMode
             then ( div
                 ([ "overlay-panel", "import-export-panel", "hide-on-space" ] |> List.map H.class)
@@ -1190,6 +1181,15 @@ view model =
             |> Maybe.map (Html.map GuiMessage)
             |> Maybe.map (\guiLayer -> div [ H.class "hide-on-space" ] [ guiLayer ])
             |> Maybe.withDefault (div [] [])
+        , if not isInPlayerMode then canvas [ H.id "js-save-buffer" ] [ ] else div [] []
+        , if hasErrors model
+            then
+                div [ H.id "error-pane", H.class "has-errors" ]
+                    ( case model.errors of
+                        Errors errorsList ->
+                            errorsList |> List.map (\err -> span [] [ text err ])
+                    )
+            else div [ H.id "error-pane" ] []
         ]
 
 
