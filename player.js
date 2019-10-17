@@ -12,34 +12,40 @@ const import_ = (app, importedState) => {
     const parsedState = importedState;
     const allNativeMetaballs = {};
 
-    app.ports.requestFssRebuild.subscribe(({ layer : index, model, value : fssModel }) => {
-        const layer = model.layers[index];
-        if (is.fss(layer)) {
-            //console.log('forced to rebuild FSS layer', index);
-            // FIXME: just use layer.model instead of `fssModel`
-            const fssScene = buildFSS(model, fssModel, parsedState.layers[index].sceneFuzz);
-            app.ports.rebuildFss.send({ value: fssScene, layer: index });
-        }
-
-        app.ports.hideControls.send(null);
-       // app.ports.pause.send(null); TODO: control by url parameter
-    });
-
-    app.ports.buildFluidGradientTextures.subscribe(([ index, layerModel ]) => {
-        //if (is.fluid(layer)) {
-            const gradients = buildGradients(layerModel);
-            app.ports.loadFluidGradientTextures.send({ value: gradients, layer: index });
-        //}
-    });
-
-    app.ports.updateNativeMetaballs.subscribe(() => {
-        parsedState.layers.forEach(layer => {
-            if (is.nativeMetaballs(layer)) {
-                const prev = allNativeMetaballs[index];
-                allNativeMetaballs[index] = nativeMetaballs.update(prev.size, colors, prev.metaballs);
+    if (app.ports.requestFssRebuild) {
+        app.ports.requestFssRebuild.subscribe(({ layer : index, model, value : fssModel }) => {
+            const layer = model.layers[index];
+            if (is.fss(layer)) {
+                //console.log('forced to rebuild FSS layer', index);
+                // FIXME: just use layer.model instead of `fssModel`
+                const fssScene = buildFSS(model, fssModel, parsedState.layers[index].sceneFuzz);
+                app.ports.rebuildFss.send({ value: fssScene, layer: index });
             }
+
+            app.ports.hideControls.send(null);
+        // app.ports.pause.send(null); TODO: control by url parameter
         });
-    });
+    } else console.error('No port `requestFssRebuild` was detected');
+
+    if (app.ports.buildFluidGradientTextures) {
+        app.ports.buildFluidGradientTextures.subscribe(([ index, layerModel ]) => {
+            //if (is.fluid(layer)) {
+                const gradients = buildGradients(layerModel);
+                app.ports.loadFluidGradientTextures.send({ value: gradients, layer: index });
+            //}
+        });
+    } else console.error('No port `buildFluidGradientTextures` was detected');
+
+    if (app.ports.updateNativeMetaballs) {
+        app.ports.updateNativeMetaballs.subscribe(() => {
+            parsedState.layers.forEach((layer, index) => {
+                if (is.nativeMetaballs(layer)) {
+                    const prev = allNativeMetaballs[index];
+                    allNativeMetaballs[index] = nativeMetaballs.update(prev.size, colors, prev.metaballs);
+                }
+            });
+        });
+    } else console.error('No port `updateNativeMetaballs` was detected');
 
     const toSend = deepClone(parsedState);
     toSend.layers =
@@ -52,20 +58,27 @@ const import_ = (app, importedState) => {
 
     app.ports.import_.send(JSON.stringify(toSend));
 
-    parsedState.layers.forEach((layer, index) => {
-        if (is.nativeMetaballs(layer)) {
-            const size = [ parsedState.size.v1, parsedState.size.v2 ];
-            const nativeMetaballsModel = nativeMetaballs.build(size, layer.model, parsedState.palette, index);
-            allNativeMetaballs[index] = nativeMetaballsModel;
-            const debouncedResize = timing.debounce(function(newSize) {
-                const prev = allNativeMetaballs[index];
-                allNativeMetaballs[index] = nativeMetaballs.update(newSize, prev, prev.stop, index);
-            }, 300);
-            app.ports.requestWindowResize.subscribe((size) => {
-                debouncedResize(size);
-            });
-        }
+    requestAnimationFrame(function() { // so the effects from sending to the port are performed
+        parsedState.layers.forEach((layer, index) => {
+            if (is.nativeMetaballs(layer)) {
+                const size = [ parsedState.size.v1, parsedState.size.v2 ];
+                console.log(index, size);
+                const nativeMetaballsModel = nativeMetaballs.build(size, layer.model, parsedState.palette, index);
+                allNativeMetaballs[index] = nativeMetaballsModel;
+                const debouncedResize = timing.debounce((function(index)
+                    { return function(newSize) {
+                        const prev = allNativeMetaballs[index];
+                        if (!prev) return;
+                        allNativeMetaballs[index] = nativeMetaballs.update(newSize, prev, prev.stop, index);
+                    }
+                })(index), 300);
+                app.ports.requestWindowResize.subscribe((size) => {
+                    debouncedResize(size);
+                });
+            }
+        });
     });
+
 }
 
 const runGenScene = () => {
