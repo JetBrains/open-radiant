@@ -301,7 +301,7 @@ update msg model =
             case (encodedModel
                     |> IE.decodeFromString model.navKey (getContext model) Gui.gui) of
                 Ok decodedModel ->
-                    ( Debug.log "decodedModel" decodedModel
+                    ( decodedModel
                     , Cmd.batch
                         [ Nav.pushUrlFrom decodedModel ]
                         {-
