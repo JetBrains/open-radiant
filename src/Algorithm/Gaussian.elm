@@ -49,3 +49,12 @@ inFloatRange gaussX variety range  =
 
 unwrap : Random.Generator Gaussian -> Random.Generator Float
 unwrap = Random.map (\(Gaussian v) -> v)
+
+
+applyVariety : Variety -> FloatRange -> FloatRange
+applyVariety variety fRange = 
+    case variety of
+        Variety v ->  
+            { min = fRange.min 
+            , max = fRange.min + (v * (fRange.max - fRange.min)) 
+            }

@@ -6,7 +6,7 @@ import Random.Extra as Random exposing (traverse)
 import Gradient exposing (..)
 
 import Algorithm.Gaussian as Gauss
-import Algorithm.Gaussian exposing (gaussian)
+import Algorithm.Gaussian exposing (gaussian, applyVariety, Variety(..))
 
 import Math.Vector3 as Vec3 exposing (..)
 import Math.Vector2 as Vec2 exposing (..)
@@ -23,12 +23,12 @@ defaultRange : Ranges
 defaultRange =
     { groups = iRange 1 10
     , balls = iRange 4 40
-    , radius = fRange 50 100
+    , radius = fRange 50 300
     , speed = fRange 150 250
     , phase = fRange 0 360 -- Maybe useless
     , amplitude =
-        { x = fRange -30 30
-        , y = fRange -10 10
+        { x = fRange 0 130
+        , y = fRange 0 60
         }    
     }
 
@@ -75,10 +75,10 @@ fromInitialStateGenerator ( w, h ) range palette initialState =
                     , amplitude = vec2 arcMultX arcMultY
                     }
                 )
-                (randomFloatInRange range.speed)
+                (randomFloatInRange <| applyVariety (Variety 1.0) range.speed)
                 (randomFloatInRange range.phase)
-                (randomFloatInRange range.amplitude.x)
-                (randomFloatInRange range.amplitude.y)
+                (randomFloatInRange <| applyVariety (Variety 0.1) range.amplitude.x)
+                (randomFloatInRange <| applyVariety (Variety 0.1) range.amplitude.y)
 
         generateStop prevStop =
             Random.constant prevStop
@@ -217,10 +217,10 @@ dynamicsGenerator ( w, h ) range palette variety orbit staticModel =
                     , amplitude = vec2 arcMultX arcMultY
                     }
                 )
-                (gaussX |> gaussInFloatRange range.speed)
+                (gaussX |> gaussInFloatRange (applyVariety variety range.speed))
                 (gaussX |> gaussInFloatRange range.phase)
-                (gaussX |> gaussInFloatRange range.amplitude.x)
-                (gaussX |> gaussInFloatRange range.amplitude.y)
+                (gaussX |> gaussInFloatRange (applyVariety variety range.amplitude.x))
+                (gaussX |> gaussInFloatRange (applyVariety variety range.amplitude.y))
 
         generateStop prevStop =
             Random.constant prevStop
@@ -279,13 +279,13 @@ everythingGenerator ( w, h ) range palette variety orbit =
                 -- (Random.float 0 <| toFloat h)
                 (gaussX |> gaussInFloatRange (fRange 0 <| toFloat w))
                 (gaussX |> gaussInFloatRange (fRange 0 <| toFloat h))
-        generateRadius = gaussInFloatRange range.radius
-        generateSpeed = gaussInFloatRange range.speed
+        generateRadius = gaussInFloatRange (applyVariety variety range.radius)
+        generateSpeed = gaussInFloatRange (applyVariety variety range.speed)
         generatePhase = gaussInFloatRange range.phase
         generateAmplitude gaussX =
             Random.map2 vec2
-                (gaussX |> gaussInFloatRange range.amplitude.x)
-                (gaussX |> gaussInFloatRange range.amplitude.y)
+                (gaussX |> gaussInFloatRange (applyVariety variety range.amplitude.x))
+                (gaussX |> gaussInFloatRange (applyVariety variety range.amplitude.y))
         generateGroup gaussX =
             randomIntInRange range.balls
                 |> Random.andThen
