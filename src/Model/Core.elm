@@ -91,7 +91,6 @@ type Msg
     | ChangeWGLBlend Layer.Index WGLBlend.Blend
     | AlterWGLBlend Layer.Index WGLBlend.BlendChange
     | ChangeHtmlBlend Layer.Index HtmlBlend.Blend
-    --| ToFss Layer.Index FSS.Msg
     | Randomize
     | ApplyRandomizer PortModel
     | SavePng
@@ -121,10 +120,6 @@ type alias Model = -- TODO: Result Error { ... }
     , navKey : Nav.Key
     , url : Maybe Url
     , registry : Layer.Registry
-    -- voronoi : Voronoi.Config
-    -- fractal : Fractal.Config
-    -- , lights (taken from product)
-    -- , material TODO
     }
 
 
@@ -142,31 +137,6 @@ type alias PortModel =
     , product : String
     , palette : List String
     }
-
-
-{-
-init
-    :  Nav.Key
-    -> AppMode
-    -> Layers.Initial
-    -> CreateGui
-    -> ( Model, Cmd Msg )
-init navKey appMode initialLayers createGui =
-    let
-        emptyModel = initEmpty navKey appMode
-        modelWithLayers =
-            { emptyModel
-            | layers = initialLayers
-            }
-    in
-        { modelWithLayers
-        | gui =
-            case appMode of
-                TronUi innerAppMode ->
-                    Just <| createGui { modelWithLayers | mode = innerAppMode }
-                _ -> Nothing
-        }
--}
 
 
 init : Nav.Key -> AppMode -> Model
@@ -240,173 +210,6 @@ noticeResult_ addValue errorToString result model =
     case result of
         Ok v -> model |> addValue v
         Err errors -> model |> addErrors (errors |> List.map errorToString |> Errors)
-
-
-{-
-tryToCreateLayers
-     : List ( LayerKind, String, LayerModel )
-    -> CreateLayer
-    -> Result (List ( Int, LayerKind, String )) (List LayerDef)
-tryToCreateLayers source createLayer =
-    source
-        |> List.indexedMap
-            (\index (kind, name, layerModel) ->
-                layerModel
-                    |> createLayer kind
-                    |> Maybe.map
-                        (\layer ->
-                            { kind = kind
-                            , layer = layer
-                            , name = name
-                            , model = layerModel
-                            , on = True
-                            }
-                        )
-                    |> Result.fromMaybe (index, kind, name)
-            )
-        |> List.foldl
-            (\layerResult mainResult ->
-                case ( mainResult, layerResult ) of
-                    ( Ok allDefs, Ok layerDef ) -> Ok <| layerDef :: allDefs
-                    ( Ok _, Err layerError ) -> Err <| List.singleton layerError
-                    ( Err allErrors, Ok _ ) -> Err allErrors
-                    ( Err allErrors, Err layerError ) -> Err <| layerError :: allErrors
-            )
-            (Ok [])
--}
-
-
-{-
-replaceLayers
-     : List ( LayerKind, String, LayerModel )
-    -> CreateLayer
-    -> Model
-    -> Model
-replaceLayers source createLayer model =
-    model
-        |> (tryToCreateLayers source createLayer |>
-                noticeResult_
-                    (\layers model_ -> { model_ | layers = layers })
-                    (\(index, kind, name) ->
-                        "Failed to create layer: (" ++ String.fromInt index ++ ", "
-                            ++ encodeKind kind ++ ") "
-                            ++ name))
--}
-
-
-{-
-getLayerModel : Layer.Index -> Model -> Maybe LayerModel
-getLayerModel index model =
-    model.layers
-        |> Array.fromList
-        |> Array.get index
-        |> Maybe.map .model
--}
-
-
-{-
-getLayerModels : (LayerKind -> Bool) -> Model -> List LayerModel
-getLayerModels test model =
-    model.layers
-        |> List.filter (\layer -> True)
-        |> List.map .model
--}
-
-
-{-
-updateLayer
-    :  Int
-    -> (Layer -> LayerModel -> Layer)
-    -> Model
-    -> Model
-updateLayer index f model =
-    model |> updateLayerDef index
-        (\layerDef ->
-            { layerDef
-            | layer = f layerDef.layer layerDef.model
-            })
--}
-
-
-{-
-updateLayerDef
-    :  Int
-    -> (LayerDef -> LayerDef)
-    -> Model
-    -> Model
-updateLayerDef index f model =
-    let
-        layersArray = Array.fromList model.layers
-    in
-        case layersArray |> Array.get index of
-            Just layerDef ->
-                { model
-                | layers = layersArray
-                    |> Array.set index (f layerDef)
-                    |> Array.toList
-                }
-            Nothing -> model
--}
-
-
-{-
-updateLayerWithItsModel
-    :  Int
-    -> (( Layer, LayerModel ) -> ( Layer, LayerModel ))
-    -> Model
-    -> Model
-updateLayerWithItsModel index f model =
-    model |> updateLayerDef index
-        (\layerDef ->
-            case f (layerDef.layer, layerDef.model) of
-                ( newLayer, newModel ) ->
-                    { layerDef
-                    | layer = newLayer
-                    , model = newModel
-                    })
--}
-
-
-{-
-updateAllLayerModels
-    :  (Int -> LayerKind -> LayerModel -> LayerModel)
-    -> Model
-    -> Model
-updateAllLayerModels f model =
-    model.layers
-        |> List.indexedMap
-            (\layerIndex layerDef ->
-                { layerDef
-                | model = f layerIndex layerDef.kind layerDef.model
-                }
-            )
-        |> (\layers -> { model | layers = layers }) -- .layers?
--}
-
-
-{-
-updateLayerBlend
-    :  Int
-    -> (WGLBlend.Blend -> Maybe WGLBlend.Blend)
-    -> (HtmlBlend.Blend -> Maybe HtmlBlend.Blend)
-    -> Model
-    -> Model
-updateLayerBlend index ifWebgl ifHtml model =
-    model |> updateLayerDef index
-        (\layerDef ->
-            { layerDef
-            | layer = case layerDef.layer of
-                WebGLLayer webglLayer webglBlend ->
-                    ifWebgl webglBlend
-                        |> Maybe.withDefault webglBlend
-                        |> WebGLLayer webglLayer
-                HtmlLayer htmlLayer htmlBlend ->
-                    ifHtml htmlBlend
-                        |> Maybe.withDefault htmlBlend
-                        |> HtmlLayer htmlLayer
-            })
--}
-
 
 getOrigin : Size -> Pos
 getOrigin (width, height) =
