@@ -1,4 +1,4 @@
-module Layer.Fluid.Random exposing (..)
+module Layer.NativeMetaballs.Random exposing (..) 
 
 import Array
 import Random
@@ -19,17 +19,31 @@ import Model.Layer.Context exposing (Context)
 import Layer.Fluid.Model exposing (..)
 
 
+defaultRange : Ranges
+defaultRange =
+    { groups = iRange 1 10
+    , balls = iRange 4 40
+    , radius = fRange 50 100
+    , speed = fRange 150 250
+    , phase = fRange 0 360 -- Maybe useless
+    , amplitude =
+        { x = fRange -30 30
+        , y = fRange -10 10
+        }    
+    }
+
+
 generator : ( Int, Int ) -> Randomization -> Random.Generator Model
 generator size randomization =
     case randomization of
         RandomizeInitial palette initialModel ->
             fromInitialStateGenerator size defaultRange palette initialModel
+        RandomizeStatics ranges model ->
+            staticsGenerator size ranges model
         RandomizeDynamics range palette variety orbit staticModel ->
             dynamicsGenerator size range palette variety orbit staticModel
         RandomizeEverything range palette variety orbit ->
             everythingGenerator size range palette variety orbit
-        RandomizeStatics ranges model ->
-            staticsGenerator size ranges model
 
 
 generateOrigin : Random.Generator Vec2
@@ -37,101 +51,6 @@ generateOrigin =
     Random.map2 vec2
         (Random.float -0.1 0.1)
         (Random.float -0.1 0.1)
-
-
-everythingGenerator
-    : ( Int, Int )
-    -> Ranges
-    -> Product.Palette
-    -> Gauss.Variety
-    -> Orbit
-    -> Random.Generator Model
-everythingGenerator ( w, h ) range palette variety orbit =
-    let
-        gaussInFloatRange fRange gaussX =
-            Gauss.inFloatRange gaussX variety fRange |> Gauss.unwrap
-        generatePosition gaussX =
-            Random.map2 vec2
-                -- (Random.float 0 <| toFloat w)
-                -- (Random.float 0 <| toFloat h)
-                (gaussX |> gaussInFloatRange (fRange 0 <| toFloat w))
-                (gaussX |> gaussInFloatRange (fRange 0 <| toFloat h))
-        generateRadius = gaussInFloatRange range.radius
-        generateSpeed = gaussInFloatRange range.speed
-        generatePhase = gaussInFloatRange range.phase
-        generateAmplitude gaussX =
-            Random.map2 vec2
-                (gaussX |> gaussInFloatRange range.amplitude.x)
-                (gaussX |> gaussInFloatRange range.amplitude.y)
-        generateGroup gaussX =
-            randomIntInRange range.balls
-                |> Random.andThen
-                    (\numCircles ->
-                        Random.map5
-                            Ball
-                            (generatePosition gaussX)
-                            (generateRadius gaussX)
-                            (generateSpeed gaussX)
-                            (generatePhase gaussX)
-                            (generateAmplitude gaussX)
-                            |> Random.list numCircles
-                    )
-                |> Random.andThen
-                    (\balls ->
-                        gradientGenerator
-                            |> Random.map
-                                (\gradient ->
-                                    { balls = balls
-                                    , gradient = gradient
-                                    }
-                                )
-                    )
-                |> Random.andThen
-                    (\{ balls, gradient } ->
-                        generateOrigin
-                        |> Random.map
-                            (\origin ->
-                                { balls = balls
-                                , gradient = gradient
-                                , textures = Nothing
-                                , origin = origin
-                                }
-                            )
-                    )
-        generateEffects gaussX =
-            Random.map3
-                (\blur fat ring ->
-                    { blur = blur, fat = fat, ring = ring }
-                )
-                (gaussX |> gaussInFloatRange (fRange 0 1))
-                (gaussX |> gaussInFloatRange (fRange 0 1))
-                (gaussX |> gaussInFloatRange (fRange 0 1))
-
-        makeBall { center, radius } = Ball center radius
-    in
-        Gauss.generateX
-            |> Random.andThen
-                (\gaussX ->
-                    randomIntInRange range.groups
-                        |> Random.map (Tuple.pair gaussX)
-                )
-            |> Random.andThen
-                (\( gaussX, numGroups ) ->
-                    Random.list numGroups (generateGroup gaussX)
-                        |> Random.map (\groups -> ( gaussX, groups ))
-                )
-            |> Random.andThen
-                (\( gaussX, groups ) ->
-                    generateEffects gaussX
-                        |> Random.map (\effects -> ( groups, effects ))
-                )
-            |> Random.map (\( groups, effects ) ->
-                { groups = groups
-                , forSize = Just ( w, h )
-                , variety = variety
-                , orbit = orbit
-                , effects = effects
-                })
 
 
 fromInitialStateGenerator
@@ -342,6 +261,100 @@ dynamicsGenerator ( w, h ) range palette variety orbit staticModel =
                                     }
                                 )
                 )
+
+everythingGenerator
+    : ( Int, Int )
+    -> Ranges
+    -> Product.Palette
+    -> Gauss.Variety
+    -> Orbit
+    -> Random.Generator Model
+everythingGenerator ( w, h ) range palette variety orbit =
+    let
+        gaussInFloatRange fRange gaussX =
+            Gauss.inFloatRange gaussX variety fRange |> Gauss.unwrap
+        generatePosition gaussX =
+            Random.map2 vec2
+                -- (Random.float 0 <| toFloat w)
+                -- (Random.float 0 <| toFloat h)
+                (gaussX |> gaussInFloatRange (fRange 0 <| toFloat w))
+                (gaussX |> gaussInFloatRange (fRange 0 <| toFloat h))
+        generateRadius = gaussInFloatRange range.radius
+        generateSpeed = gaussInFloatRange range.speed
+        generatePhase = gaussInFloatRange range.phase
+        generateAmplitude gaussX =
+            Random.map2 vec2
+                (gaussX |> gaussInFloatRange range.amplitude.x)
+                (gaussX |> gaussInFloatRange range.amplitude.y)
+        generateGroup gaussX =
+            randomIntInRange range.balls
+                |> Random.andThen
+                    (\numCircles ->
+                        Random.map5
+                            Ball
+                            (generatePosition gaussX)
+                            (generateRadius gaussX)
+                            (generateSpeed gaussX)
+                            (generatePhase gaussX)
+                            (generateAmplitude gaussX)
+                            |> Random.list numCircles
+                    )
+                |> Random.andThen
+                    (\balls ->
+                        gradientGenerator
+                            |> Random.map
+                                (\gradient ->
+                                    { balls = balls
+                                    , gradient = gradient
+                                    }
+                                )
+                    )
+                |> Random.andThen
+                    (\{ balls, gradient } ->
+                        generateOrigin
+                        |> Random.map
+                            (\origin ->
+                                { balls = balls
+                                , gradient = gradient
+                                , textures = Nothing
+                                , origin = origin
+                                }
+                            )
+                    )
+        generateEffects gaussX =
+            Random.map3
+                (\blur fat ring ->
+                    { blur = blur, fat = fat, ring = ring }
+                )
+                (gaussX |> gaussInFloatRange (fRange 0 0.4))
+                (gaussX |> gaussInFloatRange (fRange 0 0.3))
+                (gaussX |> gaussInFloatRange (fRange 0 1))
+
+        makeBall { center, radius } = Ball center radius
+    in
+        Gauss.generateX
+            |> Random.andThen
+                (\gaussX ->
+                    randomIntInRange range.groups
+                        |> Random.map (Tuple.pair gaussX)
+                )
+            |> Random.andThen
+                (\( gaussX, numGroups ) ->
+                    Random.list numGroups (generateGroup gaussX)
+                        |> Random.map (\groups -> ( gaussX, groups ))
+                )
+            |> Random.andThen
+                (\( gaussX, groups ) ->
+                    generateEffects gaussX
+                        |> Random.map (\effects -> ( groups, effects ))
+                )
+            |> Random.map (\( groups, effects ) ->
+                { groups = groups
+                , forSize = Just ( w, h )
+                , variety = variety
+                , orbit = orbit
+                , effects = effects
+                })                
 
 
 generate : (Model -> msg) -> Random.Generator Model -> Cmd msg

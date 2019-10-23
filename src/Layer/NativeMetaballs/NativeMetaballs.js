@@ -137,7 +137,7 @@ function m(target, width, height, model, colors_) {
       canvas.height = size[1];
 
 
-      resizeGL(gl);
+      //resizeGL(gl);
       gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
     }

@@ -37,7 +37,7 @@ import Model.Layer.Blend.WebGL as WebGL exposing (..)
 
 import Layer.Fluid.Model as Model exposing (..)
 import Layer.Fluid.Model exposing (Model, Msg(..))
-import Layer.Fluid.Random as Random exposing (..)
+-- import Layer.Fluid.Random as Random exposing (..)
 import Layer.Fluid.Render as Random exposing (..)
 import Layer.Fluid.Export as IE exposing (..)
 
@@ -58,6 +58,8 @@ def =
             model = Model.init
         in
             ( model
+            , Cmd.none
+            {-
             , Random.generate
                 Rebuild
                 (Model.RandomizeEverything
@@ -67,6 +69,7 @@ def =
                     model.orbit
                         |> Random.generator ctx.size
                 )
+            -}
             )
     , encode = IE.encode
     , decode = IE.decode

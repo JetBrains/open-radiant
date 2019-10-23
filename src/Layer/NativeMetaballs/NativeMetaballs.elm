@@ -8,7 +8,6 @@ port module Layer.NativeMetaballs.NativeMetaballs exposing
     , initial
     -- , export
     , view
-    , defaultRange
     )
 
 
@@ -41,7 +40,7 @@ import Layer.Fluid.Model as Fluid exposing
     , Orbit(..), Ranges
     , Randomization(..)
     )
-import Layer.Fluid.Random as Fluid exposing
+import Layer.NativeMetaballs.Random as Fluid exposing
     ( generate, generator )
 import Layer.Fluid.Export as FluidIE
 
@@ -224,20 +223,6 @@ view index ctx maybeBlend model =
                 |> Blend.encode)
         ]
         [] -- FIXME: use actual layer index
-
-
-defaultRange : Fluid.Ranges
-defaultRange =
-    { groups = iRange 1 10
-    , balls = iRange 4 50
-    , radius = fRange 50 100
-    , speed = fRange 150 250
-    , phase = fRange 0 360 -- Maybe useless
-    , amplitude =
-        { x = fRange -30 30
-        , y = fRange -10 10
-        }
-    }
 
 
 groupOffset = { x = 0.65, y = 0.45 }

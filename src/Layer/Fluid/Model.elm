@@ -110,7 +110,7 @@ type alias Ranges =
     , amplitude :
         { x : FloatRange
         , y : FloatRange
-        }
+        }    
     }
 
 type Orbit = Orbit Float -- 0..1
@@ -151,7 +151,7 @@ init =
 
 defaultRange : Ranges
 defaultRange =
-    { groups = iRange 1 10
+    { groups = iRange 4 10
     , balls = iRange 4 50
     , radius = fRange 50 100
     , speed = fRange 150 250
