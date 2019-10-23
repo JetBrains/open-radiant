@@ -42,6 +42,7 @@ import Model.Layer.Layer exposing (Layer, Blend(..))
 import Model.Layer.Layer as Layer
 import Model.Layer.Broadcast as B
 import Model.Layer.Def as Layer exposing (Index, indexToString)
+import Model.Layer.Export as Layer exposing (encodeKind)
 import Model.Layer.Layers as Layers
 import Model.Layer.Blend.Html as HtmlBlend
 import Model.Layer.Blend.WebGL as WGLBlend
@@ -376,11 +377,11 @@ update msg model =
             in
                 ( newModelWithSize
                 , Cmd.batch
-                    [ newModelWithSize |> getSizeUpdate |> sizeChanged
+                    -- [ newModelWithSize |> getModelUpdate |> sizeChanged
                     -- , if hasFssLayers newModelWithSize
                     --     then rebuildAllFssLayersWith newModelWithSize
                     --     else Cmd.none
-                    , requestWindowResize ( width, height )
+                    [ requestWindowResize ( width, height )
                     , Nav.pushUrlFrom newModelWithSize
                     ]
                 )
@@ -870,7 +871,21 @@ update msg model =
 
         SavePng ->
             ( model
-            , model |> getSizeUpdate |> triggerSavePng
+            , triggerSavePng
+                { size = getRuleSize model.size |> Maybe.withDefault ( -1, -1 )
+                , product = Product.encode model.product
+                , background = model.background
+                , layers =
+                    Layers.collectStats model.layers
+                        |> List.map
+                            (\{ index, def, kind, visibility } ->
+                                { index = index
+                                , def = def
+                                , kind = Layer.encodeKind kind
+                                , visibility = Layer.encodeVisibility visibility
+                                }
+                            )
+                }
             )
 
         Randomize ->
@@ -1001,10 +1016,10 @@ subscriptions model =
                     Err error -> AddError <| "Failed to decode product: " ++ error)
         , Layers.subscribe ToLayer (getContext model) model.layers
         , changeWGLBlend (\{ layer, value } ->
-            ChangeWGLBlend (Layer.Index layer) value
+            ChangeWGLBlend (Layer.makeIndex layer) value
           )
         , changeHtmlBlend (\{ layer, value } ->
-            ChangeHtmlBlend (Layer.Index layer) <| HtmlBlend.decode value
+            ChangeHtmlBlend (Layer.makeIndex layer) <| HtmlBlend.decode value
           )
         {-
         , changeFssRenderMode (\{value, layer} ->
@@ -1076,8 +1091,8 @@ subscriptions model =
         , continue (\_ -> Continue)
         , triggerPause (\_ -> TriggerPause)
         , hideControls (\_ -> HideControls)
-        , turnOn (Layer.Index >> TurnOn)
-        , turnOff (Layer.Index >> TurnOff)
+        , turnOn (Layer.makeIndex >> TurnOn)
+        , turnOff (Layer.makeIndex >> TurnOff)
         -- , mirrorOn MirrorOn
         -- , mirrorOff MirrorOff
         , savePng (\_ -> SavePng)
@@ -1129,16 +1144,7 @@ view model =
                 _ -> False
     in div
         [ H.class <| "mode-" ++ Mode.encode model.mode ]
-        [ if not isInPlayerMode then canvas [ H.id "js-save-buffer" ] [ ] else div [] []
-        , if hasErrors model
-            then
-                div [ H.id "error-pane", H.class "has-errors" ]
-                    ( case model.errors of
-                        Errors errorsList ->
-                            errorsList |> List.map (\err -> span [] [ text err ])
-                    )
-            else div [ H.id "error-pane" ] []
-        , renderedLayers --|> RQ.apply wrapHtml wrapEntities
+        [ renderedLayers --|> RQ.apply wrapHtml wrapEntities
         , if model.controlsVisible && not isInPlayerMode
             then ( div
                 ([ "overlay-panel", "import-export-panel", "hide-on-space" ] |> List.map H.class)
@@ -1175,6 +1181,15 @@ view model =
             |> Maybe.map (Html.map GuiMessage)
             |> Maybe.map (\guiLayer -> div [ H.class "hide-on-space" ] [ guiLayer ])
             |> Maybe.withDefault (div [] [])
+        , if not isInPlayerMode then canvas [ H.id "js-save-buffer" ] [ ] else div [] []
+        , if hasErrors model
+            then
+                div [ H.id "error-pane", H.class "has-errors" ]
+                    ( case model.errors of
+                        Errors errorsList ->
+                            errorsList |> List.map (\err -> span [] [ text err ])
+                    )
+            else div [ H.id "error-pane" ] []
         ]
 
 
@@ -1182,18 +1197,6 @@ document : Model -> Browser.Document Msg
 document model =
     { title = "Elmsfeuer, Radiant"
     , body = [ view model ]
-    }
-
-
-getSizeUpdate : Model -> SizeUpdate
-getSizeUpdate model =
-    { size = getRuleSize model.size |> Maybe.withDefault ( -1, -1 )
-    , sizeRule = SizeRule.encode model.size
-    , product = Product.encode model.product
-    -- , coverSize = Product.getCoverTextSize model.product
-    , background = model.background
-    , sizeConstant = -1
-    -- , mode = encodeMode model.mode
     }
 
 
@@ -1920,16 +1923,6 @@ port changeFluidOrbit :
 
 -- OUTGOING PORTS
 
-type alias SizeUpdate =
-    { size: ( Int, Int )
-    , sizeRule : String
-    , product: String
-    -- , coverSize: Size
-    , background: String
-    , sizeConstant: Int
-    -- , mode: String
-    }
-
 port startGui : ( PortModel, Constants ) -> Cmd msg
 
 {-
@@ -1940,7 +1933,7 @@ port requestFssRebuild :
     } -> Cmd msg
 -}
 
-port sizeChanged : SizeUpdate -> Cmd msg
+-- port sizeChanged : ModelUpdate -> Cmd msg
 
 port modeChanged : String -> Cmd msg
 
@@ -1950,7 +1943,19 @@ port export_ : String -> Cmd msg
 
 port exportZip_ : String -> Cmd msg
 
-port triggerSavePng : SizeUpdate -> Cmd msg -- FIXME: Remove, use Browser.DOM task instead
+port triggerSavePng :
+    { size : ( Int, Int )
+    , product : String
+    , background : String
+    , layers :
+        List
+            { index : Layer.JsIndex
+            , def : String
+            , kind : String
+            , visibility : String
+            }
+    } -> Cmd msg
+    -- FIXME: Remove, use Browser.DOM task instead
 
 port requestRandomize : PortModel -> Cmd msg
 

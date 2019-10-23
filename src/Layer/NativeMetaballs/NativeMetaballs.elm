@@ -98,7 +98,7 @@ init =
 
 
 update : Index -> Context -> Msg -> Model -> ( Model, Cmd Msg )
-update (Index index) ctx msg model =
+update index ctx msg model =
     case msg of
         Bang ->
             ( model
@@ -107,7 +107,7 @@ update (Index index) ctx msg model =
         Update newModel -> -- called when random model was generated in any way
             ( newModel
             , updateNativeMetaballs
-                { index = index
+                { index = Layer.indexToJs index
                 , size = ctx.size
                 , palette = ctx.palette |> Product.encodePalette
                 , layerModel = FluidIE.encode ctx newModel
@@ -133,7 +133,7 @@ update (Index index) ctx msg model =
             in
                 ( { model | effects = Fluid.applyEffectsChange change model.effects }
                 , sendNativeMetaballsEffects
-                    { index = index
+                    { index = Layer.indexToJs index
                     , subject = encodedChange.subject
                     , value = encodedChange.value
                     }
@@ -141,7 +141,7 @@ update (Index index) ctx msg model =
 
 
 response : Index -> Context -> Broadcast.Msg -> Model -> ( Model, Cmd Msg )
-response (Index index) ctx broadcastMsg model =
+response index ctx broadcastMsg model =
     case broadcastMsg of
         Broadcast.IFeelLucky ->
             ( model
@@ -154,7 +154,7 @@ response (Index index) ctx broadcastMsg model =
         Broadcast.TurnOn ->
             ( model
             , updateNativeMetaballs
-                { index = index -- index
+                { index = Layer.indexToJs index -- index
                 , size = ctx.size
                 , palette = ctx.palette |> Product.encodePalette
                 , layerModel = FluidIE.encode ctx model
@@ -173,13 +173,13 @@ subscribe ctx model =
     Sub.batch
         [ changeNativeMetaballsVariety
             (\{ layer, value } ->
-                ( Index layer
+                ( Layer.makeIndex layer
                 , ChangeVariety <| Gaussian.Variety value
                 )
             )
         , changeNativeMetaballsOrbit
             (\{ layer, value } ->
-                ( Index layer
+                ( Layer.makeIndex layer
                 , ChangeOrbit <| Fluid.Orbit value
                 )
             )
@@ -192,11 +192,14 @@ subscribe ctx model =
                             "fat" -> Fluid.ChangeFat value
                             "ring" -> Fluid.ChangeRing value
                             _ -> Fluid.ChangeNothing
-                in ( Index layer, ChangeEffects change )
+                in
+                    ( Layer.makeIndex layer
+                    , ChangeEffects change
+                    )
             )
         , refreshNativeMetaballs
             (\{ layer } ->
-                ( Index layer
+                ( Layer.makeIndex layer
                 , Bang
                 )
             )

@@ -194,41 +194,84 @@ const prepareImportExport = () => {
     // });
 }
 
-const savePng = (hiddenLink, { size, coverSize, product, background }) => {
-    const [ imageWidth, imageHeight ] = size;
-    const srcCanvas = document.querySelector('.webgl-layers') || document.querySelector('#native-metaballs-1');
+const savePng = (hiddenLink, { size, product, background, layers }) => {
     const trgCanvas = document.querySelector('#js-save-buffer');
-    const [ width, height ] = [ srcCanvas.width, srcCanvas.height ];
+    const [ width, height ] = size; // [ srcCanvas.width, srcCanvas.height ];
     trgCanvas.width = width;
     trgCanvas.height = height;
-    if (!srcCanvas || !trgCanvas) return;
+    if (!trgCanvas) return;
     trgCanvas.style.display = 'block';
     trgCanvas.style.backgroundColor = background;
-    requestAnimationFrame(() => { // without that, image buffer will be empty
-        const trgContext = trgCanvas.getContext('2d');
-        trgContext.fillStyle = background;
-        trgContext.fillRect(0, 0, width, height);
-        trgContext.drawImage(srcCanvas, 0, 0);
-        drawToCanvas.html(document.querySelector('.html-layers'), trgCanvas, width, height, () => {
-
-            // FIXME: a temporary hack to draw a logo on the canvas,
-            // use product image itself instead
-            hiddenLink.download = width + 'x'+ height + '-' + product + '.png';
-            drawToCanvas.selector('.product-name-layer', trgCanvas, () => {
-                drawToCanvas.selector('.logo-layer', trgCanvas, () => {
-
-                    trgCanvas.toBlob(blob => {
-                        const url = URL.createObjectURL(blob);
-                        hiddenLink.href = url;
-                        hiddenLink.click();
-                        URL.revokeObjectURL(url);
-                        trgCanvas.style.display = 'none';
-                    });
-
-                });
-            });
-
+    const trgContext = trgCanvas.getContext('2d');
+    hiddenLink.download = width + 'x'+ height + '-' + product + '.png';
+    // console.log(layers);
+    const toFetch = layers.concat([]).reverse().reduce((prev, { index, def, kind, visibility }) => {
+        // console.log(index, def, kind, visibility);
+        if (visibility == 'hidden') {
+            return prev;
+        }
+        if (def == 'background') {
+            return [ ...prev, { selector : '#layer-' + index + ' svg', collect : 'svg' } ];
+        }
+        if (def == 'cover') {
+            return [ ...prev
+                   , { selector : '#layer-' + index + ' .product-name-layer', collect : 'stored' }
+                   , { selector : '#layer-' + index + ' .logo-layer', collect : 'stored' }
+                   ];
+        }
+        if (kind == 'webgl' || kind == 'js') {
+            return [ ...prev, { selector : '#layer-' + index + ' canvas', collect : 'canvas' } ];
+        }
+        if (kind == 'html') {
+            return [ ...prev, { selector : '#layer-' + index + ' > div', collect : 'html' } ];
+        }
+        // `collect` could be equals to 'image', also, but we don't handle it
+        return prev;
+    }, []);
+    const performSave = () => {
+        trgCanvas.toBlob(blob => {
+            const url = URL.createObjectURL(blob);
+            hiddenLink.href = url;
+            hiddenLink.click();
+            URL.revokeObjectURL(url);
+            trgCanvas.style.display = 'none';
         });
+    }
+    const fetchNext = (toFetch) => {
+        if (!toFetch.length) {
+            //console.log('saving');
+            performSave();
+            return;
+        }
+        const current = toFetch[0];
+        //console.log(current.selector, current.collect);
+        const step = () => {
+            //console.log('applied', current.selector, current.collect);
+            fetchNext(toFetch.slice(1));
+        };
+        if (current.collect == 'html') {
+            drawToCanvas.html(current.selector, trgCanvas, width, height, step);
+        } else if (current.collect == 'svg') {
+            drawToCanvas.svg(current.selector, trgCanvas, width, height, step);
+        } else if (current.collect == 'stored') {
+            drawToCanvas.stored(current.selector, trgCanvas, step);
+        } else if (current.collect == 'image') {
+            drawToCanvas.image(current.src, () => {}, trgCanvas, 0, 0, width, height, step);
+        } else if (current.collect == 'canvas') {
+            drawToCanvas.canvas(current.selector, trgCanvas, step);
+            // drawToCanvas.selector(current.selector, trgCanvas, step);
+        } else {
+            console.error('Unknown collect spec: ', current.collect);
+            return null;
+        }
+    }
+
+    requestAnimationFrame(() => { // without that, image buffer will be empty
+        //const trgContext = trgCanvas.getContext('2d');
+        trgCanvas.style.display = 'block';
+        //trgContext.fillStyle = background;
+        //trgContext.fillRect(0, 0, width, height);
+        fetchNext(toFetch);
     });
 }
 
@@ -519,7 +562,6 @@ setTimeout(() => {
 
     if (app.ports.updateNativeMetaballs) {
         app.ports.updateNativeMetaballs.subscribe(({ index, size, layerModel, palette }) => {
-            console.log('received');
             requestAnimationFrame(() => {
                 updateOrInitNativeMetaballs(size, layerModel, palette, index);
             });

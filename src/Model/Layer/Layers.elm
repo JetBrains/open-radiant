@@ -1,8 +1,9 @@
 module Model.Layer.Layers exposing (..)
 
-import Model.Layer.Def exposing (DefId, Index(..))
+import Model.Layer.Def exposing (DefId, Index(..), Kind, makeIndex, getIndex)
 import Model.Layer.Layer exposing (..)
 import Model.Layer.Layer as Layer exposing (Msg)
+import Model.Layer.Export exposing (encodeKind)
 import Model.Layer.Context exposing (Context)
 import Model.Layer.Broadcast as Broadcast exposing (Msg)
 
@@ -26,14 +27,14 @@ init
 init mapMsg ctx initial =
     initial
         |> List.indexedMap Tuple.pair
-        |> List.map (Tuple.mapFirst Index)
+        |> List.map (Tuple.mapFirst makeIndex)
         |> List.map
-            (\( Index index, { visibility, blend, fromDef }  ) ->
+            (\( index, { visibility, blend, fromDef }  ) ->
 
                 registry.byId fromDef
-                    |> Maybe.map (\def -> def.init (Index index) ctx)
+                    |> Maybe.map (\def -> def.init index ctx)
                     |> Maybe.map (\( model, cmd ) ->
-                        ( layer (Index index) (ZOrder index) visibility blend model, cmd ))
+                        ( layer index (ZOrder <| getIndex index) visibility blend model, cmd ))
 
             )
         |> List.filterMap identity -- filter out those layers that weren't found in the registry
@@ -43,7 +44,7 @@ init mapMsg ctx initial =
                     let (Layer { index } _) = layer
                     in
                         ( layer :: prevLayers
-                        , Cmd.map (mapMsg <| Index index) cmd :: prevCmds
+                        , Cmd.map (mapMsg <| makeIndex index) cmd :: prevCmds
                         )
 
                 )
@@ -58,15 +59,15 @@ update
     -> Layer.Msg
     -> Layers
     -> ( Layers, Cmd msg )
-update mapMsg ctx (Index layerToUpdate) msg =
+update mapMsg ctx layerToUpdate msg =
     updateMap
         mapMsg
         (\((Layer { index } model) as layer) ->
 
-                if index == layerToUpdate then
+                if index == getIndex layerToUpdate then
 
                     registry.byModel model
-                        |> Maybe.map (\def -> def.update (Index index) ctx msg model)
+                        |> Maybe.map (\def -> def.update (makeIndex index) ctx msg model)
                         |> Maybe.map (\( newModel, cmd ) ->
                                 ( layer |> replaceModel newModel, cmd ))
                         |> Maybe.withDefault ( layer, Cmd.none )
@@ -83,16 +84,16 @@ broadcast
     -> Broadcast.Msg
     -> Layers
     -> ( Layers, Cmd msg )
-broadcast mapMsg ctx (Index layerToBroadcastTo) broadcastMsg =
+broadcast mapMsg ctx (layerToBroadcastTo) broadcastMsg =
     updateMap
         mapMsg
         (\((Layer { index } model) as layer) ->
 
-            if index == layerToBroadcastTo then
+            if index == getIndex layerToBroadcastTo then
 
                 registry.byModel model
                     |> Maybe.map (\def ->
-                        def.response (Index index) ctx broadcastMsg model)
+                        def.response (makeIndex index) ctx broadcastMsg model)
                     |> Maybe.map (\( newModel, cmd ) ->
                         ( layer |> replaceModel newModel, cmd ))
                     |> Maybe.withDefault ( layer, Cmd.none )
@@ -115,7 +116,7 @@ broadcastAll mapMsg ctx broadcastMsg =
 
             registry.byModel model
                 |> Maybe.map (\def ->
-                    def.response (Index index) ctx broadcastMsg model)
+                    def.response (makeIndex index) ctx broadcastMsg model)
                 |> Maybe.map (\( newModel, cmd ) ->
                         ( layer |> replaceModel newModel, cmd ))
                 |> Maybe.withDefault ( layer, Cmd.none )
@@ -141,10 +142,10 @@ subscribe mapMsg ctx layers =
 
 
 modify : (Layer -> Layer) -> Index -> Layers -> Layers
-modify f (Index indexToChange) =
+modify f indexToChange =
     List.map
         (\((Layer { index } _) as layer) ->
-            if index == indexToChange then
+            if index == getIndex indexToChange then
                 f layer
             else layer
         )
@@ -160,8 +161,8 @@ render ctx layers =
                     _ ->
                         registry.byModel model
                             |> Maybe.map (\def ->
-                                def.view (Index index) ctx (Just blend) model)
-                            |> Maybe.map (\view -> ( Index index, ZOrder zOrder, view ))
+                                def.view (makeIndex index) ctx (Just blend) model)
+                            |> Maybe.map (\view -> ( makeIndex index, ZOrder zOrder, view ))
             )
         |> List.filterMap identity
 
@@ -181,9 +182,33 @@ updateMap mapMsg mapF layers =
                     let (Layer { index } _) = layer
                     in
                         ( layer :: prevLayers
-                        , Cmd.map (mapMsg <| Index index) cmd :: prevCmds
+                        , Cmd.map (mapMsg <| makeIndex index) cmd :: prevCmds
                         )
 
                 )
                 ( [], [] )
         |> Tuple.mapSecond Cmd.batch
+
+
+collectStats : Layers ->
+    List
+        { index : Int
+        , def : DefId
+        , kind : Kind
+        , visibility : Visibility
+        }
+collectStats layers =
+    layers
+        |> List.map (\(Layer { index, visibility } model) ->
+                registry.byModel model
+                    |> Maybe.map
+                        (\def ->
+                            { index = index
+                            , def = def.id
+                            , kind = def.kind
+                            , visibility = visibility
+                            }
+                        )
+            )
+        |> List.filterMap identity
+
