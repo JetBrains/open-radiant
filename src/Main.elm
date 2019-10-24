@@ -38,7 +38,7 @@ import Model.SizeRule as SizeRule exposing (decode, encode, toRecord)
 import Model.Error exposing (..)
 import Model.Export as IE -- IE for import/export
 
-import Model.Layer.Layer exposing (Layer, Blend(..))
+import Model.Layer.Layer exposing (Layer, Blend(..), Opacity(..))
 import Model.Layer.Layer as Layer
 import Model.Layer.Broadcast as B
 import Model.Layer.Def as Layer exposing (Index, indexToString)
@@ -147,7 +147,7 @@ initialLayers mode =
         layers =
             [ { fromDef = Cover.id
               , visibility = if mode == Ads then Layer.Hidden else Layer.Visible
-              , blend = Layer.ForHtml HtmlBlend.default
+              , blend = Layer.ForHtml (Opacity 1.0) HtmlBlend.default
               }
             , { fromDef = NativeMetaballs.id
               , visibility = Layer.Hidden
@@ -159,7 +159,7 @@ initialLayers mode =
               }
             , { fromDef = Background.id
               , visibility = Layer.Locked
-              , blend = Layer.ForHtml HtmlBlend.default
+              , blend = Layer.ForHtml (Opacity 1.0) HtmlBlend.default
               }
             ]
     in
@@ -471,13 +471,27 @@ update msg model =
                     | layers =
                         model.layers
                             |> Layers.modify
-                                (Layer.changeBlend <| ForHtml newBlend)
+                                (Layer.changeBlend <| ForHtml (Opacity 1.0) newBlend)
                                 index
                     }
             in
                 ( newModel
                 , Cmd.none
                 )
+
+        ChangeOpacity index value ->
+            let
+                newModel =
+                    { model
+                    | layers =
+                        model.layers |> Layers.modify (Layer.changeOpacity value) index
+
+                    }
+            in
+                ( newModel
+                , Cmd.none
+                )   
+
 
         ToLayer index layerMsg ->
             case model.layers
@@ -590,6 +604,9 @@ subscriptions model =
         , changeHtmlBlend (\{ layer, value } ->
             ChangeHtmlBlend (Layer.makeIndex layer) <| HtmlBlend.decode value
           )
+        , changeOpacity (\{ layer, value } ->
+            ChangeOpacity (Layer.makeIndex layer) value
+          )  
         , iFeelLucky
             (\_ -> TriggerFeelLucky)
         , applyRandomizer ApplyRandomizer
@@ -794,6 +811,12 @@ port changeWGLBlend :
 port changeHtmlBlend :
     ( { layer : Layer.JsIndex
       , value : String
+      }
+    -> msg) -> Sub msg
+
+port changeOpacity :
+    ( { layer : Layer.JsIndex
+      , value : Float
       }
     -> msg) -> Sub msg
 

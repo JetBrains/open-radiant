@@ -69,6 +69,7 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
       }
 
       this['visible' + index] = !!layer.isOn;
+      this['opacity' + index] = layer.opacity;
 
       if (is.fss(layer)) {
         this['mirror' + index] =  layer.model.mirror;
@@ -154,9 +155,11 @@ function start(document, model, constants, funcs) {
       funcs.changeProduct(product.id);
     }
 
-    function switchLayer(index, on) {
-      if (on) funcs.turnOn(index);
-      else funcs.turnOff(index);
+    function switchLayer(index) {
+      return function(on) {
+        if (on) funcs.turnOn(index);
+        else funcs.turnOff(index);
+      }
     }
 
     function switchMirror(index, on) {
@@ -333,8 +336,12 @@ function start(document, model, constants, funcs) {
       }
       if (layer.visible != 'locked') {
         const visibitySwitch = folder.add(config, 'visible' + index).name('visible');
-        visibitySwitch.onFinishChange(val => switchLayer(index, val));
+        visibitySwitch.onFinishChange(switchLayer(index));
       }
+
+      const opacity = folder.add(config, 'opacity' + index).name('opacity').min(0.0).max(1).step(0.01);
+      opacity.onFinishChange(funcs.changeOpacity(index));
+
       if (is.cover(layer)) {
         const productVisibilitySwitch =
           folder.add(config, 'productShown' + index).name('product');

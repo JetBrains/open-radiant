@@ -27,6 +27,9 @@ import Layer.NativeMetaballs.NativeMetaballs as NativeMetaballs exposing (..)
 type ZOrder = ZOrder Int
 
 
+type Opacity = Opacity Float
+
+
 type Layer =
     Layer
         { index : Int
@@ -48,7 +51,7 @@ type View
 
 type Blend
     = ForWebGL WebGL.Blend
-    | ForHtml Html.Blend
+    | ForHtml Opacity Html.Blend
     | NoBlend
 
 
@@ -151,27 +154,27 @@ isOn (Layer { visibility } _) =
 
 
 hide : Layer -> Layer
-hide (Layer def model) =
+hide (Layer cfg model) =
     Layer
-        { def
+        { cfg
         | visibility = Hidden
         }
         model
 
 
 show : Layer -> Layer
-show (Layer def model) =
+show (Layer cfg model) =
     Layer
-        { def
+        { cfg
         | visibility = Visible
         }
         model
 
 
 lock : Layer -> Layer
-lock (Layer def model) =
+lock (Layer cfg model) =
     Layer
-        { def
+        { cfg
         | visibility = Locked
         }
         model
@@ -182,23 +185,32 @@ unlock = show
 
 
 replaceModel : Model -> Layer -> Layer
-replaceModel newModel (Layer def _) =
-    Layer def newModel
+replaceModel newModel (Layer cfg _) =
+    Layer cfg newModel
 
 
 changeBlend : Blend -> Layer -> Layer
-changeBlend newBlend (Layer def model) =
+changeBlend newBlend (Layer cfg model) =
     Layer
-        { def
+        { cfg
         | blend = newBlend
         }
         model
 
 
-alterBlend : (Blend -> Blend) -> Layer -> Layer
-alterBlend changeF (Layer ({ blend } as def) model) =
+changeOpacity : Float -> Layer -> Layer
+changeOpacity value (Layer cfg model) =
     Layer
-        { def
+        { cfg
+        | opacity = value
+        }
+        model
+
+
+alterBlend : (Blend -> Blend) -> Layer -> Layer
+alterBlend changeF (Layer ({ blend } as cfg) model) =
+    Layer
+        { cfg
         | blend = changeF blend
         }
         model
@@ -216,7 +228,7 @@ alterWebGlBlend changeF =
 extractHtmlBlend : Blend -> Maybe Html.Blend
 extractHtmlBlend blend =
     case blend of
-        ForHtml htmlBlend -> Just htmlBlend
+        ForHtml _ htmlBlend -> Just htmlBlend
         _ -> Nothing
 
 

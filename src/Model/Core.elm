@@ -91,6 +91,7 @@ type Msg
     | ChangeWGLBlend Layer.Index WGLBlend.Blend
     | AlterWGLBlend Layer.Index WGLBlend.BlendChange
     | ChangeHtmlBlend Layer.Index HtmlBlend.Blend
+    | ChangeOpacity Layer.Index Float
     | Randomize
     | ApplyRandomizer PortModel
     | SavePng

@@ -62,7 +62,7 @@ encodeBlend blend =
     case blend of
         ForWebGL webglBlend ->
             WGLBlend.encodeOne webglBlend
-        ForHtml htmlBlend ->
+        ForHtml _ htmlBlend ->
             HtmlBlend.encode htmlBlend
         _ -> unknown
 
@@ -72,7 +72,7 @@ encodePortBlend blend =
     case blend of
         ForWebGL webglBlend ->
             ( Just webglBlend, Nothing )
-        ForHtml htmlBlend ->
+        ForHtml _ htmlBlend ->
             ( Nothing, HtmlBlend.encode htmlBlend |> Just )
         _ ->
             ( Nothing, Nothing )
@@ -84,7 +84,7 @@ encodeBlendDesc blend =
         ForWebGL webglBlend ->
             webglBlend
                 |> WGLBlend.encodeHumanOne { delim = "; ", space = "> " }
-        ForHtml htmlBlend ->
+        ForHtml _ htmlBlend ->
             HtmlBlend.encode htmlBlend
         _ -> unknown
 
@@ -154,7 +154,7 @@ decodeFromPort ctx portDef  =
                                             |> Maybe.map HtmlBlend.decode
                                             |> Maybe.withDefault HtmlBlend.default
                                             -- TODO: produce BlendDecodeError?
-                                            |> ForHtml
+                                            |> ForHtml (Opacity 1.0)
                             , visibility =
                                 decodeVisibility portDef.visible
                                     |> Maybe.withDefault Visible
@@ -231,7 +231,7 @@ decode ctx =
                                         _ ->
                                             HtmlBlend.decode blendStr
                                                 -- TODO: produce BlendDecodeError?
-                                                |> ForHtml
+                                                |> ForHtml (Opacity 1.0)
                                     , visibility =
                                         decodeVisibility visibilityStr
                                             |> Maybe.withDefault Visible
