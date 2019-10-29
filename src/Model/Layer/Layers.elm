@@ -93,7 +93,7 @@ broadcast mapMsg ctx (layerToBroadcastTo) broadcastMsg =
 
                 registry.byModel model
                     |> Maybe.map (\def ->
-                        def.response (makeIndex index) ctx broadcastMsg model)
+                        def.absorb (makeIndex index) ctx broadcastMsg model)
                     |> Maybe.map (\( newModel, cmd ) ->
                         ( layer |> replaceModel newModel, cmd ))
                     |> Maybe.withDefault ( layer, Cmd.none )
@@ -116,7 +116,7 @@ broadcastAll mapMsg ctx broadcastMsg =
 
             registry.byModel model
                 |> Maybe.map (\def ->
-                    def.response (makeIndex index) ctx broadcastMsg model)
+                    def.absorb (makeIndex index) ctx broadcastMsg model)
                 |> Maybe.map (\( newModel, cmd ) ->
                         ( layer |> replaceModel newModel, cmd ))
                 |> Maybe.withDefault ( layer, Cmd.none )

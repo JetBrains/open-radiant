@@ -64,7 +64,7 @@ def =
     , decode = FluidIE.decode
     , subscribe = subscribe
     , update = update
-    , response = response
+    , absorb = absorb
     , view = view
     , gui = Nothing
     }
@@ -139,8 +139,8 @@ update index ctx msg model =
                 )
 
 
-response : Index -> Context -> Broadcast.Msg -> Model -> ( Model, Cmd Msg )
-response index ctx broadcastMsg model =
+absorb : Index -> Context -> Broadcast.Msg -> Model -> ( Model, Cmd Msg )
+absorb index ctx broadcastMsg model =
     case broadcastMsg of
         Broadcast.IFeelLucky ->
             ( model

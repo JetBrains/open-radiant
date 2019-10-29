@@ -75,7 +75,7 @@ def =
     , decode = IE.decode
     , subscribe = Layer.noSubscriptions
     , update = Layer.passUpdate
-    , response = Layer.passResponse
+    , absorb = Layer.bypass
     , view = Layer.singleView ()
     , gui = Nothing
     }

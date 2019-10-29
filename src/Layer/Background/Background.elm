@@ -27,7 +27,7 @@ import Model.Layer.Broadcast as Broadcast exposing (Msg(..))
 import Model.Layer.Def exposing (Kind(..), DefId)
 import Model.Layer.Def as Layer exposing
     ( Def, JsIndex, Index, Opacity(..)
-    , passResponse, initWith
+    , bypass, initWith
     , makeIndex, indexToJs
     )
 import Model.Layer.Context exposing (..)
@@ -55,7 +55,7 @@ def =
     , decode = decode
     , subscribe = subscriptions
     , update = update
-    , response = response
+    , absorb = absorb
     , view = view
     , gui = Nothing
     }
@@ -147,8 +147,8 @@ update index ctx msg model =
             )
 
 
-response : Index -> Context -> Broadcast.Msg -> Model -> ( Model, Cmd Msg )
-response _ ctx broadcastMsg model =
+absorb : Index -> Context -> Broadcast.Msg -> Model -> ( Model, Cmd Msg )
+absorb _ ctx broadcastMsg model =
     case broadcastMsg of
         Broadcast.IFeelLucky ->
             ( model

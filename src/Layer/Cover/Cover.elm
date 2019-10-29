@@ -23,7 +23,7 @@ import Model.Layer.Context exposing (Context)
 import Model.Layer.Def exposing (Kind(..), DefId, Index, makeIndex, Opacity(..))
 import Model.Layer.Def as Layer exposing (Def)
 import Model.Layer.Def as Layer exposing
-    (initWith, passUpdate, passResponse, noEncode, decodeTo, noSubscriptions)
+    (initWith, passUpdate, bypass, noEncode, decodeTo, noSubscriptions)
 
 
 id : DefId
@@ -39,7 +39,7 @@ def =
     , decode = decode
     , subscribe = subscribe
     , update = update
-    , response = Layer.passResponse
+    , absorb = Layer.bypass
     , view = view
     , gui = Nothing
     }

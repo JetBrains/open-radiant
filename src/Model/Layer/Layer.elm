@@ -277,7 +277,7 @@ adapt
                                 index
                                 ctx
                                 ( a.extractBlend <| Maybe.withDefault NoBlend maybeBlend
-                                , opacity 
+                                , opacity
                                 )
                                 model
                     Nothing -> ToHtml <| H.div [] []
@@ -288,12 +288,12 @@ adapt
                         source.subscribe ctx model
                             |> Sub.map (Tuple.mapSecond a.convertMsg)
                     Nothing -> Sub.none
-        , response =
+        , absorb =
             \index ctx broadcastMsg layerModel ->
                 case ( a.extractModel layerModel ) of
                     Just model ->
                         adaptUpdateTuple <|
-                            source.response index ctx broadcastMsg model
+                            source.absorb index ctx broadcastMsg model
                     _ -> -- FIXME: return Maybe/Result for the case when message / model doesn't match
                         adaptUpdateTuple <| source.init index ctx
         , gui = Nothing -- FIXME

@@ -4,7 +4,7 @@ module Model.Layer.Def exposing
     , indexToString, indexToJs
     , Kind(..), Def
     , unit
-    , passUpdate, passResponse, singleView, initWith, noEncode, decodeTo, noSubscriptions
+    , passUpdate, bypass, singleView, initWith, noEncode, decodeTo, noSubscriptions
     )
 
 import Gui.Def exposing (Nest)
@@ -42,8 +42,8 @@ type alias Def model view msg blend =
     , encode : Context -> model -> E.Value
     , decode : Context -> D.Decoder model
     , update : Index -> Context -> msg -> model -> ( model, Cmd msg )
-    -- maybe having Cmd to response to broadcast message is enough
-    , response : Index -> Context -> Broadcast.Msg -> model -> ( model, Cmd msg )
+    -- maybe having Cmd to absorb to broadcast message is enough
+    , absorb : Index -> Context -> Broadcast.Msg -> model -> ( model, Cmd msg )
     , view : Index -> Context -> ( Maybe blend, Opacity ) -> model -> view
     , subscribe : Context -> model -> Sub ( Index, msg )
     , gui : Maybe (Index -> model -> Nest msg)
@@ -58,7 +58,7 @@ unit =
     , encode = noEncode
     , decode = decodeTo ()
     , update = passUpdate
-    , response = passResponse
+    , absorb = bypass
     , view = singleView ()
     , subscribe = noSubscriptions
     , gui = Nothing
@@ -69,8 +69,8 @@ passUpdate : Index -> Context -> msg -> model -> ( model, Cmd msg )
 passUpdate = \_ _ _ model -> ( model, Cmd.none )
 
 
-passResponse : Index -> Context -> Broadcast.Msg -> model -> ( model, Cmd msg )
-passResponse = \_ _ _ model -> ( model, Cmd.none )
+bypass : Index -> Context -> Broadcast.Msg -> model -> ( model, Cmd msg )
+bypass = \_ _ _ model -> ( model, Cmd.none )
 
 
 singleView : view -> Index -> Context -> ( Maybe blend, Opacity ) -> model -> view
@@ -118,7 +118,7 @@ empty id kind initialModel initalView =
     , decode = decodeTo initialModel
     , subscribe = noSubscriptions
     , update = passUpdate
-    , response = passResponse
+    , absorb = bypass
     , view = singleView initalView
     , gui = Nothing
     }
