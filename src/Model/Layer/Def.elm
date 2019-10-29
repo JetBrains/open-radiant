@@ -1,5 +1,5 @@
 module Model.Layer.Def exposing
-    ( DefId, Index, JsIndex
+    ( DefId, Index, JsIndex, Opacity(..)
     , makeIndex, getIndex
     , indexToString, indexToJs
     , Kind(..), Def
@@ -25,6 +25,9 @@ type Index = Index Int
 type alias JsIndex = Int -- index for ports
 
 
+type Opacity = Opacity Float
+
+
 type Kind
     = Html
     | WebGL
@@ -41,7 +44,7 @@ type alias Def model view msg blend =
     , update : Index -> Context -> msg -> model -> ( model, Cmd msg )
     -- maybe having Cmd to response to broadcast message is enough
     , response : Index -> Context -> Broadcast.Msg -> model -> ( model, Cmd msg )
-    , view : Index -> Context -> Maybe blend -> model -> view
+    , view : Index -> Context -> ( Maybe blend, Opacity ) -> model -> view
     , subscribe : Context -> model -> Sub ( Index, msg )
     , gui : Maybe (Index -> model -> Nest msg)
     }
@@ -70,7 +73,7 @@ passResponse : Index -> Context -> Broadcast.Msg -> model -> ( model, Cmd msg )
 passResponse = \_ _ _ model -> ( model, Cmd.none )
 
 
-singleView : view -> Index -> Context -> Maybe blend -> model -> view
+singleView : view -> Index -> Context -> ( Maybe blend, Opacity ) -> model -> view
 singleView v = \_ _ _ _ -> v
 
 

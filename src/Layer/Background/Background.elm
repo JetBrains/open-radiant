@@ -26,7 +26,7 @@ import Model.Product as Product exposing (..)
 import Model.Layer.Broadcast as Broadcast exposing (Msg(..))
 import Model.Layer.Def exposing (Kind(..), DefId)
 import Model.Layer.Def as Layer exposing
-    ( Def, JsIndex, Index
+    ( Def, JsIndex, Index, Opacity(..)
     , passResponse, initWith
     , makeIndex, indexToJs
     )
@@ -149,15 +149,16 @@ response _ ctx broadcastMsg model =
             )
 
 
-view : Index -> Context -> Maybe Html.Blend -> Model -> Html Msg
-view _ ctx maybeBlend model =
+view : Index -> Context -> ( Maybe Html.Blend, Opacity ) -> Model -> Html Msg
+view _ ctx ( maybeBlend, Opacity opacity ) model =
     let
         ( w, h ) = ctx.size
             -- ( Vec2.getX viewport.size
             -- , Vec2.getY viewport.size
             -- )
     in
-        div [ H.class "background-layer layer" ]
+        div [ H.class "background-layer layer" 
+            , H.style "opacity" <| String.fromFloat opacity ]
             [ renderBackground ( w, h ) model.stops model.opacity ctx.palette model.orientation
             ]
 

@@ -20,7 +20,7 @@ import Model.Product as Product exposing (Product)
 import Model.Product exposing (..)
 
 import Model.Layer.Context exposing (Context)
-import Model.Layer.Def exposing (Kind(..), DefId, Index, makeIndex)
+import Model.Layer.Def exposing (Kind(..), DefId, Index, makeIndex, Opacity(..))
 import Model.Layer.Def as Layer exposing (Def)
 import Model.Layer.Def as Layer exposing
     (initWith, passUpdate, passResponse, noEncode, decodeTo, noSubscriptions)
@@ -81,8 +81,8 @@ update index ctx msg model =
             ( { model | productShown = False }, Cmd.none )
 
 
-view : Index -> Context -> Maybe Html.Blend -> Model -> Html Msg
-view idx ctx maybeBlend model =
+view : Index -> Context -> ( Maybe Html.Blend, Opacity ) -> Model -> Html Msg
+view idx ctx ( maybeBlend, Opacity opacity ) model =
     let
         ( w, h ) = ctx.size
         ( x, y ) = ctx.origin
@@ -103,6 +103,7 @@ view idx ctx maybeBlend model =
             , style "font-weight" "170"
                 -- , ("text-transform", "uppercase")
             , style "color" "white"
+            , style "opacity" <| String.fromFloat opacity
             ]
         ( if
             (ctx.mode == Production)

@@ -68,7 +68,9 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
       }
 
       this['visible' + index] = !!layer.isOn;
-      this['opacity' + index] = layer.opacity;
+      if (!is.background(layer) && !is.cover(layer)) {
+        this['opacity' + index] = layer.opacity;
+      }
 
       if (is.fss(layer)) {
         this['mirror' + index] =  layer.model.mirror;
@@ -338,8 +340,10 @@ function start(document, model, constants, funcs) {
         visibitySwitch.onFinishChange(switchLayer(index));
       }
 
-      const opacity = folder.add(config, 'opacity' + index).name('opacity').min(0.0).max(1).step(0.01);
-      opacity.onFinishChange(funcs.changeOpacity(index));
+      if (!is.background(layer) && !is.cover(layer)) {
+        const opacity = folder.add(config, 'opacity' + index).name('opacity').min(0.0).max(1).step(0.01);
+        opacity.onFinishChange(funcs.changeOpacity(index));
+      }
 
       if (is.cover(layer)) {
         const productVisibilitySwitch =

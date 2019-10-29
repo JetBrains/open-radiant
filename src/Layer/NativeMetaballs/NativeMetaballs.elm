@@ -30,7 +30,7 @@ import Model.Range exposing (..)
 import Model.Layer.Blend.Html as Html exposing (Blend)
 import Model.Layer.Blend.Html as Blend exposing (encode)
 import Model.Layer.Broadcast as Broadcast exposing (Msg(..))
-import Model.Layer.Def exposing (Index(..), indexToString)
+import Model.Layer.Def exposing (Index(..), indexToString, Opacity(..))
 import Model.Layer.Def as Layer exposing (Def, DefId, Kind(..))
 import Model.Layer.Context exposing (Context)
 
@@ -212,8 +212,8 @@ subscribe ctx model =
 --     }
 
 
-view : Index -> Context -> Maybe Html.Blend -> Model -> H.Html Msg
-view index ctx maybeBlend model =
+view : Index -> Context -> ( Maybe Html.Blend, Opacity ) -> Model -> H.Html Msg
+view index ctx ( maybeBlend, Opacity opacity ) model =
     H.canvas
         [ H.class "native-metaballs"
         , H.id <| "native-metaballs-" ++ indexToString index
@@ -221,6 +221,7 @@ view index ctx maybeBlend model =
             (maybeBlend
                 |> Maybe.withDefault Blend.Normal
                 |> Blend.encode)
+        , H.style "opacity" <| String.fromFloat opacity
         ]
         [] -- FIXME: use actual layer index
 

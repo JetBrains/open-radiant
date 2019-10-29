@@ -1,6 +1,6 @@
 module Model.Layer.Layers exposing (..)
 
-import Model.Layer.Def exposing (DefId, Index(..), Kind, makeIndex, getIndex)
+import Model.Layer.Def exposing (DefId, Index(..), Kind, makeIndex, getIndex, Opacity(..))
 import Model.Layer.Layer exposing (..)
 import Model.Layer.Layer as Layer exposing (Msg)
 import Model.Layer.Export exposing (encodeKind)
@@ -155,13 +155,13 @@ render : Context -> Layers -> List ( Index, ZOrder, View )
 render ctx layers =
     layers |>
         List.map
-            (\(Layer { index, zOrder, blend, visibility } model) ->
+            (\(Layer { index, zOrder, blend, visibility, opacity } model) ->
                 case visibility of
                     Hidden -> Nothing
                     _ ->
                         registry.byModel model
                             |> Maybe.map (\def ->
-                                def.view (makeIndex index) ctx (Just blend) model)
+                                def.view (makeIndex index) ctx ( Just blend, Opacity opacity ) model)
                             |> Maybe.map (\view -> ( makeIndex index, ZOrder zOrder, view ))
             )
         |> List.filterMap identity

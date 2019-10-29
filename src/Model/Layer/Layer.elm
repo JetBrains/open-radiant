@@ -27,9 +27,6 @@ import Layer.NativeMetaballs.NativeMetaballs as NativeMetaballs exposing (..)
 type ZOrder = ZOrder Int
 
 
-type Opacity = Opacity Float
-
-
 type Layer =
     Layer
         { index : Int
@@ -51,7 +48,7 @@ type View
 
 type Blend
     = ForWebGL WebGL.Blend
-    | ForHtml Opacity Html.Blend
+    | ForHtml Html.Blend
     | NoBlend
 
 
@@ -228,7 +225,7 @@ alterWebGlBlend changeF =
 extractHtmlBlend : Blend -> Maybe Html.Blend
 extractHtmlBlend blend =
     case blend of
-        ForHtml _ htmlBlend -> Just htmlBlend
+        ForHtml htmlBlend -> Just htmlBlend
         _ -> Nothing
 
 
@@ -272,14 +269,16 @@ adapt
                     _ -> -- FIXME: return Maybe/Result for the case when message / model doesn't match
                         adaptUpdateTuple <| source.init index ctx
         , view =
-            \index ctx maybeBlend layerModel  ->
+            \index ctx ( maybeBlend, opacity ) layerModel  ->
                 case a.extractModel layerModel of
                     Just model ->
                         a.convertView
                             <| source.view
                                 index
                                 ctx
-                                (a.extractBlend <| Maybe.withDefault NoBlend maybeBlend)
+                                ( a.extractBlend <| Maybe.withDefault NoBlend maybeBlend
+                                , opacity 
+                                )
                                 model
                     Nothing -> ToHtml <| H.div [] []
         , subscribe =
