@@ -505,12 +505,24 @@ setTimeout(() => {
             //     update();
             // });
 
-            app.ports.updateNativeMetaballs.subscribe(({ index, size, layerModel, palette }) => {
+            app.ports.informNativeMetaballsUpdate.subscribe(
+                ({ layer : index, size, model : layerModel, palette }) => {
                 config['variety'+index] = layerModel.variety;
                 config['orbit'+index] = layerModel.orbit;
                 config['blur'+index] = layerModel.effects.blur;
                 config['fat'+index] = layerModel.effects.fat;
                 config['ring'+index] = layerModel.effects.ring;
+                update();
+            });
+
+            app.ports.informBackgroundUpdate.subscribe(
+                ({ layer : index, model : layerModel }) => {
+                const stopStates = layerModel.stops || [];
+                const gradientType = layerModel.orientation || "linear";
+                config['isRadial'+index] = gradientType == "radial";
+                config['stop1'+index] = stopStates[0] == "on";
+                config['stop2'+index] = stopStates[1] == "on";
+                config['stop3'+index] = stopStates[2] == "on";
                 update();
             });
 
@@ -560,13 +572,14 @@ setTimeout(() => {
         });
     } else console.error('No port `buildFluidGradientTextures` was detected');
 
-    if (app.ports.updateNativeMetaballs) {
-        app.ports.updateNativeMetaballs.subscribe(({ index, size, layerModel, palette }) => {
+    if (app.ports.informNativeMetaballsUpdate) {
+        app.ports.informNativeMetaballsUpdate.subscribe(
+            ({ layer : index, size, model : layerModel, palette }) => {
             requestAnimationFrame(() => {
                 updateOrInitNativeMetaballs(size, layerModel, palette, index);
             });
         });
-    } else console.error('No port `updateNativeMetaballs` was detected');
+    } else console.error('No port `informNativeMetaballsUpdate` was detected');
 
     if (app.ports.sendNativeMetaballsEffects) {
         app.ports.sendNativeMetaballsEffects.subscribe(({ index, subject, value }) => {

@@ -6,6 +6,8 @@ port module Layer.Background.Background exposing
     )
 
 
+import Random as Random
+
 import Html exposing (Html, div)
 import Html.Attributes  as H exposing (class)
 
@@ -21,8 +23,13 @@ import Svg.Attributes as S exposing (style, id)
 import Viewport exposing (Viewport)
 
 import Model.Product as Product exposing (..)
+import Model.Layer.Broadcast as Broadcast exposing (Msg(..))
 import Model.Layer.Def exposing (Kind(..), DefId)
-import Model.Layer.Def as Layer exposing (Def, JsIndex, Index, passResponse, initWith, makeIndex)
+import Model.Layer.Def as Layer exposing
+    ( Def, JsIndex, Index
+    , passResponse, initWith
+    , makeIndex, indexToJs
+    )
 import Model.Layer.Context exposing (..)
 
 import Model.Layer.Blend.Html as Html exposing (..)
@@ -48,7 +55,7 @@ def =
     , decode = decode
     , subscribe = subscriptions
     , update = update
-    , response = Layer.passResponse
+    , response = response
     , view = view
     , gui = Nothing
     }
@@ -57,6 +64,7 @@ def =
 type Msg
     = SwitchStop Int Bool -- StopIndex and StopState
     | SwitchGradientOrientation Orientation
+    | Apply Model
 
 
 type alias Color = String
@@ -78,7 +86,7 @@ type StopStates = StopStates StopState StopState StopState
 
 type alias Model =
     { stops : StopStates
-    , opacity : Float
+    , opacity : Float -- FIMXE: a property of a Layer, remove!
     , orientation: Orientation
     }
 
@@ -100,7 +108,7 @@ init =
 
 
 update : Index -> Context -> Msg -> Model -> ( Model, Cmd Msg )
-update _ ctx msg model =
+update index ctx msg model =
     case msg of
         SwitchStop stopIndex value ->
             (
@@ -119,6 +127,26 @@ update _ ctx msg model =
                 }
             , Cmd.none
             )
+        Apply newModel ->
+            ( newModel
+            , informBackgroundUpdate
+                { layer = indexToJs index
+                , model = encode ctx newModel
+                }
+            )
+
+
+response : Index -> Context -> Broadcast.Msg -> Model -> ( Model, Cmd Msg )
+response _ ctx broadcastMsg model =
+    case broadcastMsg of
+        Broadcast.IFeelLucky ->
+            ( model
+            , Random.generate Apply <| generator model
+            )
+        _ ->
+            ( model
+            , Cmd.none
+            )
 
 
 view : Index -> Context -> Maybe Html.Blend -> Model -> Html Msg
@@ -132,7 +160,6 @@ view _ ctx maybeBlend model =
         div [ H.class "background-layer layer" ]
             [ renderBackground ( w, h ) model.stops model.opacity ctx.palette model.orientation
             ]
-
 
 
 subscriptions : Context -> Model -> Sub ( Index, Msg )
@@ -339,6 +366,39 @@ decode _ =
         (D.field "orientation" decodeOrientation)
 
 
+generator : Model -> Random.Generator Model
+generator curModel =
+    let
+        generateBool = Random.int 0 1
+        evalStop n =
+            case n of
+                0 -> Off
+                1 -> On
+                _ -> On -- leave current state?
+        evalOrientation n =
+            case n of
+                -- 0 -> Horizontal
+                0 -> Vertical
+                1 -> Radial
+                _ -> Horizontal -- leave current state?
+    in
+        Random.map4
+            (\s1 s2 s3 o ->
+                { stops =
+                    StopStates
+                        (evalStop s1)
+                        (evalStop s2)
+                        (evalStop s3)
+                , orientation = evalOrientation o
+                , opacity = curModel.opacity
+                }
+            )
+            generateBool
+            generateBool
+            generateBool
+            generateBool
+
+
 port switchBackgroundStop :
     ( { layer : Layer.JsIndex
       , stopIndex : Int
@@ -352,3 +412,9 @@ port switchGradientOrientation :
         , orientation : String
         }
     -> msg) -> Sub msg
+
+port informBackgroundUpdate :
+    { layer: Layer.JsIndex
+    , model : E.Value
+    }
+    -> Cmd msg

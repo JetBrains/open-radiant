@@ -105,11 +105,11 @@ update index ctx msg model =
             )
         Update newModel -> -- called when random model was generated in any way
             ( newModel
-            , updateNativeMetaballs
-                { index = Layer.indexToJs index
+            , informNativeMetaballsUpdate
+                { layer = Layer.indexToJs index
                 , size = ctx.size
                 , palette = ctx.palette |> Product.encodePalette
-                , layerModel = FluidIE.encode ctx newModel
+                , model = FluidIE.encode ctx newModel
                 }
             )
         ChangeVariety value ->
@@ -132,7 +132,7 @@ update index ctx msg model =
             in
                 ( { model | effects = Fluid.applyEffectsChange change model.effects }
                 , sendNativeMetaballsEffects
-                    { index = Layer.indexToJs index
+                    { layer = Layer.indexToJs index
                     , subject = encodedChange.subject
                     , value = encodedChange.value
                     }
@@ -152,11 +152,11 @@ response index ctx broadcastMsg model =
             )
         Broadcast.TurnOn ->
             ( model
-            , updateNativeMetaballs
-                { index = Layer.indexToJs index -- index
+            , informNativeMetaballsUpdate
+                { layer = Layer.indexToJs index -- index
                 , size = ctx.size
                 , palette = ctx.palette |> Product.encodePalette
-                , layerModel = FluidIE.encode ctx model
+                , model = FluidIE.encode ctx model
                 }
             )
         _ -> ( model, Cmd.none )
@@ -413,16 +413,16 @@ port refreshNativeMetaballs :
 {- outgoing -}
 
 
-port updateNativeMetaballs :
-    { index: Layer.JsIndex
+port informNativeMetaballsUpdate :
+    { layer: Layer.JsIndex
     , size: (Int, Int)
-    , layerModel : E.Value
+    , model : E.Value
     , palette: List String
     } -> Cmd msg
 
 
 port sendNativeMetaballsEffects :
-    { index: Layer.JsIndex
+    { layer: Layer.JsIndex
     , subject: String
     , value: Float
     } -> Cmd msg

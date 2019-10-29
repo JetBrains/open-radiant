@@ -32,7 +32,6 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
     const mode = defaults.mode;
     this.product = defaults.product;
 
-
     const sizePresetSet = getSizeSet(mode, constants);
 
     layers.forEach((layer, index) => {

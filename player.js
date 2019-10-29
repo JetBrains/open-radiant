@@ -36,8 +36,8 @@ const import_ = (app, importedState) => {
         });
     } else console.error('No port `buildFluidGradientTextures` was detected');
 
-    if (app.ports.updateNativeMetaballs) {
-        app.ports.updateNativeMetaballs.subscribe(() => {
+    if (app.ports.informNativeMetaballsUpdate) {
+        app.ports.informNativeMetaballsUpdate.subscribe(() => {
             parsedState.layers.forEach((layer, index) => {
                 if (is.nativeMetaballs(layer)) {
                     const prev = allNativeMetaballs[index];
@@ -45,7 +45,7 @@ const import_ = (app, importedState) => {
                 }
             });
         });
-    } else console.error('No port `updateNativeMetaballs` was detected');
+    } else console.error('No port `informNativeMetaballsUpdate` was detected');
 
     const toSend = deepClone(parsedState);
     toSend.layers =
