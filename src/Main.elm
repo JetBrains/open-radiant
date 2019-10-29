@@ -16,8 +16,11 @@ import Html.Attributes as H
     exposing (class, width, height, style, class, type_, min, max, value, id)
 -- import Html.Events exposing (on, onInput, onMouseUp, onClick)
 import Html.Events as Events exposing (onInput)
+
 import Json.Decode as D
 import Json.Encode as E
+
+import Random
 
 import Algorithm.Gaussian as Gaussian
 
@@ -151,11 +154,13 @@ initialLayers mode =
               }
             , { fromDef = NativeMetaballs.id
               , visibility = Layer.Hidden
-              , blend = Layer.ForWebGL WGLBlend.default
+              -- , blend = Layer.ForWebGL WGLBlend.default
+              , blend = Layer.ForHtml HtmlBlend.default
               }
             , { fromDef = NativeMetaballs.id
               , visibility = Layer.Visible
-              , blend = Layer.ForWebGL WGLBlend.default
+              -- , blend = Layer.ForWebGL WGLBlend.default
+              , blend = Layer.ForHtml HtmlBlend.default
               }
             , { fromDef = Background.id
               , visibility = Layer.Locked
@@ -433,7 +438,36 @@ update msg model =
                 ( { model
                   | layers = newLayers
                   }
-                , Cmd.batch <| cmds :: [ Nav.pushUrlFrom model ]
+                , Cmd.batch
+                    (cmds
+                        :: List.map
+                                (\(index, generator) ->
+                                    Random.generate (ApplyStats index) generator
+                                )
+                           (Layers.randomizeStats model.layers)
+                        ++ [ Nav.pushUrlFrom model ])
+                )
+
+        ApplyStats index ( blend, Opacity opacity ) ->
+            let _ = Debug.log "i" ( index, blend, opacity )
+            in
+                (
+                    { model
+                    | layers =
+                            model.layers
+                                |> Layers.modify
+                                    (\layer ->
+                                        layer
+                                            |> Layer.changeBlend blend
+                                            |> Layer.changeOpacity opacity
+                                    ) index
+                                |> Debug.log "l"
+                    }
+                , Layer.updateLayerStats
+                    { blend = Layer.encodePortBlend blend
+                    , layer = Layer.indexToJs index
+                    , opacity = opacity
+                    }
                 )
 
         ChangeWGLBlend index newBlend ->
@@ -490,7 +524,7 @@ update msg model =
             in
                 ( newModel
                 , Cmd.none
-                )   
+                )
 
 
         ToLayer index layerMsg ->
@@ -606,7 +640,7 @@ subscriptions model =
           )
         , changeOpacity (\{ layer, value } ->
             ChangeOpacity (Layer.makeIndex layer) value
-          )  
+          )
         , iFeelLucky
             (\_ -> TriggerFeelLucky)
         , applyRandomizer ApplyRandomizer

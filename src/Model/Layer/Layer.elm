@@ -1,4 +1,5 @@
-module Model.Layer.Layer exposing (..)
+port module Model.Layer.Layer exposing (..)
+
 
 import Html exposing (Html)
 import Html as H exposing (..)
@@ -11,13 +12,17 @@ import Dict exposing (Dict)
 import Json.Decode as D
 import Json.Encode as E
 
+import Random
+
 import WebGL as WebGL
 
 import Model.Layer.Def exposing (..)
 import Model.Layer.Def as Def exposing (Index)
 
 import Model.Layer.Blend.Html as Html exposing (Blend)
+import Model.Layer.Blend.Html as HtmlBlend exposing (random)
 import Model.Layer.Blend.WebGL as WebGL exposing (Blend, BlendChange)
+import Model.Layer.Blend.WebGL as WebGLBlend exposing (random)
 
 import Layer.Background.Background as Background exposing (..)
 import Layer.Cover.Cover as Cover exposing (..)
@@ -113,7 +118,6 @@ type alias PortLayer =
     , isOn : Bool
     , model : String
     }
-
 
 
 layer : Index -> ZOrder -> Visibility -> Blend -> Model -> Layer
@@ -300,6 +304,28 @@ adapt
         }
 
 
+randomStats : Blend -> Random.Generator ( Blend, Opacity )
+randomStats curBlend =
+    let
+        randomBlend =
+            case curBlend of
+                NoBlend -> Random.constant NoBlend
+                ForWebGL _ ->
+                    WebGLBlend.random
+                        |> Random.map ForWebGL
+                ForHtml _ ->
+                    HtmlBlend.random
+                        |> Random.map ForHtml
+        randomOpacity =
+            Random.float 0 1
+                |> Random.map Opacity
+    in
+        Random.map2
+            Tuple.pair
+            randomBlend
+            randomOpacity
+
+
 register
     :  Def model view msg blend
     -> Adaptation model view msg blend
@@ -398,3 +424,44 @@ registry =
                     NativeMetaballsMsg nmMsg -> Just nmMsg
                     _ -> Nothing)
         )
+
+
+encodeBlend : Blend -> String
+encodeBlend blend =
+    case blend of
+        ForWebGL webglBlend ->
+            WebGLBlend.encodeOne webglBlend
+        ForHtml htmlBlend ->
+            HtmlBlend.encode htmlBlend
+        _ -> "unknown"
+
+
+encodePortBlend : Blend -> PortBlend
+encodePortBlend blend =
+    case blend of
+        ForWebGL webglBlend ->
+            ( Just webglBlend, Nothing )
+        ForHtml htmlBlend ->
+            ( Nothing, HtmlBlend.encode htmlBlend |> Just )
+        _ ->
+            ( Nothing, Nothing )
+
+
+encodeBlendDesc : Blend -> String
+encodeBlendDesc blend =
+    case blend of
+        ForWebGL webglBlend ->
+            webglBlend
+                |> WebGLBlend.encodeHumanOne
+                    { delim = "; ", space = "> " }
+        ForHtml htmlBlend ->
+            HtmlBlend.encode htmlBlend
+        _ -> "unknown"
+
+
+port updateLayerStats :
+    { layer: JsIndex
+    , blend : PortBlend
+    , opacity : Float
+    }
+    -> Cmd msg

@@ -4,7 +4,11 @@ module Model.Layer.Blend.Html exposing
     , default
     , encode
     , decode
+    , random
     )
+
+
+import Random
 
 
 type Blend
@@ -78,3 +82,26 @@ decode portBlend =
 
 default : Blend
 default = Normal
+
+
+random : Random.Generator Blend
+random =
+    Random.uniform
+        Normal
+        [ Difference
+        , Exclusion
+        , Overlay
+        , SoftLight
+        , Hue
+        , Multiply
+        , Screen
+        , Darken
+        , Lighten
+        , ColorDodge
+        , ColorBurn
+        , HardLight
+        , Saturation
+        , Color
+        , Luminosity
+        -- , Unset
+        ]

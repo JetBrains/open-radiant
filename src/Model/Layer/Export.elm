@@ -57,38 +57,6 @@ decodeVisibility str =
         _ -> Nothing
 
 
-encodeBlend : Blend -> String
-encodeBlend blend =
-    case blend of
-        ForWebGL webglBlend ->
-            WGLBlend.encodeOne webglBlend
-        ForHtml htmlBlend ->
-            HtmlBlend.encode htmlBlend
-        _ -> unknown
-
-
-encodePortBlend : Blend -> PortBlend
-encodePortBlend blend =
-    case blend of
-        ForWebGL webglBlend ->
-            ( Just webglBlend, Nothing )
-        ForHtml htmlBlend ->
-            ( Nothing, HtmlBlend.encode htmlBlend |> Just )
-        _ ->
-            ( Nothing, Nothing )
-
-
-encodeBlendDesc : Blend -> String
-encodeBlendDesc blend =
-    case blend of
-        ForWebGL webglBlend ->
-            webglBlend
-                |> WGLBlend.encodeHumanOne { delim = "; ", space = "> " }
-        ForHtml htmlBlend ->
-            HtmlBlend.encode htmlBlend
-        _ -> unknown
-
-
 encodeModel : Context -> Model -> Maybe E.Value
 encodeModel ctx model =
     registry.byModel model

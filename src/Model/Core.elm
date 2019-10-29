@@ -27,7 +27,7 @@ import Algorithm.Gaussian as Gaussian exposing (Variety)
 
 import Model.Layer.Layer exposing (..)
 import Model.Layer.Layer as Layer exposing (Registry)
-import Model.Layer.Def as Layer exposing (Index)
+import Model.Layer.Def as Layer exposing (Index, Opacity)
 import Model.Layer.Context as Layer exposing (Context)
 import Model.Layer.Layers exposing (Layers)
 import Model.AppMode exposing (..)
@@ -87,6 +87,7 @@ type Msg
     -- | MirrorOff Layer.Index
     -- | Configure Layer.Index Layer.Model
     | TriggerFeelLucky
+    | ApplyStats Layer.Index ( Blend, Opacity )
     | ToLayer Layer.Index Layer.Msg
     | ChangeWGLBlend Layer.Index WGLBlend.Blend
     | AlterWGLBlend Layer.Index WGLBlend.BlendChange

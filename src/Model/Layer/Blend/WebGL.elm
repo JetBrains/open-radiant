@@ -18,10 +18,12 @@ module Model.Layer.Blend.WebGL exposing
     , encodeHumanAll
     , decodeFunc
     , decodeFactor
+    , random
     )
 
 
 import Array
+import Random
 
 import WebGL.Settings exposing (Setting)
 import WebGL.Settings.Blend as B
@@ -439,3 +441,33 @@ decodeFactorGreek s =
         "Cα" -> 13 -- B.constantAlpha
         "1-Cα" -> 14 -- B.oneMinusConstantAlpha
         _ -> 0 -- B.zero
+
+
+random : Random.Generator Blend
+random =
+    let
+        randomColor =
+            Random.map4
+                Color
+                (Random.float 0 1)
+                (Random.float 0 1)
+                (Random.float 0 1)
+                (Random.float 0 1)
+        randomEquation =
+            Random.map3
+                (\func factor1 factor2 ->
+                    ( func, factor1, factor2 )
+                )
+                (Random.int 0 2)
+                (Random.int 0 15)
+                (Random.int 0 15)
+    in
+        Random.map3
+            (\c ceq aeq ->
+                { color = Just c
+                , colorEq = ceq
+                , alphaEq = aeq
+                })
+            randomColor
+            randomEquation
+            randomEquation

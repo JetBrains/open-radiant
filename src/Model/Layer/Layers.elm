@@ -1,5 +1,7 @@
 module Model.Layer.Layers exposing (..)
 
+import Random
+
 import Model.Layer.Def exposing (DefId, Index(..), Kind, makeIndex, getIndex, Opacity(..))
 import Model.Layer.Layer exposing (..)
 import Model.Layer.Layer as Layer exposing (Msg)
@@ -167,7 +169,6 @@ render ctx layers =
         |> List.filterMap identity
 
 
-
 updateMap -- do not expose
     :  (Index -> Layer.Msg -> msg)
     -> (Layer -> ( Layer, Cmd Layer.Msg ))
@@ -212,3 +213,11 @@ collectStats layers =
             )
         |> List.filterMap identity
 
+
+randomizeStats : Layers -> List ( Index, Random.Generator ( Blend, Opacity ) )
+randomizeStats forLayers =
+    List.map
+        (\(Layer { index, blend } _) ->
+            ( makeIndex index, Layer.randomStats blend )
+        )
+        forLayers
