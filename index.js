@@ -532,6 +532,14 @@ setTimeout(() => {
                 update();
             });
 
+            app.ports.updateLayerStats.subscribe(
+                ({ layer : index, blend, opacity }) => {
+                // FIXME: also support WebGL Blends
+                config['layer'+index+'Blend'] = blend[1];
+                config['opacity'+index] = opacity;
+                update();
+            });
+
         }
 
         model.layers.forEach((layer, index) => {

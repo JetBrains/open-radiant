@@ -449,7 +449,7 @@ update msg model =
                 )
 
         ApplyStats index ( blend, Opacity opacity ) ->
-            let _ = Debug.log "i" ( index, blend, opacity )
+            let _ = ( index, blend, opacity )
             in
                 (
                     { model
@@ -461,7 +461,6 @@ update msg model =
                                             |> Layer.changeBlend blend
                                             |> Layer.changeOpacity opacity
                                     ) index
-                                |> Debug.log "l"
                     }
                 , Layer.updateLayerStats
                     { blend = Layer.encodePortBlend blend
