@@ -141,6 +141,13 @@ getId (Layer _ model) =
     registry.byModel model |> Maybe.map .id
 
 
+isDef : DefId -> Layer -> Bool
+isDef idToCheck someLayer = 
+    case getId someLayer of
+        Just someId -> someId == idToCheck
+        Nothing -> False
+    
+
 getModel : Layer -> Model
 getModel (Layer _ model) =
     model
@@ -317,7 +324,7 @@ randomStats curBlend =
                     HtmlBlend.random
                         |> Random.map ForHtml
         randomOpacity =
-            Random.float 0 1
+            Random.float 0.2 1
                 |> Random.map Opacity
     in
         Random.map2

@@ -444,30 +444,28 @@ update msg model =
                                 (\(index, generator) ->
                                     Random.generate (ApplyStats index) generator
                                 )
-                           (Layers.randomizeStats model.layers)
+                           (Layers.randomizeStats <| List.filter (not << Layer.isDef Background.id) model.layers)
                         ++ [ Nav.pushUrlFrom model ])
                 )
 
         ApplyStats index ( blend, Opacity opacity ) ->
-            let _ = ( index, blend, opacity )
-            in
-                (
-                    { model
-                    | layers =
-                            model.layers
-                                |> Layers.modify
-                                    (\layer ->
-                                        layer
-                                            |> Layer.changeBlend blend
-                                            |> Layer.changeOpacity opacity
-                                    ) index
-                    }
-                , Layer.updateLayerStats
-                    { blend = Layer.encodePortBlend blend
-                    , layer = Layer.indexToJs index
-                    , opacity = opacity
-                    }
-                )
+            (
+                { model
+                | layers =
+                        model.layers
+                            |> Layers.modify
+                                (\layer ->
+                                    layer
+                                        |> Layer.changeBlend blend
+                                        |> Layer.changeOpacity opacity
+                                ) index
+                }
+            , Layer.updateLayerStats
+                { blend = Layer.encodePortBlend blend
+                , layer = Layer.indexToJs index
+                , opacity = opacity
+                }
+            )
 
         ChangeWGLBlend index newBlend ->
             let

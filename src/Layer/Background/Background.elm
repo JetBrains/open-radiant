@@ -418,7 +418,7 @@ generator curModel =
             generateBool
             generateBool
             generateBool
-            (Random.float 0 1)
+            (Random.float 0 0.6)
 
 {-- INCOMING --}
 
