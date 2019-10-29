@@ -86,7 +86,6 @@ type StopStates = StopStates StopState StopState StopState
 
 type alias Model =
     { stops : StopStates
-    , opacity : Float -- FIMXE: a property of a Layer, remove!
     , orientation: Orientation
     }
 
@@ -102,7 +101,6 @@ defaultStops = StopStates On On Off
 init : Model
 init =
     { stops = defaultStops
-    , opacity = 1.0
     , orientation = defaultOrientation
     }
 
@@ -157,9 +155,9 @@ view _ ctx ( maybeBlend, Opacity opacity ) model =
             -- , Vec2.getY viewport.size
             -- )
     in
-        div [ H.class "background-layer layer" 
+        div [ H.class "background-layer layer"
             , H.style "opacity" <| String.fromFloat opacity ]
-            [ renderBackground ( w, h ) model.stops model.opacity ctx.palette model.orientation
+            [ renderBackground ( w, h ) model.stops opacity ctx.palette model.orientation
             ]
 
 
@@ -319,8 +317,7 @@ encode _ model =
                     Radial -> "radial"
     in
         E.object
-            [ ( "opacity", E.float model.opacity )
-            , ( "stops", encodeStopStates model.stops )
+            [ ( "stops", encodeStopStates model.stops )
             , ( "orientation", encodeOrientation model.orientation )
             ]
 
@@ -355,14 +352,12 @@ decodeOrientation =
 
 decode : Context -> D.Decoder Model
 decode _ =
-    D.map3
-        (\opacity stops orientation ->
-            { opacity = opacity
-            , stops = stops
+    D.map2
+        (\stops orientation ->
+            { stops = stops
             , orientation = orientation
             }
         )
-        (D.field "opacity" D.float)
         (D.field "stops" decodeStops)
         (D.field "orientation" decodeOrientation)
 
@@ -391,7 +386,6 @@ generator curModel =
                         (evalStop s2)
                         (evalStop s3)
                 , orientation = evalOrientation o
-                , opacity = curModel.opacity
                 }
             )
             generateBool
