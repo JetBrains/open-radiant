@@ -596,7 +596,7 @@ setTimeout(() => {
     } else console.error('No port `informNativeMetaballsUpdate` was detected');
 
     if (app.ports.sendNativeMetaballsEffects) {
-        app.ports.sendNativeMetaballsEffects.subscribe(({ index, subject, value }) => {
+        app.ports.sendNativeMetaballsEffects.subscribe(({ layer : index, subject, value }) => {
             updateNativeMetaballsEffects(subject, value, index);
         });
     } else console.error('No port `sendNativeMetaballsEffects` was detected');

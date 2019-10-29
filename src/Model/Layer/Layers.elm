@@ -86,7 +86,7 @@ broadcast
     -> Broadcast.Msg
     -> Layers
     -> ( Layers, Cmd msg )
-broadcast mapMsg ctx (layerToBroadcastTo) broadcastMsg =
+broadcast mapMsg ctx layerToBroadcastTo broadcastMsg =
     updateMap
         mapMsg
         (\((Layer { index } model) as layer) ->
