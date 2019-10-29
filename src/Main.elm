@@ -269,19 +269,20 @@ update msg model =
             )
 
         Pause ->
-            ( { model | paused = True }
+            ( { model
+              | paused = True }
             , Cmd.none
-            )
+            ) |> broadcastAll B.Pause
 
         Continue ->
             ( { model | paused = False }
             , Cmd.none
-            )
+            ) |> broadcastAll B.Continue
 
         TriggerPause ->
             ( { model | paused = not model.paused }
             , Cmd.none
-            )
+            ) |> broadcastAll ( if model.paused then B.Continue else B.Pause )
 
         HideControls ->
             ( { model | controlsVisible = False }
@@ -387,66 +388,48 @@ update msg model =
                 update message modelWithMouse
 
         TurnOn index ->
-            let
-                ( newLayers, cmds ) =
-                    model.layers
-                        |> Layers.modify Layer.show index
-                        |> Layers.broadcast ToLayer (getContext model) index B.TurnOn
-                newModel =
-                    { model
-                    | layers = newLayers
-                    }
-            in
-                ( newModel
-                , cmds
-                )
+            (
+                { model
+                | layers = model.layers |> Layers.modify Layer.show index
+                }
+            , Cmd.none
+            ) |> broadcast B.TurnOn index
+
 
         TurnOff index ->
-            let
-                ( newLayers, cmds ) =
-                    model.layers
-                        |> Layers.modify Layer.hide index
-                        |> Layers.broadcast ToLayer (getContext model) index B.TurnOff
-                newModel =
-                    { model
-                    | layers = newLayers
-                    }
-            in
-                ( newModel
-                , cmds
-                )
+            (
+                { model
+                | layers = model.layers |> Layers.modify Layer.hide index
+                }
+            , Cmd.none
+            ) |> broadcast B.TurnOff index
+
 
         ChangeProduct product ->
             let
-                modelWithProduct = { model | product = product }
-                ( newLayers, cmds ) =
-                    modelWithProduct.layers
-                        |> Layers.broadcastAll ToLayer (getContext model) (B.ChangeProduct product)
+                modelWithProduct =
+                    { model
+                    | product = product
+                    }
             in
-                ( { modelWithProduct
-                  | layers = newLayers
-                  }
-                , Cmd.batch <| cmds :: [ Nav.pushUrlFrom modelWithProduct ]
-                )
+                ( modelWithProduct
+                , Nav.pushUrlFrom modelWithProduct
+                ) |> broadcastAll (B.ChangeProduct product)
+
 
         TriggerFeelLucky ->
-            let
-                ( newLayers, cmds ) =
-                    model.layers
-                        |> Layers.broadcastAll ToLayer (getContext model) B.IFeelLucky
-            in
-                ( { model
-                  | layers = newLayers
-                  }
-                , Cmd.batch
-                    (cmds
-                        :: List.map
-                                (\(index, generator) ->
-                                    Random.generate (ApplyStats index) generator
-                                )
-                           (Layers.randomizeStats <| List.filter (not << Layer.isDef Background.id) model.layers)
-                        ++ [ Nav.pushUrlFrom model ])
-                )
+            ( model
+            , model.layers
+                |> List.filter (not << Layer.isDef Background.id)
+                |> Layers.randomizeStats
+                |> List.map
+                        (\(index, generator) ->
+                            Random.generate (ApplyStats index) generator
+                        )
+                |> Cmd.batch
+                -- [ Nav.pushUrlFrom model ]
+            ) |> broadcastAll B.IFeelLucky
+
 
         ApplyStats index ( blend, Opacity opacity ) ->
             (
@@ -788,6 +771,38 @@ resizeToViewport =
                 <| UseViewport
                 <| ViewportSize (floor viewport.width) (floor viewport.height))
         Browser.getViewport
+
+
+broadcast : B.Msg -> Layer.Index -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+broadcast bmsg index ( model, commands ) =
+    let
+        ( newLayers, layersCommands ) =
+            model.layers
+                |> Layers.broadcast ToLayer (getContext model) index bmsg
+    in
+        (
+            { model
+            | layers = newLayers
+            }
+        , Cmd.batch [ layersCommands, commands ]
+        )
+
+
+
+broadcastAll : B.Msg -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+broadcastAll bmsg ( model, commands ) =
+    let
+        ( newLayers, layersCommands ) =
+            model.layers
+                |> Layers.broadcastAll ToLayer (getContext model) bmsg
+    in
+        (
+            { model
+            | layers = newLayers
+            }
+        , Cmd.batch [ layersCommands, commands ]
+        )
+
 
 -- TODO: The functions below belong to the specific layers. move them to `Model/Layer?`
 

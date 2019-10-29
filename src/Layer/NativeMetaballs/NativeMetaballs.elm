@@ -153,11 +153,21 @@ absorb index ctx broadcastMsg model =
         Broadcast.TurnOn ->
             ( model
             , informNativeMetaballsUpdate
-                { layer = Layer.indexToJs index -- index
+                { layer = Layer.indexToJs index
                 , size = ctx.size
                 , palette = ctx.palette |> Product.encodePalette
                 , model = FluidIE.encode ctx model
                 }
+            )
+        Broadcast.Pause ->
+            ( model
+            , { layer = Layer.indexToJs index }
+                |> pauseNativeMetaballs
+            )
+        Broadcast.Continue ->
+            ( model
+            , { layer = Layer.indexToJs index }
+                |> continueNativeMetaballs
             )
         _ -> ( model, Cmd.none )
 
@@ -427,3 +437,13 @@ port sendNativeMetaballsEffects :
     , subject: String
     , value: Float
     } -> Cmd msg
+
+
+port pauseNativeMetaballs
+    :  { layer: Layer.JsIndex }
+    -> Cmd msg
+
+
+port continueNativeMetaballs
+    :  { layer: Layer.JsIndex }
+    -> Cmd msg

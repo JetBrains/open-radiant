@@ -26,4 +26,6 @@ type Msg
     | Resize (Int, Int)
     | TurnOn
     | TurnOff
+    | Pause
+    | Continue
 

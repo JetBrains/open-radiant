@@ -317,6 +317,14 @@ const updateNativeMetaballsEffects = (subject, value, index) => {
     }
 }
 
+const pauseNativeMetaballs = (index) => {
+    if (allNativeMetaballs[index]) allNativeMetaballs[index].pause();
+}
+
+const continueNativeMetaballs = (index) => {
+    if (allNativeMetaballs[index]) allNativeMetaballs[index].play();
+}
+
 const convertRanges = r =>
     {
         return {
@@ -600,6 +608,18 @@ setTimeout(() => {
             updateNativeMetaballsEffects(subject, value, index);
         });
     } else console.error('No port `sendNativeMetaballsEffects` was detected');
+
+    if (app.ports.pauseNativeMetaballs) {
+        app.ports.pauseNativeMetaballs.subscribe(({ layer : index }) => {
+            pauseNativeMetaballs(index);
+        });
+    } else console.error('No port `pauseNativeMetaballs` was detected');
+
+    if (app.ports.continueNativeMetaballs) {
+        app.ports.continueNativeMetaballs.subscribe(({ layer : index }) => {
+            continueNativeMetaballs(index);
+        });
+    } else console.error('No port `continueNativeMetaballs` was detected');
 
     app.ports.bang.send(null);
 

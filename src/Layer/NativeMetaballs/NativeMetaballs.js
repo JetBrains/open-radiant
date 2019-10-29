@@ -20,7 +20,7 @@ function m(target, width, height, model, colors_) {
     // since resize is not going through Elm
     let scale = width / 2000;
     let createdMetaballs = [];
-    let isStopped = false;
+    let isPaused = false;
 
     //const defaults = {
       // speedRange: {min: 0.2, max: 2.0},
@@ -168,13 +168,17 @@ function m(target, width, height, model, colors_) {
       });
     }
 
-    const stop = function() { isStopped = true };
+    const pause = function() { isPaused = true };
+    const play = function() {
+      isPaused = false;
+      requestAnimationFrame(step);
+    };
 
     function step() {
       createdMetaballs.forEach(function (metaball) {
         metaball.updateMetaballs();
       });
-      if (!isStopped) requestAnimationFrame(step);
+      if (!isPaused) requestAnimationFrame(step);
     };
 
 
@@ -497,7 +501,9 @@ function m(target, width, height, model, colors_) {
       size : [ width, height ],
       palette: colors,
       model,
-      stop,
+      pause,
+      play,
+      stop : pause,
       resize,
       update : m,
       updateEffects
