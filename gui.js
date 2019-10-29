@@ -116,6 +116,7 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
         this['stop1'+index] = stopStates[0] == "on";
         this['stop2'+index] = stopStates[1] == "on";
         this['stop3'+index] = stopStates[2] == "on";
+        this['darken'+index] = layer.model.darken;
       }
     });
 
@@ -385,6 +386,8 @@ function start(document, model, constants, funcs) {
         stop3.onFinishChange(switchStop(index, 2));
         const gradientType = folder.add(config, 'isRadial' + index).name('radial');
         gradientType.onFinishChange(funcs.switchBackgroundGradientType(index));
+        const darken = folder.add(config, 'darken' + index).name('darken').min(0.0).max(1).step(0.01);
+        darken.onFinishChange(funcs.darkenBackground(index));
       }
     }
 

@@ -487,6 +487,9 @@ setTimeout(() => {
                     { const orientation = isRadial ? 'radial' : 'vertical';
                       app.ports.switchGradientOrientation.send({ layer: layerIndex, orientation });
                     }
+                , darkenBackground : layerIndex => darken =>
+                    { app.ports.darkenBackground.send({ layer: layerIndex, darken });
+                    }
                 , switchCoverProductVisibility : layerIndex => isProductShown =>
                     {  app.ports.switchCoverProductVisibility.send(
                         { layer: layerIndex, isProductShown });
@@ -505,6 +508,7 @@ setTimeout(() => {
             //     update();
             // });
 
+            // TODO: there is the similar code in `gui.js`, merge it somehow
             app.ports.informNativeMetaballsUpdate.subscribe(
                 ({ layer : index, size, model : layerModel, palette }) => {
                 config['variety'+index] = layerModel.variety;
@@ -515,6 +519,7 @@ setTimeout(() => {
                 update();
             });
 
+            // TODO: there is the similar code in `gui.js`, merge it somehow
             app.ports.informBackgroundUpdate.subscribe(
                 ({ layer : index, model : layerModel }) => {
                 const stopStates = layerModel.stops || [];
@@ -523,6 +528,7 @@ setTimeout(() => {
                 config['stop1'+index] = stopStates[0] == "on";
                 config['stop2'+index] = stopStates[1] == "on";
                 config['stop3'+index] = stopStates[2] == "on";
+                config['darken'+index] = layerModel.darken;
                 update();
             });
 

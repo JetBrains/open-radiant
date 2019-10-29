@@ -64,6 +64,7 @@ def =
 type Msg
     = SwitchStop Int Bool -- StopIndex and StopState
     | SwitchGradientOrientation Orientation
+    | Darken Float
     | Apply Model
 
 
@@ -84,9 +85,13 @@ type StopId
 type StopStates = StopStates StopState StopState StopState
 
 
+type DarkenAmount = DarkenAmount Float
+
+
 type alias Model =
     { stops : StopStates
     , orientation: Orientation
+    , darken : Float
     }
 
 
@@ -102,6 +107,7 @@ init : Model
 init =
     { stops = defaultStops
     , orientation = defaultOrientation
+    , darken = 0.25
     }
 
 
@@ -122,6 +128,13 @@ update index ctx msg model =
             (
                 { model
                 | orientation = orientation
+                }
+            , Cmd.none
+            )
+        Darken value ->
+            (
+                { model
+                | darken = value
                 }
             , Cmd.none
             )
@@ -157,7 +170,7 @@ view _ ctx ( maybeBlend, Opacity opacity ) model =
     in
         div [ H.class "background-layer layer"
             , H.style "opacity" <| String.fromFloat opacity ]
-            [ renderBackground ( w, h ) model.stops opacity ctx.palette model.orientation
+            [ renderBackground ( w, h ) ctx.palette model
             ]
 
 
@@ -177,20 +190,29 @@ subscriptions ctx model =
                         <| Gradient.decodeOrientation orientation
                 )
             )
+        , darkenBackground
+            (\{ layer, darken } ->
+                ( Layer.makeIndex layer
+                , Darken darken
+                )
+            )
         ]
 
 
-renderBackground : ( Int, Int ) -> StopStates -> Float -> Palette -> Orientation -> Svg msg
-renderBackground size stops opacity palette orientation =
-    createGradient (adjust palette) stops orientation
+renderBackground : ( Int, Int ) -> Palette -> Model -> Svg msg
+renderBackground size palette model = -- TODO: use opacity?
+    createGradient
+        (adjust (DarkenAmount model.darken) palette)
+        model.stops
+        model.orientation
         |> gradientToSvg size "x-gradient-background"
 
 
-adjust : Palette -> Palette
-adjust p =
+adjust : DarkenAmount -> Palette -> Palette
+adjust (DarkenAmount darkenAmount) p =
     p |> Product.mapPalette (Color.hexToColor
        >> Result.withDefault (Color.black)
-       >> Color.darken 0.25
+       >> Color.darken darkenAmount
        >> Color.saturate 1.0
        >> Color.colorToHex)
 
@@ -319,6 +341,7 @@ encode _ model =
         E.object
             [ ( "stops", encodeStopStates model.stops )
             , ( "orientation", encodeOrientation model.orientation )
+            , ( "darken", E.float model.darken )
             ]
 
 
@@ -352,14 +375,16 @@ decodeOrientation =
 
 decode : Context -> D.Decoder Model
 decode _ =
-    D.map2
-        (\stops orientation ->
+    D.map3
+        (\stops orientation darken ->
             { stops = stops
             , orientation = orientation
+            , darken = darken
             }
         )
         (D.field "stops" decodeStops)
         (D.field "orientation" decodeOrientation)
+        (D.field "darken" D.float)
 
 
 generator : Model -> Random.Generator Model
@@ -378,21 +403,24 @@ generator curModel =
                 1 -> Radial
                 _ -> Horizontal -- leave current state?
     in
-        Random.map4
-            (\s1 s2 s3 o ->
+        Random.map5
+            (\s1 s2 s3 o d ->
                 { stops =
                     StopStates
                         (evalStop s1)
                         (evalStop s2)
                         (evalStop s3)
                 , orientation = evalOrientation o
+                , darken = d
                 }
             )
             generateBool
             generateBool
             generateBool
             generateBool
+            (Random.float 0 1)
 
+{-- INCOMING --}
 
 port switchBackgroundStop :
     ( { layer : Layer.JsIndex
@@ -407,6 +435,15 @@ port switchGradientOrientation :
         , orientation : String
         }
     -> msg) -> Sub msg
+
+port darkenBackground :
+    (
+        { layer: Layer.JsIndex
+        , darken : Float
+        }
+    -> msg) -> Sub msg
+
+{-- OUTGOING --}
 
 port informBackgroundUpdate :
     { layer: Layer.JsIndex
