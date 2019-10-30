@@ -55,6 +55,8 @@ type Msg
     | ShowProduct
 
 
+type Scale = Scale Float
+
 
 defaultSize = 110
 defaultWidth = 1500.0
@@ -82,7 +84,7 @@ update index ctx msg model =
 
 
 view : Index -> Context -> ( Maybe Html.Blend, Opacity ) -> Model -> Html Msg
-view idx ctx ( maybeBlend, Opacity opacity ) model =
+view idx ctx ( maybeBlend, opacity ) model =
     let
         ( w, h ) = ctx.size
         ( x, y ) = ctx.origin
@@ -103,7 +105,6 @@ view idx ctx ( maybeBlend, Opacity opacity ) model =
             , style "font-weight" "170"
                 -- , ("text-transform", "uppercase")
             , style "color" "white"
-            , style "opacity" <| String.fromFloat opacity
             ]
         ( if
             (ctx.mode == Production)
@@ -114,9 +115,10 @@ view idx ctx ( maybeBlend, Opacity opacity ) model =
                     ctx.product
                     ( centerX, centerY )
                     ( maybeBlend |> Maybe.withDefault Blend.Normal )
-                    ( 0.8 * scale )
+                    opacity
+                    ( Scale <| 0.8 * scale )
               else text ""
-            , logo ( logoX, logoY ) Blend.Normal ( 0.6 * scale )
+            , logo ( logoX, logoY ) Blend.Normal ( Scale <| 0.6 * scale )
             ]
           else
             [
@@ -139,8 +141,8 @@ subscribe ctx model =
         ]
 
 
-productName : Product -> ( Float, Float ) -> Html.Blend -> Float -> Html a
-productName product pos blend scale =
+productName : Product -> ( Float, Float ) -> Html.Blend -> Opacity -> Scale -> Html a
+productName product pos blend opacity scale =
     let
         textPath = "./assets/" ++ Product.getTextLinePath product
         textSize = Product.getCoverTextSize product
@@ -151,11 +153,12 @@ productName product pos blend scale =
             pos
             textSize
             blend
+            (Opacity 1.0) -- opacity
             scale
 
 
 
-logo : ( Float, Float ) -> Html.Blend -> Float -> Html a
+logo : ( Float, Float ) -> Html.Blend -> Scale -> Html a
 logo ( logoX, logoY ) blend scale =
     let
         logoPath = "./assets/" ++ Product.getLogoPath Product.JetBrains
@@ -166,11 +169,12 @@ logo ( logoX, logoY ) blend scale =
             ( logoX, logoY )
             ( logoWidth, logoHeight )
             blend
+            (Opacity 1.0)
             scale
 
 
-image : String -> String -> ( Float, Float ) -> ( Int, Int ) -> Html.Blend -> Float -> Html a
-image imagePath imgClass ( posX, posY ) ( imageWidth, imageHeight ) blend scale =
+image : String -> String -> ( Float, Float ) -> ( Int, Int ) -> Html.Blend -> Opacity -> Scale -> Html a
+image imagePath imgClass ( posX, posY ) ( imageWidth, imageHeight ) blend (Opacity opacity) (Scale scale) =
     div
         [ class imgClass
         ,
@@ -186,6 +190,7 @@ image imagePath imgClass ( posX, posY ) ( imageWidth, imageHeight ) blend scale 
             |> E.encode 0
             |> attribute "data-stored"
         , style "mix-blend-mode" <| Blend.encode blend
+        , style "opacity" <| String.fromFloat opacity
         , style "position" "absolute"
         , style "top" "0px"
         , style "left" "0px"
