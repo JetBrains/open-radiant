@@ -112,9 +112,12 @@ const canvasToCanvas = (selector, trgCanvas, whenDone) => {
     }
     requestAnimationFrame(() => {
         const srcCanvas = selectedNode;
+        trgCanvas.style.mixBlendMode = srcCanvas.style.mixBlendMode;
+        trgCanvas.style.opacity = srcCanvas.style.opacity;
         const trgContext = trgCanvas.getContext('2d');
         //trgContext.globalCompositeOperation = 'copy';
         trgContext.resetTransform();
+        trgContext.globalCompositeOperation = srcCanvas.style.mixBlendMode || 'copy';
         trgContext.drawImage(srcCanvas, 0, 0);
         whenDone();
     });
