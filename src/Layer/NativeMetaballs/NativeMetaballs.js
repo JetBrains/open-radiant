@@ -21,6 +21,7 @@ function m(target, width, height, model, colors_) {
     let scale = width / 2000;
     let createdMetaballs = [];
     let isPaused = false;
+    let isStopped = false;
 
     //const defaults = {
       // speedRange: {min: 0.2, max: 2.0},
@@ -171,14 +172,17 @@ function m(target, width, height, model, colors_) {
     const pause = function() { isPaused = true };
     const play = function() {
       isPaused = false;
-      requestAnimationFrame(step);
     };
+    const stop = function() {
+      isPaused = true;
+      isStopped = true;
+    }
 
     function step() {
       createdMetaballs.forEach(function (metaball) {
         metaball.updateMetaballs();
       });
-      if (!isPaused) requestAnimationFrame(step);
+      if (!isStopped) requestAnimationFrame(step);
     };
 
 
@@ -348,10 +352,14 @@ function m(target, width, height, model, colors_) {
 
           t = Math.atan2(mb.x - mousePosition.x, mb.y - mousePosition.y);
           d = 500 / Math.sqrt(Math.pow(mousePosition.x - mb.x, 2) + Math.pow(mousePosition.y - mb.y, 2));
-          mb.x += d * Math.sin(t) + (targX - mb.x) * 0.1;
-          mb.y += d * Math.cos(t) + (targY - mb.y) * 0.1;
+          if (!isPaused) {
+            mb.x += d * Math.sin(t) + (targX - mb.x) * 0.1;
+            mb.y += d * Math.cos(t) + (targY - mb.y) * 0.1;            
+          } else {
+            // mb.x += d * Math.sin(t);
+            // mb.y += d * Math.cos(t);                        
+          }
         }
-
 
         for (var i = 0; i < count; i++) {
           var baseIndex = 3 * i;
@@ -503,7 +511,7 @@ function m(target, width, height, model, colors_) {
       model,
       pause,
       play,
-      stop : pause,
+      stop,
       resize,
       update : m,
       updateEffects
