@@ -733,7 +733,7 @@ view model =
 
 document : Model -> Browser.Document Msg
 document model =
-    { title = "Elmsfeuer, Radiant"
+    { title = "JetBrains Animation Generator"
     , body = [ view model ]
     }
 
