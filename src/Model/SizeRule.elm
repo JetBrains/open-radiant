@@ -272,16 +272,17 @@ encode rule =
 decode : String -> Result String SizeRule
 decode str =
     let
-        decodeSize f w_and_h defaultWidth defaultHeight =
+        decodeSize w_and_h =
             case String.split "x" w_and_h of
                 wStr::hStr::_ ->
                     case ( String.toInt wStr, String.toInt hStr ) of
-                        ( Just w, Just h ) -> f w h
-                        _ -> f defaultWidth defaultHeight
-                _ -> f defaultWidth defaultHeight
+                        ( Just w, Just h ) -> Ok ( w, h )
+                        _ -> Err w_and_h
+                _ -> Err w_and_h
     in case String.split ":" str of
         "custom"::w_and_h::_ ->
-            Ok <| decodeSize Custom w_and_h -1 -1
+            decodeSize w_and_h
+                |> Result.map (\(w, h) -> Custom w h)
         "preset"::presetStr::w_and_h::_ ->
             decodePreset (presetStr ++ ":" ++ w_and_h)
                 |> Result.fromMaybe str
@@ -291,8 +292,12 @@ decode str =
                 |> Result.fromMaybe str
                 |> Result.map FromPreset
         "viewport"::w_and_h::_ ->
-            Ok <| decodeSize (\w h -> UseViewport (ViewportSize w h)) w_and_h -1 -1
+            decodeSize w_and_h
+                |> Result.map (\(w, h) -> UseViewport (ViewportSize w h))
         "dimensionless"::_ -> Ok Dimensionless
+        w_and_h::_ ->
+            decodeSize w_and_h
+                |> Result.map (\(w, h) -> Custom w h)
         _ -> Err str
 
 
