@@ -72,9 +72,11 @@ const import_ = (app, importedState) => {
                         allNativeMetaballs[index] = nativeMetaballs.update(newSize, prev, prev.stop, index);
                     }
                 })(index), 300);
-                app.ports.requestWindowResize.subscribe((size) => {
-                    debouncedResize(size);
-                });
+                if (app.ports.requestWindowResize) {
+                    app.ports.requestWindowResize.subscribe((size) => {
+                        debouncedResize(size);
+                    });
+                } else console.error('No port `requestWindowResize` was detected');
             }
         });
     });

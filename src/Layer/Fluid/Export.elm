@@ -137,7 +137,6 @@ decode ctx =
                 , effects = effects
                         |> Maybe.withDefault defaultEffects
                 , atHeight = atHeight
-                        |> Maybe.andThen identity
                 })
             (D.field "groups" <| D.list makeGroup)
             (D.maybe <| D.field "forSize" makeSize)
@@ -154,4 +153,4 @@ decode ctx =
                     (D.field "blur" D.float)
                     (D.field "fat" D.float)
                     (D.field "ring" D.float))
-            (D.maybe <| D.field "atHeight" <| D.maybe D.int)
+            (D.maybe <| D.field "atHeight" D.int)
