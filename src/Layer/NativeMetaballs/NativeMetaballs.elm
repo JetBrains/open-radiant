@@ -169,6 +169,11 @@ absorb index ctx broadcastMsg model =
             , { layer = Layer.indexToJs index }
                 |> continueNativeMetaballs
             )
+        Broadcast.Resize size ->
+            ( model
+            , { layer = Layer.indexToJs index, size = size }
+                |> resizeNativeMetaballs
+            )
         _ -> ( model, Cmd.none )
 
 
@@ -446,4 +451,11 @@ port pauseNativeMetaballs
 
 port continueNativeMetaballs
     :  { layer: Layer.JsIndex }
+    -> Cmd msg
+
+
+port resizeNativeMetaballs
+    :  { layer: Layer.JsIndex
+       , size: (Int, Int)
+       }
     -> Cmd msg

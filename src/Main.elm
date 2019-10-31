@@ -226,7 +226,7 @@ update msg model =
                 ( newModel
                 , Cmd.batch
                     [ command
-                    , case model.size of
+                    , case newModel.size of
                         Dimensionless ->
                             resizeToViewport
                         _ -> Cmd.none
@@ -363,11 +363,12 @@ update msg model =
                     }
             in
                 ( newModelWithSize
-                , Cmd.batch
+                , Nav.pushUrlFrom newModelWithSize {- Cmd.batch
                     [ requestWindowResize ( width, height )
                     , Nav.pushUrlFrom newModelWithSize
-                    ]
+                    ] -}
                 )
+                    |> broadcastAll (B.Resize (width, height))
 
         RequestFitToWindow ->
             ( model, requestFitToWindow () )
@@ -599,6 +600,15 @@ subscriptions model =
             <| Browser.onMouseMove
             <| decodeMousePosition
         --, downs <| Gui.downs >> GuiMessage
+        , resize
+            (\{ presetCode, viewport } ->
+                case viewport of
+                    ( vw, vh ) ->
+                        presetCode
+                            |> Maybe.andThen decodePreset
+                            |> Maybe.map (Resize << FromPreset)
+                            |> Maybe.withDefault (Resize <| UseViewport <| ViewportSize vw vh )
+            )
         , Sub.map (tellGui Gui.downs model)
             <| Browser.onMouseDown
             <| decodeMousePosition
@@ -606,6 +616,12 @@ subscriptions model =
             <| Browser.onMouseUp
             <| decodeMousePosition
         , rotate Rotate
+        , changeMode
+            (\modeStr ->
+                case Mode.decode modeStr of
+                    Ok mode -> ChangeMode mode
+                    Err error -> AddError <| "Failed to decode mode: " ++ error
+            )
         , changeProduct
             (\productStr ->
                 case Product.decode productStr of

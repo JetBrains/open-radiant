@@ -282,6 +282,10 @@ decode str =
     in case String.split ":" str of
         "custom"::w_and_h::_ ->
             Ok <| decodeSize Custom w_and_h -1 -1
+        "preset"::presetStr::w_and_h::_ ->
+            decodePreset (presetStr ++ ":" ++ w_and_h)
+                |> Result.fromMaybe str
+                |> Result.map FromPreset
         "preset"::presetStr::_ ->
             decodePreset presetStr
                 |> Result.fromMaybe str

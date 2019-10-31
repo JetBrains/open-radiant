@@ -354,10 +354,10 @@ function m(target, width, height, model, colors_) {
           d = 500 / Math.sqrt(Math.pow(mousePosition.x - mb.x, 2) + Math.pow(mousePosition.y - mb.y, 2));
           if (!isPaused) {
             mb.x += d * Math.sin(t) + (targX - mb.x) * 0.1;
-            mb.y += d * Math.cos(t) + (targY - mb.y) * 0.1;            
+            mb.y += d * Math.cos(t) + (targY - mb.y) * 0.1;
           } else {
             // mb.x += d * Math.sin(t);
-            // mb.y += d * Math.cos(t);                        
+            // mb.y += d * Math.cos(t);
           }
         }
 

@@ -288,9 +288,11 @@ const updateOrInitNativeMetaballs = (size, layerModel, palette, index) => {
             // prev.size = newSize;
             allNativeMetaballs[index] = nativeMetaballs.update(newSize, prev, prev.stop, index);
         }, 300);
-        app.ports.requestWindowResize.subscribe((size) => {
-            debouncedResize(size);
-        });
+        if (app.ports.requestWindowResize) {
+            app.ports.requestWindowResize.subscribe((size) => {
+                debouncedResize(size);
+            });
+        } else console.error('No port `requestWindowResize` was detected');
         //debouncedResize(size);
     } else {
         const prev = allNativeMetaballs[index];
@@ -325,6 +327,10 @@ const continueNativeMetaballs = (index) => {
     if (allNativeMetaballs[index]) allNativeMetaballs[index].play();
 }
 
+const resizeNativeMetaballs = (index, size) => {
+    if (allNativeMetaballs[index]) allNativeMetaballs[index].resize(size);
+}
+
 const convertRanges = r =>
     {
         return {
@@ -347,17 +353,21 @@ setTimeout(() => {
     const hiddenLink = document.createElement('a');
     hiddenLink.download = 'jetbrains-art-v2.png';
 
-    app.ports.requestFitToWindow.subscribe((_) => {
-        app.ports.setCustomSize.send(
-            { presetCode: null, viewport: [ window.innerWidth, window.innerHeight ]}
-        );
-    });
+    if (app.ports.requestFitToWindow) {
+        app.ports.requestFitToWindow.subscribe((_) => {
+            app.ports.setCustomSize.send(
+                { presetCode: null, viewport: [ window.innerWidth, window.innerHeight ]}
+            );
+        });
+    } else console.error('No port `buildFluidGradientTextures` was detected');
 
-    app.ports.requestWindowResize.subscribe((size) => {
-        const [ width, height ] = size;
-        // console.log(width, height);
-        window.resizeTo(width, height);
-    });
+    if (app.ports.requestWindowResize) {
+        app.ports.requestWindowResize.subscribe((size) => {
+            const [ width, height ] = size;
+            // console.log(width, height);
+            window.resizeTo(width, height);
+        });
+    } else console.error('No port `requestWindowResize` was detected');
 
     // app.ports.nextBatchStep.subscribe((update) => {
     //     if (savingBatch) {
@@ -503,7 +513,8 @@ setTimeout(() => {
                         { layer: layerIndex, isProductShown });
                     }
                 , resize: (presetCode) =>
-                    { app.ports.resize.send({
+                    { console.log(presetCode);
+                      app.ports.resize.send({
                         presetCode, viewport: [ window.innerWidth, window.innerHeight ]
                       });
                     }
@@ -620,6 +631,13 @@ setTimeout(() => {
             continueNativeMetaballs(index);
         });
     } else console.error('No port `continueNativeMetaballs` was detected');
+
+    if (app.ports.resizeNativeMetaballs) {
+        app.ports.resizeNativeMetaballs.subscribe(({ layer : index, size }) => {
+            console.log(index, size);
+            resizeNativeMetaballs(index, size);
+        });
+    } else console.error('No port `resizeNativeMetaballs` was detected');
 
     app.ports.bang.send(null);
 
