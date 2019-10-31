@@ -72,6 +72,10 @@ encode ctx model =
                 , ( "fat", E.float model.effects.fat )
                 , ( "ring", E.float model.effects.ring )
                 ])
+        , ( "atHeight",
+                model.atHeight
+                    |> Maybe.map E.int
+                    |> Maybe.withDefault E.null)
         ] |> E.object
 
 
@@ -120,8 +124,8 @@ decode ctx =
                 (D.field "width" D.int)
                 (D.field "height" D.int)
     in
-        D.map5
-            (\groups forSize variety orbit effects ->
+        D.map6
+            (\groups forSize variety orbit effects atHeight ->
                 { groups = groups
                 , forSize = forSize
                 , variety = variety
@@ -132,6 +136,8 @@ decode ctx =
                         |> Maybe.withDefault defaultOrbit
                 , effects = effects
                         |> Maybe.withDefault defaultEffects
+                , atHeight = atHeight
+                        |> Maybe.andThen identity
                 })
             (D.field "groups" <| D.list makeGroup)
             (D.maybe <| D.field "forSize" makeSize)
@@ -148,3 +154,4 @@ decode ctx =
                     (D.field "blur" D.float)
                     (D.field "fat" D.float)
                     (D.field "ring" D.float))
+            (D.maybe <| D.field "atHeight" <| D.maybe D.int)

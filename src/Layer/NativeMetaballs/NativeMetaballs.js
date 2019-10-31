@@ -18,7 +18,6 @@ function m(target, width, height, model, colors_) {
     let displayHeight;
     // additional to the one in the Elm model
     // since resize is not going through Elm
-    let scale = width / 2000;
     let createdMetaballs = [];
     let isPaused = false;
     let isStopped = false;
@@ -64,7 +63,7 @@ function m(target, width, height, model, colors_) {
 
       displayWidth = Math.floor(gl.canvas.clientWidth);
       displayHeight = Math.floor(gl.canvas.clientHeight);
-      //scale = calculateScale(displayWidth, displayHeight);
+      var scale = displayHeight / model.atHeight;
 
       const groups = model.groups.map(
         group => ({
@@ -138,7 +137,7 @@ function m(target, width, height, model, colors_) {
       canvas.height = size[1];
 
 
-      //resizeGL(gl);
+      resizeGL(gl);
       gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
     }
@@ -342,6 +341,7 @@ function m(target, width, height, model, colors_) {
         time += 0.01;
 
         var count = config.metaballs.length;
+        var scale = window.innerHeight / model.atHeight;
 
         var radius = 30;
         var targX, targY, t, d, mb;

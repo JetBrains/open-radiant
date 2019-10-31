@@ -1,4 +1,4 @@
-module Layer.NativeMetaballs.Random exposing (..) 
+module Layer.NativeMetaballs.Random exposing (..)
 
 import Array
 import Random
@@ -29,7 +29,7 @@ defaultRange =
     , amplitude =
         { x = fRange 0 130
         , y = fRange 0 60
-        }    
+        }
     }
 
 
@@ -117,6 +117,7 @@ fromInitialStateGenerator ( w, h ) range palette initialState =
                                     , variety = Gauss.Variety 0.5
                                     , orbit = Orbit 0.5
                                     , effects = initialState.effects
+                                    , atHeight = initialState.atHeight
                                     }
                                 )
                 )
@@ -258,6 +259,7 @@ dynamicsGenerator ( w, h ) range palette variety orbit staticModel =
                                     , variety = variety
                                     , orbit = orbit
                                     , effects = staticModel.effects
+                                    , atHeight = staticModel.atHeight
                                     }
                                 )
                 )
@@ -354,7 +356,8 @@ everythingGenerator ( w, h ) range palette variety orbit =
                 , variety = variety
                 , orbit = orbit
                 , effects = effects
-                })                
+                , atHeight = Just h
+                })
 
 
 generate : (Model -> msg) -> Random.Generator Model -> Cmd msg

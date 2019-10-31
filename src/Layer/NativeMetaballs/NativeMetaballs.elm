@@ -374,6 +374,7 @@ initial ( w, h ) =
                 }
             )
     , effects = Fluid.defaultEffects
+    , atHeight = Just 900
     }
 
 

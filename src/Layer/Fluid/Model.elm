@@ -67,6 +67,7 @@ type alias Model =
     , variety : Gauss.Variety
     , orbit : Orbit
     , effects : Effects
+    , atHeight : Maybe Int
     }
 
 
@@ -82,6 +83,7 @@ type alias StaticModel =
             , origin : { x : Float, y : Float }
             }
     , effects : Effects
+    , atHeight : Maybe Int
     }
 
 
@@ -110,7 +112,7 @@ type alias Ranges =
     , amplitude :
         { x : FloatRange
         , y : FloatRange
-        }    
+        }
     }
 
 type Orbit = Orbit Float -- 0..1
@@ -146,6 +148,7 @@ init =
     , variety = Gauss.Variety 0.5
     , orbit = Orbit 0.5
     , effects = defaultEffects
+    , atHeight = Nothing
     }
 
 
@@ -182,6 +185,7 @@ extractStatics model =
                 }
             })
     , effects = model.effects
+    , atHeight = model.atHeight
     }
 
 

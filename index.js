@@ -293,7 +293,7 @@ const updateOrInitNativeMetaballs = (size, layerModel, palette, index) => {
                 debouncedResize(size);
             });
         } else console.error('No port `requestWindowResize` was detected');
-        //debouncedResize(size);
+        debouncedResize(size);
     } else {
         const prev = allNativeMetaballs[index];
         prev.model = layerModel || prev.model;
