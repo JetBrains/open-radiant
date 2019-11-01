@@ -348,7 +348,7 @@ function start(document, model, constants, funcs) {
 
       if (is.cover(layer)) {
         const productVisibilitySwitch =
-          folder.add(config, 'productShown' + index).name('product');
+          folder.add(config, 'productShown' + index).name('title');
         productVisibilitySwitch.onFinishChange(funcs.switchCoverProductVisibility(index));
       }
       if (is.fluid(layer) || is.nativeMetaballs(layer)) {
@@ -403,12 +403,17 @@ function start(document, model, constants, funcs) {
     product.onFinishChange(updateProduct);
     sizePreset.onFinishChange(funcs.resize);
 
+    const layersNames = ['heraldry', 'upper lava', 'lower lava', 'canvas'];
+
     layers.forEach((layer, index) => {
       // if ((mode == 'prod') && (layer.name == 'Cover')) return;
       //console.log(layer);
       //const index = layers.length - 1 - revIndex;
       //const folder = gui.addFolder('Layer ' + index + ' (' + layer.kind + ')');
-      const folder = gui.addFolder(layer.def.toLowerCase() + ' (' + index + ')');
+      // const folder = gui.addFolder(layer.def.toLowerCase() + ' (' + index + ')');
+      
+      const folder = gui.addFolder(layersNames[index]);
+      
 
       addLayerProps(folder, config, layer, index);
       if (layer.king == 'webgl') {
