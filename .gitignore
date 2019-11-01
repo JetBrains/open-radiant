@@ -22,8 +22,9 @@ scene.js
 # minified player
 player.bundle.js
 player.min.js
+# stored configurations
+storage
 /npm-debug.log
 .vscode/
-./deploy
 .metaballs.js
 .metaballs.html
