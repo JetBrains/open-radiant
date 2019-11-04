@@ -62,7 +62,6 @@ const import_ = (app, importedState) => {
         parsedState.layers.forEach((layer, index) => {
             if (is.nativeMetaballs(layer)) {
                 const size = [ parsedState.size.v1, parsedState.size.v2 ];
-                console.log(index, size);
                 const nativeMetaballsModel = nativeMetaballs.build(size, layer.model, parsedState.palette, index);
                 allNativeMetaballs[index] = nativeMetaballsModel;
                 const debouncedResize = timing.debounce((function(index)

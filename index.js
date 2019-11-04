@@ -634,7 +634,6 @@ setTimeout(() => {
 
     if (app.ports.resizeNativeMetaballs) {
         app.ports.resizeNativeMetaballs.subscribe(({ layer : index, size }) => {
-            console.log(index, size);
             resizeNativeMetaballs(index, size);
         });
     } else console.error('No port `resizeNativeMetaballs` was detected');
