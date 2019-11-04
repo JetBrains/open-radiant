@@ -6,10 +6,13 @@ WORKDIR /app
 
 COPY . /app
 
+RUN rm -Rf ./node_modules
+
 RUN npm install
 
-RUN npm run build && npm run build:player
+RUN npm install elm
 
+RUN npm run build && npm run build:player
 
 FROM nginx:1.15
 
