@@ -116,8 +116,9 @@ getSizePresets mode =
                 ]
             )
         TronUi tronMode -> getSizePresets tronMode
-        _ -> -- return Wallpaper size preset for eveything else
-            [ ( 2560, 1440 )
+        _ -> -- return Wallpaper size preset for everything else
+            [ ( 3840, 2160 )
+            , ( 2560, 1440 )
             , ( 1920, 1200 )
             , ( 1920, 1080 )
             , ( 1680, 1050 )
