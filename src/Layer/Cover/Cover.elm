@@ -153,7 +153,7 @@ productName product pos blend opacity scale =
             pos
             textSize
             blend
-            (Opacity 1.0) -- opacity
+            (Opacity 0.85) -- opacity
             scale
 
 
