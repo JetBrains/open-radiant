@@ -235,7 +235,7 @@ getTextLinePath product =
 getCoverTextSize : Product -> ( Int, Int )
 getCoverTextSize product =
     case product of
-        JetBrains -> ( 90, 90 )
+        JetBrains -> ( 600, 300 )
         IntelliJ -> ( 616, 90 )
         PhpStorm -> ( 518, 108 )
         PyCharm ->  ( 479, 108 )
