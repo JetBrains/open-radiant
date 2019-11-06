@@ -216,6 +216,7 @@ const savePng = (hiddenLink, { size, product, background, layers }) => {
         if (def == 'cover') {
             return [ ...prev
                    , { selector : '#layer-' + index + ' .product-name-layer', collect : 'stored' }
+                   , { selector : '#layer-' + index + ' .text-layer--slogan', collect : 'html' }
                    , { selector : '#layer-' + index + ' .logo-layer', collect : 'stored' }
                    ];
         }
