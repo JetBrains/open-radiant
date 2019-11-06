@@ -162,6 +162,7 @@ getName product =
         Hub -> "Hub"
         Kotlin -> "Kotlin"
         MPS -> "MPS"
+        
 
 getSlogan : Product -> String
 getSlogan product =

@@ -111,12 +111,20 @@ view idx ctx ( maybeBlend, opacity ) model =
             || (ctx.mode == Player)
             || (ctx.mode == TronUi Production) then
             [ if model.productShown then
-                productName
-                    ctx.product
-                    ( centerX, centerY )
-                    ( maybeBlend |> Maybe.withDefault Blend.Normal )
-                    opacity
-                    ( Scale <| 0.8 * scale )
+                div []
+                    [ productName
+                        ctx.product
+                        ( centerX, centerY )
+                        ( maybeBlend |> Maybe.withDefault Blend.Normal )
+                        opacity
+                        ( Scale <| 0.8 * scale )
+                    , slogan
+                        ctx.product
+                        ( centerX, centerY )
+                        ( maybeBlend |> Maybe.withDefault Blend.Normal )
+                        opacity
+                        ( Scale <| 0.8 * scale ) 
+                    ]    
               else text ""
             , logo ( logoX, logoY ) Blend.Normal ( Scale <| 0.6 * scale )
             ]
@@ -155,6 +163,31 @@ productName product pos blend opacity scale =
             blend
             (Opacity 0.85) -- opacity
             scale
+
+
+slogan : Product -> ( Float, Float ) -> Html.Blend -> Opacity -> Scale -> Html a
+slogan product (posX, posY) blend (Opacity opacity) scale =
+    div
+        [ class
+            ("text-layer--slogan text-layer--" ++ Product.encode product)
+        , style "max-width" "800px"
+        , style "mix-blend-mode" <| Blend.encode blend
+        , style "opacity" <| String.fromFloat opacity
+        , style "position" "absolute"
+        , style "top" "0px"
+        , style "left" "0px"
+
+        , style "transform" <| "translate("
+                ++ String.fromFloat posX  ++ "px, "
+                ++ String.fromFloat posY  ++ "px)"
+        , style "font-size" <| String.fromInt defaultSize ++ "px"
+        , style "font-family" "'Gotham', Helvetica, sans-serif"
+        , style "font-weight" "170"
+              -- , ("text-transform", "uppercase")
+        , style "color" "white"
+        , contenteditable True
+        ]
+        [ text <| getSlogan product ]
 
 
 

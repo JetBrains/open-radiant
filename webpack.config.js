@@ -2,6 +2,8 @@ const ReplaceInFileWebpackPlugin = require('replace-in-file-webpack-plugin');
 
 // webpack.config.js
 module.exports = {
+    mode: 'production',
+
     entry: {
       app: [
         './index.js'
