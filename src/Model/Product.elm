@@ -5,6 +5,7 @@ module Model.Product exposing
     , default
     , allProducts
     , getName
+    , getSlogan
     , decode
     , encode
     , getLogoPath
@@ -161,6 +162,33 @@ getName product =
         Hub -> "Hub"
         Kotlin -> "Kotlin"
         MPS -> "MPS"
+
+getSlogan : Product -> String
+getSlogan product =
+    case product of
+        JetBrains -> "The Drive to Develop"
+        IntelliJ -> "Capable and Ergonomic IDE for JVM"
+        PhpStorm -> "The Lightning-Smart PHP IDE"
+        PyCharm -> "The Python IDE for Professional Developers"
+        RubyMine -> "The Most Intelligent Ruby and Rails IDE"
+        WebStorm -> "The smartest JavaScript IDE"
+        CLion -> "A cross-platform IDE for C and C++"
+        DataGrip -> "Many databases, one tool"
+        AppCode -> "Smart IDE for iOS/macOS development"
+        GoLand -> "GoLand is a cross-platform IDE built specially for Go developers"
+        ReSharper -> "The Visual Studio Extension for .NET Developers"
+        ReSharperCpp -> "The Visual Studio Extension for C++ Developers"
+        DotCover -> "The .NET Unit Test Runner and Code Coverage Tool"
+        DotMemory -> "The .NET Memory Profiler"
+        DotPeek -> "Free .NET Decompiler and Assembly Browser"
+        DotTrace -> ".NET Performance Profiler"
+        Rider -> "Fast & powerful, cross platform .NET IDE"
+        TeamCity -> "Powerful Continuous Integration out of the box"
+        YouTrack -> "The issue tracker designed for agile software teams"
+        Upsource -> "Code review, team collaboration, project analytics"
+        Hub -> "JetBrains Team Tools, Integrated"
+        Kotlin -> "Programming language for JVM & Android"
+        MPS -> "Create your own domain-specific language"
 
 
 decode : String -> Result String Product
