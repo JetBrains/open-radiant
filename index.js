@@ -412,7 +412,7 @@ setTimeout(() => {
 
         if (!model.mode || (model.mode.substring(0, 4) != 'tron')) {
 
-            const { config, update } = startGui(
+            const { config, update, updateSizeSet } = startGui(
                 document,
                 model,
                 constants,
@@ -559,6 +559,10 @@ setTimeout(() => {
                 config['layer'+index+'Blend'] = blend[1];
                 config['opacity'+index] = opacity;
                 update();
+            });
+
+            app.ports.modeChanged.subscribe((mode) => {
+                updateSizeSet(mode);
             });
 
         }

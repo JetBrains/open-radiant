@@ -207,7 +207,10 @@ update msg model =
         ChangeMode mode ->
             let
                 ( newModel, commands ) =
-                    update Bang model
+                    -- update Bang model
+                    ( { model | mode = mode }
+                    , Cmd.none
+                    )
             in
                 ( newModel
                 , Cmd.batch
@@ -363,7 +366,8 @@ update msg model =
                     }
             in
                 ( newModelWithSize
-                , Nav.pushUrlFrom newModelWithSize {- Cmd.batch
+                , Nav.pushUrlFrom newModelWithSize
+                    {- Cmd.batch
                     [ requestWindowResize ( width, height )
                     , Nav.pushUrlFrom newModelWithSize
                     ] -}

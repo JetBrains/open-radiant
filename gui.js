@@ -5,12 +5,27 @@ const randomize = require('./randomize.js');
 const dat = require('dat.gui');
 
 const update = (gui) => () => {
-  for (var i in gui.__controllers) {
+  for (let i in gui.__controllers) {
     gui.__controllers[i].updateDisplay();
   }
-  for (var i in gui.__folders) {
+  for (let i in gui.__folders) {
     update(gui.__folders[i])();
   }
+}
+
+const updateSizeSet = (target, constants) => (mode) => {
+  const set = getSizeSet(mode, constants);
+  const keys = Object.keys(set);
+
+  let innerHTMLStr = "";
+  for (let i in keys) {
+      const str = "<option value='" + set[keys[i]] + "'>" + keys[i] + "</option>";
+      innerHTMLStr += str;
+  }
+
+  if (innerHTMLStr != "") target.domElement.children[0].innerHTML = innerHTMLStr;
+
+  target.updateDisplay();
 }
 
 const getSizeSet = (mode, constants) => {
@@ -411,9 +426,7 @@ function start(document, model, constants, funcs) {
       //const index = layers.length - 1 - revIndex;
       //const folder = gui.addFolder('Layer ' + index + ' (' + layer.kind + ')');
       // const folder = gui.addFolder(layer.def.toLowerCase() + ' (' + index + ')');
-      
       const folder = gui.addFolder(layersNames[index]);
-      
 
       addLayerProps(folder, config, layer, index);
       if (layer.king == 'webgl') {
@@ -460,7 +473,7 @@ function start(document, model, constants, funcs) {
     //     gui.addFolder()
     // });
 
-    return { config, update : update(gui) };
+    return { config, update : update(gui), updateSizeSet : updateSizeSet(sizePreset, constants) };
 }
 
 module.exports = start;

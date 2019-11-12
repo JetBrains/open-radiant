@@ -70,17 +70,17 @@ defaultUncertain =
 defaultTo : Model -> UncertainFragmentValue -> FragmentValue
 defaultTo model (UncertainFragmentValue maybeMode maybeProduct maybeSize) =
     FragmentValue
-        (maybeMode |> Maybe.withDefault model.mode)
+        (maybeMode    |> Maybe.withDefault model.mode)
         (maybeProduct |> Maybe.withDefault model.product)
-        (maybeSize |> Maybe.withDefault model.size)
+        (maybeSize    |> Maybe.withDefault model.size)
 
 
 fillDefaults : UncertainFragmentValue -> FragmentValue
 fillDefaults (UncertainFragmentValue maybeMode maybeProduct maybeSize) =
     FragmentValue
-        (maybeMode |> Maybe.withDefault Mode.default)
+        (maybeMode    |> Maybe.withDefault Mode.default)
         (maybeProduct |> Maybe.withDefault Product.default)
-        (maybeSize |> Maybe.withDefault SizeRule.default)
+        (maybeSize    |> Maybe.withDefault SizeRule.default)
 
 
 -- take current model and command to update the URL of the browser with its state
@@ -140,9 +140,9 @@ loadUrl curModel =
         case curFragment of
             UncertainFragmentValue maybeMode maybeProduct maybeSize ->
                 UncertainFragmentValue
-                        (injectValue curModel.mode maybeMode Mode.default)
-                        (injectValue curModel.product maybeProduct Product.default)
-                        (injectValue curModel.size maybeSize SizeRule.default)
+                    (injectValue curModel.mode maybeMode Mode.default)
+                    (injectValue curModel.product maybeProduct Product.default)
+                    (injectValue curModel.size maybeSize SizeRule.default)
                 |> encodeUncertainFragment
 
 
