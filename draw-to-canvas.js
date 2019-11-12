@@ -1,7 +1,8 @@
 const htmlToCanvas = (selector, canvas, width, height, whenDone) => {
     const node = document.querySelector(selector);
     if (!node) {
-        console.error('no element with selector `' + selector + '` was found');
+        console.warn('no element with selector `' + selector + '` was found');
+        if (whenDone) whenDone(canvas);
         return;
     }
     const context = canvas.getContext('2d');
@@ -36,7 +37,8 @@ const htmlToCanvas = (selector, canvas, width, height, whenDone) => {
 const svgToCanvas = (selector, canvas, width, height, whenDone) => {
     const svg = document.querySelector(selector);
     if (!svg) {
-        console.error('no element with selector `' + selector + '` was found');
+        console.warn('no element with selector `' + selector + '` was found');
+        if (whenDone) whenDone(canvas);
         return;
     }
     const context = canvas.getContext('2d');
@@ -85,7 +87,8 @@ const imageToCanvas = (src, transform, canvas, x, y, width, height, whenDone) =>
 const storedToCanvas = (selector, trgCanvas, whenDone) => {
     const selectedNode = document.querySelector(selector);
     if (!selectedNode) {
-        console.error('no element with selector `' + selector + '` was found');
+        console.warn('no element with selector `' + selector + '` was found');
+        if (whenDone) whenDone(trgCanvas);
         return;
     }
     const state = JSON.parse(selectedNode.getAttribute('data-stored'));
