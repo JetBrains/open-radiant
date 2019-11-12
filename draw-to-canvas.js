@@ -121,6 +121,7 @@ const canvasToCanvas = (selector, trgCanvas, whenDone) => {
         //trgContext.globalCompositeOperation = 'copy';
         trgContext.resetTransform();
         trgContext.globalCompositeOperation = srcCanvas.style.mixBlendMode || 'copy';
+        trgContext.globalAlpha = srcCanvas.style.opacity;
         trgContext.drawImage(srcCanvas, 0, 0);
         whenDone();
     });
