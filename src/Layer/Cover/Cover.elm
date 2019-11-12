@@ -118,12 +118,12 @@ view idx ctx ( maybeBlend, opacity ) model =
                         ( maybeBlend |> Maybe.withDefault Blend.Normal )
                         opacity
                         ( Scale <| 0.8 * scale )
-                    , slogan
-                        ctx.product
-                        ( centerX, centerY )
-                        ( maybeBlend |> Maybe.withDefault Blend.Normal )
-                        opacity
-                        ( Scale <| 0.8 * scale ) 
+                    -- , slogan
+                    --     ctx.product
+                    --     ( centerX, centerY )
+                    --     ( maybeBlend |> Maybe.withDefault Blend.Normal )
+                    --     opacity
+                    --     ( Scale <| 0.8 * scale ) 
                     ]    
               else text ""
             , logo ( logoX, logoY ) Blend.Normal ( Scale <| 0.6 * scale )
