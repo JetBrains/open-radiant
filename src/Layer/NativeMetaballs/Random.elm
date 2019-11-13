@@ -23,7 +23,7 @@ defaultRange : Ranges
 defaultRange =
     { groups = iRange 1 10
     , balls = iRange 4 40
-    , radius = fRange 50 300
+    , radius = fRange 20 300
     , speed = fRange 150 250
     , phase = fRange 0 360 -- Maybe useless
     , amplitude =
@@ -49,8 +49,8 @@ generator size randomization =
 generateOrigin : Random.Generator Vec2
 generateOrigin =
     Random.map2 vec2
-        (Random.float -0.1 0.1)
-        (Random.float -0.1 0.1)
+        (Random.float 0.5 0.5)
+        (Random.float 0.5 0.5)
 
 
 fromInitialStateGenerator
@@ -141,7 +141,7 @@ staticsGenerator ( w, h ) range curModel =
                     , radius = radius
                     }
                 )
-                (randomFloatInRange range.radius)
+                (randomFloatInRange <| applyVariety curModel.variety range.radius)
                 (randomFloatInRange (fRange 0 <| toFloat w))
                 (randomFloatInRange (fRange 0 <| toFloat h))
 
@@ -173,6 +173,7 @@ staticsGenerator ( w, h ) range curModel =
                                 }
                             )
                     , gradient = gradient
+                    , origin = vec2 0.5 0.5
                     }
                 )
 
@@ -308,20 +309,10 @@ everythingGenerator ( w, h ) range palette variety orbit =
                                 (\gradient ->
                                     { balls = balls
                                     , gradient = gradient
+                                    , textures = Nothing
+                                    , origin = vec2 0.0 0.0
                                     }
                                 )
-                    )
-                |> Random.andThen
-                    (\{ balls, gradient } ->
-                        generateOrigin
-                        |> Random.map
-                            (\origin ->
-                                { balls = balls
-                                , gradient = gradient
-                                , textures = Nothing
-                                , origin = origin
-                                }
-                            )
                     )
         generateEffects gaussX =
             Random.map3

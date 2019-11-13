@@ -91,7 +91,7 @@ init =
     let fluidDefault = Fluid.init
     in
         { fluidDefault
-        | variety = Variety 1000.0
+        | variety = Variety 1.0
         , orbit = Orbit 0.5
         }
 
@@ -241,9 +241,6 @@ view index ctx ( maybeBlend, Opacity opacity ) model =
         [] -- FIXME: use actual layer index
 
 
-groupOffset = { x = 0.65, y = 0.45 }
-
-
 baseWidth = 1500
 
 
@@ -370,7 +367,7 @@ initial ( w, h ) =
                             |> List.map (\s -> ( s.stop, s.color ))
                     , orientation = Vertical
                     }
-                , origin = groupOffset
+                , origin = { x = 0.65, y = 0.45 }
                 }
             )
     , effects = Fluid.defaultEffects
