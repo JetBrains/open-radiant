@@ -2,10 +2,11 @@ const path = require('path');
 
 const ReplaceInFileWebpackPlugin = require('replace-in-file-webpack-plugin');
 
+const isProduction = (process.env.NODE_ENV && (process.env.NODE_ENV == 'production'));
+
 const config = {
 
-    // mode: 'development',
-    mode: 'production',
+  mode: isProduction ? 'production' : 'development',
 
     entry: path.join(__dirname, 'player.js'),
 
@@ -21,8 +22,7 @@ const config = {
           test:    /\.elm$/,
           exclude: [ /elm-stuff/, /node_modules/, /build/ ],
           use: {
-            loader: "elm-webpack-loader?optimize=true"
-            //loader: "elm-webpack-loader"
+            loader: isProduction ? 'elm-webpack-loader?optimize=true' : 'elm-webpack-loader'
           }
         },
         {

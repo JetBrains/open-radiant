@@ -12,7 +12,7 @@ RUN npm install
 
 RUN npm install elm
 
-RUN npm run build && npm run build:player
+RUN NODE_ENV=production npm run build && npm run build:player
 
 FROM nginx:1.15
 
