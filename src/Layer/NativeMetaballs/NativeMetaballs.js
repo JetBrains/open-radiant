@@ -136,7 +136,6 @@ function m(target, width, height, model, colors_) {
       canvas.width = size[0];
       canvas.height = size[1];
 
-
       resizeGL(gl);
       gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
@@ -331,8 +330,8 @@ function m(target, width, height, model, colors_) {
       }
 
       this.handleMouseMove = function (x, y) {
-        mousePosition.x = x - (window.innerWidth - width) / 2;
-        mousePosition.y = window.innerHeight - y;
+        mousePosition.x = x - (target.width - width) / 2;
+        mousePosition.y = target.height - y;
       }
 
 
@@ -341,7 +340,7 @@ function m(target, width, height, model, colors_) {
         time += 0.01;
 
         var count = config.metaballs.length;
-        var scale = window.innerHeight / model.atHeight;
+        var scale = target.height / model.atHeight;
 
         var radius = 30;
         var targX, targY, t, d, mb;
