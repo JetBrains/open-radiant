@@ -38,6 +38,8 @@ import Model.Product as Product exposing (Product)
 import Model.Product
 import Model.Layer.Blend.Html as HtmlBlend
 import Model.Layer.Blend.WebGL as WGLBlend
+import Model.Version exposing (Version)
+import Model.Version as Version
 
 import Gradient exposing (..)
 
@@ -122,6 +124,7 @@ type alias Model = -- TODO: Result Error { ... }
     , navKey : Nav.Key
     , url : Maybe Url
     , registry : Layer.Registry
+    , version : Maybe Version
     }
 
 
@@ -138,6 +141,7 @@ type alias PortModel =
     , omega : Float
     , product : String
     , palette : List String
+    , version : String
     }
 
 
@@ -164,6 +168,7 @@ init navKey mode =
     , navKey = navKey
     , url = Nothing
     , registry = Layer.registry
+    , version = Just Version.current
     }
 
 
