@@ -141,7 +141,7 @@ svg.text-layer {
     padding-left: 10px;
 }
 
-.export_html5, .export_png {
+.export_html5, .export_png, .export_url {
     position: relative;
     left: -5px;
     text-align: center;
@@ -190,7 +190,7 @@ svg.text-layer {
 
 }
 
-.export_png {
+.export_url {
     margin-left: 5px;
 }
 /*

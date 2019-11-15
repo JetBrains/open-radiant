@@ -1,10 +1,12 @@
 const express = require('express')
 const bodyParser = require('body-parser')
+const cors = require('cors')
 const crypto = require('crypto')
 const app = express()
 const port = 3001
 const fs = require('fs')
 
+app.use(cors())
 app.use(bodyParser.json());
 app.use('/storage', express.static('./storage'))
 
@@ -33,11 +35,11 @@ app.post('/store',
 
             console.log('Received the scene and stored it as ' + filePath)
         });
-        res.send(forUser(hash))
+        res.json({ 'hash': forUser(hash) })
     }
 );
 
-app.get('/load',
+app.post('/load',
     (req, res) => {
         const hash = req.body['hash']
         console.log(req.body)

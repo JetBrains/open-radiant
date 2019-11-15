@@ -19,7 +19,9 @@ import Array exposing (Array)
 import Dict exposing (get)
 
 import Browser.Navigation as Nav
+import Browser as Nav exposing (UrlRequest)
 import Url exposing (..)
+import Model.SceneHash as Nav
 
 import WebGL.Texture exposing (Texture)
 
@@ -67,13 +69,14 @@ type Msg
     = Bang
     | ChangeMode AppMode
     | ApplyUrl Url
+    -- | RequestUrl Url
     | Animate TimeDelta
     | GuiMessage (Gui.Msg Msg)
     | Resize SizeRule
     | RequestFitToWindow
     | Locate Pos
     | Rotate Float
-    | Import String
+    | Import Model
     | Export
     | ExportZip
     | TimeTravel Float
@@ -83,6 +86,9 @@ type Msg
     | TriggerPause
     | HideControls
     | ChangeProduct Product
+    | Load Nav.SceneHash
+    | Store
+    | StoredAs Nav.SceneHash
     | TurnOn Layer.Index
     | TurnOff Layer.Index
     -- | MirrorOn Layer.Index
@@ -125,6 +131,7 @@ type alias Model = -- TODO: Result Error { ... }
     , url : Maybe Url
     , registry : Layer.Registry
     , version : Maybe Version
+    , currentHash : Maybe Nav.SceneHash
     }
 
 
@@ -169,6 +176,7 @@ init navKey mode =
     , url = Nothing
     , registry = Layer.registry
     , version = Just Version.current
+    , currentHash = Nothing
     }
 
 

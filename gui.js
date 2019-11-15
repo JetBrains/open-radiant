@@ -139,10 +139,12 @@ const Config = function(layers, defaults, constants, funcs, randomize) {
     this.sizePreset = sizePresetSet['browser'];
 
     //this.savePng = funcs.savePng;
-    this.saveBatch = () => funcs.saveBatch(Object.values(sizePresetSet));
+    this.saveBatch = () => funcs.saveBatch(/*Object.values(sizePresetSet)*/);
     // this.randomize = randomize(this); // FIXME: this way we updated FSS using "I feel lucky", consider returning it back in some way
 
     this.randomize = () => funcs.iFeelLucky();
+
+    // this.store = () => funcs.store();
 
     // -------
     //this.timeShift = 0;
@@ -415,6 +417,7 @@ function start(document, model, constants, funcs) {
     // gui.add(config, 'savePng').name('save png');
     if (mode !== 'prod') gui.add(config, 'saveBatch').name('save batch');
     gui.add(config, 'randomize').name('i feel lucky');
+    // gui.add(config, 'store').name('store');
     product.onFinishChange(updateProduct);
     sizePreset.onFinishChange(funcs.resize);
 

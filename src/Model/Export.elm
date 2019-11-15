@@ -17,7 +17,6 @@ import Browser.Navigation as Nav
 import Math.Vector2 as Vec2
 
 import Json.Decode as D exposing (bool, int, string, float, Decoder, Value)
-import Json.Decode.Pipeline as D exposing (required, optional, hardcoded)
 import Json.Decode.Extra as D exposing (andMap)
 import Json.Encode as E exposing (encode, Value, string, int, float, bool, list, object)
 

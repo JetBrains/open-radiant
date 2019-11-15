@@ -19,7 +19,6 @@ import Json.Encode as E
 import Math.Vector2 as Vec2 exposing (..)
 
 import Random
-import Random.Extra as Random exposing (traverse)
 
 import Algorithm.Gaussian  as Gaussian exposing (Variety(..))
 import Gradient exposing (Orientation(..))

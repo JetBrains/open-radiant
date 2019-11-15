@@ -11,14 +11,16 @@ import Browser.Dom as Browser
 import Browser.Events as Browser
 import Browser.Navigation as Browser
 
-import Html exposing (Html, text, div, span, input, canvas)
+import Html exposing (Html, text, div, span, input, canvas, a)
 import Html.Attributes as H
-    exposing (class, width, height, style, class, type_, min, max, value, id)
+    exposing (class, width, height, style, class, type_, min, max, value, id, href)
 -- import Html.Events exposing (on, onInput, onMouseUp, onClick)
 import Html.Events as Events exposing (onInput)
 
 import Json.Decode as D
 import Json.Encode as E
+
+import Http
 
 import Random
 
@@ -40,6 +42,8 @@ import Model.SizeRule exposing (..)
 import Model.SizeRule as SizeRule exposing (decode, encode, toRecord)
 import Model.Error exposing (..)
 import Model.Export as IE -- IE for import/export
+import Model.SceneHash exposing (SceneHash)
+import Model.SceneHash as SceneHash exposing (toString, fromString)
 
 import Model.Layer.Layer exposing (Layer, Blend(..))
 import Model.Layer.Layer as Layer
@@ -87,6 +91,10 @@ initialMode = Production
 
 
 type alias Flags = { forcedMode: Maybe String }
+
+
+serverUrl : String
+serverUrl = "http://localhost:3001"
 
 
 main : Program Flags Model Msg
@@ -292,48 +300,6 @@ update msg model =
             , Cmd.none
             )
 
-        Import encodedModel ->
-            case (encodedModel
-                    |> IE.decodeFromString model.navKey (getContext model) Gui.gui) of
-                Ok decodedModel ->
-                    ( decodedModel
-                    , Cmd.batch
-                        [ Nav.pushUrlFrom decodedModel ]
-                        {-
-                        [ if hasFssLayers decodedModel
-                            then rebuildAllFssLayersWith decodedModel
-                            else Cmd.none
-                        , if hasFluidLayers decodedModel
-                            then
-                                commandForAllFluidLayers
-                                    (\layerIndex fluidModel ->
-                                        buildFluidGradientTextures
-                                            ( layerIndex
-                                            , fluidModel
-                                                |> FluidModel |> IE.encodeLayerModel decodedModel.product
-                                            )
-                                    )
-                                    decodedModel
-                            else Cmd.none
-                        , Nav.pushUrlFrom decodedModel
-                        ]
-                        -}
-                    )
-                Err importError ->
-                    ( model |> addError importError
-                    , Cmd.none
-                    )
-
-        Export ->
-            ( model
-            , model |> IE.encodeToString |> export_
-            )
-
-        ExportZip ->
-            ( model
-            , model |> IE.encodeToString |> exportZip_
-            )
-
         TimeTravel timeShift ->
             (
                 { model
@@ -351,9 +317,57 @@ update msg model =
             , Cmd.none
             )
 
-        Rotate omega ->
-            ( { model | omega = omega  }
+        Import decodedModel ->
+            ( Debug.log "decoded" decodedModel
+            , Cmd.batch
+                [ Nav.pushUrlFrom decodedModel ]
+                {-
+                [ if hasFssLayers decodedModel
+                    then rebuildAllFssLayersWith decodedModel
+                    else Cmd.none
+                , if hasFluidLayers decodedModel
+                    then
+                        commandForAllFluidLayers
+                            (\layerIndex fluidModel ->
+                                buildFluidGradientTextures
+                                    ( layerIndex
+                                    , fluidModel
+                                        |> FluidModel |> IE.encodeLayerModel decodedModel.product
+                                    )
+                            )
+                            decodedModel
+                    else Cmd.none
+                , Nav.pushUrlFrom decodedModel
+                ]
+                -}
+            )
+
+        Export ->
+            ( model
+            , model |> IE.encodeToString |> export_
+            )
+
+        ExportZip ->
+            ( model
+            , model |> IE.encodeToString |> exportZip_
+            )
+
+        Store ->
+            ( model
+            , makeStoreRequest model
+            )
+
+        StoredAs sceneHash ->
+            (
+                { model
+                | currentHash = Just sceneHash
+                }
             , Cmd.none
+            )
+
+        Load sceneHash ->
+            ( model
+            , model |> requestToLoad (Debug.log "loading" sceneHash)
             )
 
         Resize rule ->
@@ -391,6 +405,11 @@ update msg model =
                     |> Maybe.withDefault NoOp
             in
                 update message modelWithMouse
+
+        Rotate omega ->
+            ( { model | omega = omega  }
+            , Cmd.none
+            )
 
         TurnOn index ->
             (
@@ -643,8 +662,17 @@ subscriptions model =
           )
         , iFeelLucky
             (\_ -> TriggerFeelLucky)
+        -- , store (\_ -> Store)
         , applyRandomizer ApplyRandomizer
-        , import_ Import
+        , import_
+            (\string ->
+                case string
+                    |> IE.decodeFromString model.navKey (getContext model) Gui.gui of
+                    Ok decodedModel ->
+                        Import decodedModel
+                    Err err ->
+                        AddError err
+            )
         , pause (\_ -> Pause)
         , continue (\_ -> Continue)
         , triggerPause (\_ -> TriggerPause)
@@ -730,7 +758,20 @@ view model =
                 , input
                     [ type_ "button", class "export_png"
                     , Events.onClick SavePng, value "|> PNG" ]
-                    [ text "Export to png" ]
+                    [ text "Export to PNG" ]
+                , case model.currentHash of
+                    Just sceneHash ->
+                        a
+                            [ href <| "/#" ++ SceneHash.toString sceneHash
+                            , class "export_url"
+                            ]
+                            [ text <| SceneHash.toString sceneHash
+                            ]
+                    Nothing ->
+                        input
+                            [ type_ "button", class "export_url"
+                            , Events.onClick Store, value "|> URL" ]
+                            [ text "Export as URL" ]
                 , div [ H.class "spacebar_info" ] [ text "spacebar to hide controls, click to pause" ]
                 ]
             ) else div [] []
@@ -749,6 +790,32 @@ view model =
                     )
             else div [ H.id "error-pane" ] []
         ]
+
+
+makeStoreRequest : Model -> Cmd Msg
+makeStoreRequest model =
+    Http.post
+        { url = serverUrl ++ "/store"
+        , body = IE.encode model |> Http.jsonBody
+        , expect =
+            Http.expectJson
+                (Result.map StoredAs
+                    >> (Result.withDefault <| AddError "Failed to store model"))
+                SceneHash.decode
+        }
+
+
+requestToLoad : SceneHash -> Model -> Cmd Msg
+requestToLoad sceneHash model =
+    Http.post
+        { url = serverUrl ++ "/load"
+        , body = SceneHash.encode sceneHash |> Http.jsonBody
+        , expect =
+            Http.expectJson
+                (Result.map Import
+                    >> (Result.withDefault <| AddError "Failed to load model"))
+                <| IE.decode model.navKey (getContext model) Gui.gui
+        }
 
 
 document : Model -> Browser.Document Msg
@@ -856,6 +923,8 @@ port mirrorOff : (Layer.JsIndex -> msg) -> Sub msg
 
 port import_ : (String -> msg) -> Sub msg
 
+-- port store : (() -> msg) -> Sub msg
+
 port iFeelLucky : (() -> msg) -> Sub msg
 
 port resize :
@@ -917,5 +986,7 @@ port requestRandomize : PortModel -> Cmd msg
 port requestFitToWindow : () -> Cmd msg
 
 port requestWindowResize : ( Int, Int ) -> Cmd msg
+
+port storedAs : String -> Cmd msg
 
 -- port rebuildOnClient : (FSS.SerializedScene, Int) -> Cmd msg

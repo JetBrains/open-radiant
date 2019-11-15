@@ -465,6 +465,8 @@ setTimeout(() => {
 
                     nextPng();
                 }
+                // , store : () =>
+                //     { app.ports.store.send(null); }
                 , changeAmplitude : index => (x, y, z) =>
                     { app.ports.changeAmplitude.send({ layer: index, value: [ x, y, z ]}); }
                 , shiftColor : index => (h, s, b) =>

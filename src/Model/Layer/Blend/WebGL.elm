@@ -28,7 +28,7 @@ import Random
 import WebGL.Settings exposing (Setting)
 import WebGL.Settings.Blend as B
 
-import List.Extra as LE
+import List.Extra as LE -- FIXME: get rid of this dependency when possible
 
 {- To support complex blending methods like the ones from Photoshop,
    it is required either to have WebGL2 enabled and use MIN/MAX extentions, or

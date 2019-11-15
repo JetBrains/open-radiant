@@ -8,7 +8,6 @@ port module Layer.Fluid.Fluid exposing
 import Array exposing (Array)
 import Task
 
-import Animation exposing (..)
 import Ease exposing (..)
 
 import Math.Vector3 as Vec3 exposing (..)
