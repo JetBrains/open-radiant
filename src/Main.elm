@@ -103,7 +103,10 @@ main =
         { init = init
         , view = document
         , subscriptions = subscriptions
-        , update = update
+        , update = \msg model ->
+            if Nav.invalidatesHash msg then
+                update msg { model | currentHash = Nothing }
+            else update msg model
         , onUrlChange = Nav.onUrlChange
         , onUrlRequest = Nav.onUrlRequest
         }
@@ -813,6 +816,7 @@ requestToLoad sceneHash model =
         , expect =
             Http.expectJson
                 (Result.map Import
+                    >> Result.mapError (Debug.log "HttpError")
                     >> (Result.withDefault <| AddError "Failed to load model"))
                 <| IE.decode model.navKey (getContext model) Gui.gui
         }

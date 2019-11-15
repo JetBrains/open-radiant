@@ -4,6 +4,7 @@ module Navigation exposing
     , onUrlChange
     , onUrlRequest
     , pushUrlFrom
+    , invalidatesHash
     )
 
 
@@ -253,3 +254,17 @@ ifHasSceneHash url =
     url.fragment
         |> Maybe.map SceneHash.is
         |> Maybe.andThen identity
+
+
+invalidatesHash : Msg -> Bool
+invalidatesHash msg =
+    case msg of
+        NoOp -> False
+        Animate _ -> False -- actually, depends on situation, but let's assume no
+        Store -> False
+        Locate _ -> False
+        HideControls -> False
+        Pause -> False
+        Continue -> False
+        SavePng -> False
+        _ -> True
