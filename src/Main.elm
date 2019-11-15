@@ -321,7 +321,7 @@ update msg model =
             )
 
         Import decodedModel ->
-            ( Debug.log "decoded" decodedModel
+            ( decodedModel
             , Cmd.batch
                 [ Nav.pushUrlFrom decodedModel ]
                 {-
@@ -370,7 +370,7 @@ update msg model =
 
         Load sceneHash ->
             ( model
-            , model |> requestToLoad (Debug.log "loading" sceneHash)
+            , model |> requestToLoad sceneHash
             )
 
         Resize rule ->
@@ -816,7 +816,7 @@ requestToLoad sceneHash model =
         , expect =
             Http.expectJson
                 (Result.map Import
-                    >> Result.mapError (Debug.log "HttpError")
+                    -- >> Result.mapError (Debug.log "HttpError")
                     >> (Result.withDefault <| AddError "Failed to load model"))
                 <| IE.decode model.navKey (getContext model) Gui.gui
         }

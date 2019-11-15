@@ -97,7 +97,7 @@ pushUrlFrom model =
 -- URL has the preference over the current model
 applyUrl : Url -> Model -> List Msg
 applyUrl url curModel =
-    case Debug.log "fragment" url.fragment of
+    case url.fragment of
         Just fragment ->
             case fragment |> decodeFragment |> fillDefaults of
                 FragmentValue mode product size ->
