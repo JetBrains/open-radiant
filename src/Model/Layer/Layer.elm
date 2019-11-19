@@ -116,7 +116,7 @@ type alias PortLayer =
     , zOrder : Int
     , index : Int
     , isOn : Bool
-    , model : String
+    , model : E.Value
     }
 
 
@@ -142,11 +142,11 @@ getId (Layer _ model) =
 
 
 isDef : DefId -> Layer -> Bool
-isDef idToCheck someLayer = 
+isDef idToCheck someLayer =
     case getId someLayer of
         Just someId -> someId == idToCheck
         Nothing -> False
-    
+
 
 getModel : Layer -> Model
 getModel (Layer _ model) =

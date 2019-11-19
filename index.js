@@ -384,10 +384,6 @@ setTimeout(() => {
 
     app.ports.requestRandomize.subscribe((model) => {
         const toSend = deepClone(model);
-        toSend.layers = toSend.layers.map((layerDef) => {
-            layerDef.model = JSON.parse(layerDef.model);
-            return layerDef;
-        });
         randomize((randomizedModel) => {
             //const toSend = deepClone(randomizedModel);
             // randomizedModel.layers.forEach((layer) => {
@@ -406,9 +402,6 @@ setTimeout(() => {
         document.body.style.backgroundColor = model.background;
 
         // console.log('startGui', model);
-        model.layers.forEach(layer => {
-            layer.model = JSON.parse(layer.model) || {};
-        });
 
         if (!model.mode || (model.mode.substring(0, 4) != 'tron')) {
 
