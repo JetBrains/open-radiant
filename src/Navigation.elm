@@ -97,16 +97,20 @@ pushUrlFrom model =
 -- URL has the preference over the current model
 applyUrl : Url -> Model -> List Msg
 applyUrl url curModel =
-    case url.fragment of
-        Just fragment ->
-            case fragment |> decodeFragment |> fillDefaults of
-                FragmentValue mode product size ->
-                    [ if mode /= curModel.mode then ChangeMode mode else NoOp
-                    , if product /= curModel.product then ChangeProduct product else NoOp
-                    , if size /= curModel.size then Resize size else NoOp
-                    ] |> List.filter ((/=) NoOp)
+    case ifHasSceneHash url of
+        -- FIXME: our URL model should be a sum type b/w sceneHash or mode+product+size
+        Just sceneHash -> [ Load sceneHash ]
         Nothing ->
-            []
+            case url.fragment of
+                Just fragment ->
+                    case fragment |> decodeFragment |> fillDefaults of
+                        FragmentValue mode product size ->
+                            [ if mode /= curModel.mode then ChangeMode mode else NoOp
+                            , if product /= curModel.product then ChangeProduct product else NoOp
+                            , if size /= curModel.size then Resize size else NoOp
+                            ] |> List.filter ((/=) NoOp)
+                Nothing ->
+                    []
 
 
 -- prepareUrlFragment : Model -> Fragment
@@ -160,7 +164,10 @@ onUrlRequest req =
 
 
 onUrlChange : Url -> Msg
-onUrlChange = ApplyUrl -- TODO: move `ApplyUrl` logic here?
+onUrlChange url
+    = ifHasSceneHash url
+        |> Maybe.map Load
+        |> Maybe.withDefault (ApplyUrl url)
 
 
 tryIfError : String -> (String -> Result () a) -> Result () a -> Result () a

@@ -43,7 +43,7 @@ import Model.SizeRule as SizeRule exposing (decode, encode, toRecord)
 import Model.Error exposing (..)
 import Model.Export as IE -- IE for import/export
 import Model.SceneHash exposing (SceneHash)
-import Model.SceneHash as SceneHash exposing (toString, fromString)
+import Model.SceneHash as SceneHash exposing (toString)
 
 import Model.Layer.Layer exposing (Layer, Blend(..))
 import Model.Layer.Layer as Layer
