@@ -63,7 +63,7 @@ function m(target, width, height, model, colors_) {
 
       displayWidth = Math.floor(gl.canvas.clientWidth);
       displayHeight = Math.floor(gl.canvas.clientHeight);
-      var scale = displayHeight / model.atHeight;
+      var scale = 0.0 * displayHeight / model.atHeight;
 
       const groups = model.groups.map(
         group => ({
@@ -486,10 +486,10 @@ function m(target, width, height, model, colors_) {
                  vec2 st = gl_FragCoord.xy / uResolution.xy;
 
                  //ambient light
-                 color.a *=  smoothstep(-0.1, 0.5, distance(st, vec2(0.5)));
-                 color.rgb *= vec3(1.0, 0.5, 0.7);
+                  //  color.a *=  smoothstep(-0.1, 0.5, distance(st, vec2(0.5)));
+                  // color.rgb *= vec3(1.0, 0.5, 0.5);
                  //noise
-                 color.rgb = mix(color.rgb, vec3(noise(st * 1000.0, 1.0) * 100.0), 0.03 / pow(brightness(color.rgb), 0.3));
+                  color.rgb = mix(color.rgb, vec3(noise(st * 1000.0, 1.0) * 100.0), 0.03 / pow(brightness(color.rgb), 0.3));
 
                  gl_FragColor = color * alpha * 0.8;
 
