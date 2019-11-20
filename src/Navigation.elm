@@ -4,6 +4,7 @@ module Navigation exposing
     , onUrlChange
     , onUrlRequest
     , pushUrlFrom
+    , invalidatesHash
     )
 
 
@@ -18,7 +19,9 @@ import Model.SizeRule exposing (..)
 import Model.SizeRule as SizeRule exposing (decode, default)
 import Model.Product exposing (..)
 import Model.Product as Product exposing (decode, default)
+import Model.SceneHash exposing (..)
 import Model.Core exposing (..)
+import Model.SceneHash as SceneHash
 
 
 -- URL examples:
@@ -94,16 +97,20 @@ pushUrlFrom model =
 -- URL has the preference over the current model
 applyUrl : Url -> Model -> List Msg
 applyUrl url curModel =
-    case url.fragment of
-        Just fragment ->
-            case fragment |> decodeFragment |> fillDefaults of
-                FragmentValue mode product size ->
-                    [ if mode /= curModel.mode then ChangeMode mode else NoOp
-                    , if product /= curModel.product then ChangeProduct product else NoOp
-                    , if size /= curModel.size then Resize size else NoOp
-                    ] |> List.filter ((/=) NoOp)
+    case ifHasSceneHash url of
+        -- FIXME: our URL model should be a sum type b/w sceneHash or mode+product+size
+        Just sceneHash -> [ Load sceneHash ]
         Nothing ->
-            []
+            case url.fragment of
+                Just fragment ->
+                    case fragment |> decodeFragment |> fillDefaults of
+                        FragmentValue mode product size ->
+                            [ if mode /= curModel.mode then ChangeMode mode else NoOp
+                            , if product /= curModel.product then ChangeProduct product else NoOp
+                            , if size /= curModel.size then Resize size else NoOp
+                            ] |> List.filter ((/=) NoOp)
+                Nothing ->
+                    []
 
 
 -- prepareUrlFragment : Model -> Fragment
@@ -146,20 +153,21 @@ loadUrl curModel =
                 |> encodeUncertainFragment
 
 
--- there are no links, so no URL requests for the moment
--- See https://package.elm-lang.org/packages/elm/browser/latest/Browser#UrlRequest
 onUrlRequest : Browser.UrlRequest -> Msg
 onUrlRequest req =
-    -- let
-    --     _ =  Debug.log "req" req
-    -- in NoOp
-    NoOp
+    case req of
+        Browser.Internal url ->
+            case ifHasSceneHash url of
+                Just sceneHash -> Load sceneHash
+                Nothing -> NoOp
+        _ -> NoOp
 
 
 onUrlChange : Url -> Msg
--- onUrlChange url =
---     -- ApplyUrl <| Debug.log "url" url
-onUrlChange = ApplyUrl
+onUrlChange url
+    = ifHasSceneHash url
+        |> Maybe.map Load
+        |> Maybe.withDefault (ApplyUrl url)
 
 
 tryIfError : String -> (String -> Result () a) -> Result () a -> Result () a
@@ -246,3 +254,24 @@ encodeFragment current =
                         then "" else Product.encode currentProduct ++ "/") ++
                     (if defaultSize == currentSize
                         then "" else SizeRule.encode currentSize)
+
+
+ifHasSceneHash : Url -> Maybe SceneHash
+ifHasSceneHash url =
+    url.fragment
+        |> Maybe.map SceneHash.is
+        |> Maybe.andThen identity
+
+
+invalidatesHash : Msg -> Bool
+invalidatesHash msg =
+    case msg of
+        NoOp -> False
+        Animate _ -> False -- actually, depends on situation, but let's assume no
+        Store -> False
+        Locate _ -> False
+        HideControls -> False
+        Pause -> False
+        Continue -> False
+        SavePng -> False
+        _ -> True

@@ -1,8 +1,11 @@
 const ReplaceInFileWebpackPlugin = require('replace-in-file-webpack-plugin');
 
+const isProduction = (process.env.NODE_ENV && (process.env.NODE_ENV == 'production'));
+
 // webpack.config.js
 module.exports = {
-    mode: 'production',
+
+    mode: isProduction ? 'production' : 'development',
 
     entry: {
       app: [
@@ -21,8 +24,7 @@ module.exports = {
           exclude: [/elm-stuff/, /node_modules/, /build/],
           use: [
             {
-              loader: "elm-webpack-loader?optimize=true"
-              // loader: "elm-webpack-loader?optimize=true"
+              loader: isProduction ? 'elm-webpack-loader?optimize=true' : 'elm-webpack-loader'
             }
           ]
         },

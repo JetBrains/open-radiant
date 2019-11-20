@@ -17,7 +17,6 @@ import Browser.Navigation as Nav
 import Math.Vector2 as Vec2
 
 import Json.Decode as D exposing (bool, int, string, float, Decoder, Value)
-import Json.Decode.Pipeline as D exposing (required, optional, hardcoded)
 import Json.Decode.Extra as D exposing (andMap)
 import Json.Encode as E exposing (encode, Value, string, int, float, bool, list, object)
 
@@ -38,11 +37,10 @@ import Model.SizeRule as SizeRule
 import Model.Error as M
 import Model.Product as Product exposing (Product, encode, decode, encodeGradient, decodeGradient)
 import Model.Range exposing (..)
+import Model.Version exposing (Version)
+import Model.Version as Version
 
 import TronGui as GUI
-
-
--- FIXME: Move all the decoding/encoding to the corresponding layers
 
 
 type ModelDecodeError
@@ -99,6 +97,7 @@ encode model =
                 |> Product.encodePalette
                 |> E.list E.string )
         , ( "product", model.product |> Product.encode |> E.string )
+        , ( "version", model.version |> Maybe.map Version.encode |> Maybe.withDefault E.null )
         ]
 
 
@@ -120,6 +119,9 @@ encodeForPort model =
     , mouse = model.mouse
     , palette = model.product |> Product.getPalette |> Product.encodePalette
     , product = model.product |> Product.encode
+    , version = model.version
+            |> Maybe.map (Version.encode >> E.encode 0)
+            |> Maybe.withDefault ""
     }
 
 
@@ -146,7 +148,7 @@ decodeFromPort navKey ctx portModel =
                         |> Result.mapError (List.singleton << SizeRuleDecodeError)
                 Nothing -> case portModel.size of
                     ( w, h ) -> Ok <| SizeRule.Custom w h
-        applyDecoded decodedLayers decodedSize decodedProduct =
+        applyDecoded decodedLayers decodedSize decodedProduct decodedVersion =
             let
                 modeResult = Mode.decode portModel.mode
                 mode =
@@ -173,7 +175,7 @@ decodeFromPort navKey ctx portModel =
                     _ -> Nothing
                 }
     in
-        Result.map3 -- TODO: join in a list of all failures
+        Result.map4 -- TODO: join in a list of all failures
             applyDecoded
             (if List.isEmpty layerDecodeErrors
                 then couldBeDecodedLayers
@@ -184,7 +186,9 @@ decodeFromPort navKey ctx portModel =
             (portModel.product
                 |> Product.decode
                 |> Result.mapError (List.singleton << ProductDecodeError))
-
+            (portModel.version
+                |> D.decodeString Version.decode
+                |> Result.mapError (List.singleton << ProductDecodeError << D.errorToString))
 
 
 decode : Nav.Key -> Context -> M.CreateGui -> D.Decoder M.Model
@@ -200,7 +204,8 @@ decode navKey ctx createGui =
             origin
             mouse
             now
-            product =
+            product
+            maybeVersion =
             let
                 initialModel =
                     M.init navKey ctx.mode
@@ -260,6 +265,7 @@ decode navKey ctx createGui =
                     |> D.andMap (D.field "mouse" intPairDecoder)
                     |> D.andMap (D.field "now" D.float)
                     |> D.andMap (D.succeed product)
+                    |> D.andMap (D.maybe (D.field "version" Version.decode))
                     |> D.andThen identity
             )
 

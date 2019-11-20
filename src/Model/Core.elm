@@ -19,7 +19,9 @@ import Array exposing (Array)
 import Dict exposing (get)
 
 import Browser.Navigation as Nav
+import Browser as Nav exposing (UrlRequest)
 import Url exposing (..)
+import Model.SceneHash as Nav
 
 import WebGL.Texture exposing (Texture)
 
@@ -38,6 +40,8 @@ import Model.Product as Product exposing (Product)
 import Model.Product
 import Model.Layer.Blend.Html as HtmlBlend
 import Model.Layer.Blend.WebGL as WGLBlend
+import Model.Version exposing (Version)
+import Model.Version as Version
 
 import Gradient exposing (..)
 
@@ -65,13 +69,14 @@ type Msg
     = Bang
     | ChangeMode AppMode
     | ApplyUrl Url
+    -- | RequestUrl Url
     | Animate TimeDelta
     | GuiMessage (Gui.Msg Msg)
     | Resize SizeRule
     | RequestFitToWindow
     | Locate Pos
     | Rotate Float
-    | Import String
+    | Import Model
     | Export
     | ExportZip
     | TimeTravel Float
@@ -81,6 +86,9 @@ type Msg
     | TriggerPause
     | HideControls
     | ChangeProduct Product
+    | Load Nav.SceneHash
+    | Store
+    | StoredAs Nav.SceneHash
     | TurnOn Layer.Index
     | TurnOff Layer.Index
     -- | MirrorOn Layer.Index
@@ -122,6 +130,8 @@ type alias Model = -- TODO: Result Error { ... }
     , navKey : Nav.Key
     , url : Maybe Url
     , registry : Layer.Registry
+    , version : Maybe Version
+    , currentHash : Maybe Nav.SceneHash
     }
 
 
@@ -138,6 +148,7 @@ type alias PortModel =
     , omega : Float
     , product : String
     , palette : List String
+    , version : String
     }
 
 
@@ -164,6 +175,8 @@ init navKey mode =
     , navKey = navKey
     , url = Nothing
     , registry = Layer.registry
+    , version = Just Version.current
+    , currentHash = Nothing
     }
 
 
