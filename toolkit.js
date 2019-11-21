@@ -108,7 +108,11 @@ var PRODUCTS = [
     },   // kotlin // KT_
     { label: 'MPS', id: 'mps',
       palette: [ '#31d68b', '#3188cd', '#f1e969' ]
-    }  // mps // MPS_
+    },  // mps // MPS_
+    { label: 'IE',
+      id: 'intellij-idea-edu',
+      palette: [ '#087cfa', '#fe315d', '#f97a12' ]
+    },
 
 ];
 

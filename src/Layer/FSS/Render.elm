@@ -15,7 +15,7 @@ import Math.Vector4 as Vec4 exposing (vec4, Vec4)
 import WebGL
 import WebGL.Settings exposing (Setting)
 
-import Model.WebGL.Blend exposing (..)
+import Model.Layer.Blend.WebGL  exposing (..)
 
 
 type alias Mesh = WebGL.Mesh Vertex
@@ -648,6 +648,8 @@ vertexShader =
                 shine = 1.1;
                 orbitFactor[1] += 2.5;
             }
+
+
 
             if( uProductId == 2 ) { //PyCharm
                 deltaHSVLight1 = vec3( 0.1, 0.0, 0.2 );

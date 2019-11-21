@@ -68,8 +68,10 @@ type ColorId
 type Product
     = JetBrains
     | IntelliJ
+    | IntelliJEdu
     | PhpStorm
     | PyCharm
+    | PyCharmEdu
     | RubyMine
     | WebStorm
     | CLion
@@ -124,6 +126,8 @@ allProducts =
     , Hub -- 20
     , Kotlin -- 21
     , MPS -- 22
+    , IntelliJEdu -- 23
+    , PyCharmEdu -- 24
     ]
 
 
@@ -162,6 +166,8 @@ getName product =
         Hub -> "Hub"
         Kotlin -> "Kotlin"
         MPS -> "MPS"
+        IntelliJEdu -> "IntelliJ IDEA Edu"
+        PyCharmEdu -> "PyCharm Edu"
         
 
 getSlogan : Product -> String
@@ -190,6 +196,8 @@ getSlogan product =
         Hub -> "JetBrains Team Tools, Integrated"
         Kotlin -> "Programming language for JVM & Android"
         MPS -> "Create your own domain-specific language"
+        IntelliJEdu -> "Capable and Ergonomic IDE for JVM"
+        PyCharmEdu -> "The Python IDE for Professional Developers"
 
 
 decode : String -> Result String Product
@@ -218,6 +226,8 @@ decode id =
         "hub" -> Ok Hub
         "kotlin" -> Ok Kotlin
         "mps" -> Ok MPS
+        "intellij-idea-edu" -> Ok IntelliJEdu
+        "pycharm-edu" -> Ok PyCharmEdu
         _ -> Err id
 
 
@@ -247,6 +257,8 @@ encode product =
         Hub -> "hub"
         Kotlin -> "kotlin"
         MPS -> "mps"
+        IntelliJEdu -> "intellij-idea-edu"
+        PyCharmEdu -> "pycharm-edu"
 
 
 getLogoPath : Product -> String
@@ -287,6 +299,8 @@ getCoverTextSize product =
         Hub -> ( 211, 90 )
         Kotlin -> ( 323, 99 )
         MPS -> ( 200, 77 )
+        IntelliJEdu -> ( 882, 92 )
+        PyCharmEdu -> ( 720, 108 )
 
 
 getId : Product -> ProductId
@@ -330,6 +344,8 @@ twoLetterCode product =
         Hub -> "HB_"
         Kotlin -> "KT_"
         MPS -> "MPS_"
+        IntelliJEdu -> "IE_"
+        PyCharmEdu -> "PE_"
 
 
 getPalette : Product -> Palette
@@ -359,6 +375,8 @@ getPalette product =
         Hub ->       p "#00b8f1" "#9758fb" "#ffee45"
         Kotlin ->    p "#22b1ef" "#9062f7" "#fd8224"
         MPS ->       p "#0b8fff" "#21d789" "#ffdc52"
+        IntelliJEdu ->  p "#0d7bf7" "#fe315d" "#f97a12"
+        PyCharmEdu ->   p "#21d789" "#fcf84a" "#07c3f2"
 
 
 getPaletteColor : ColorId -> Palette -> Color
