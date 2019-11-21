@@ -63,7 +63,7 @@ function m(target, width, height, model, colors_) {
 
       displayWidth = Math.floor(gl.canvas.clientWidth);
       displayHeight = Math.floor(gl.canvas.clientHeight);
-      var scale = 0.0 * displayHeight / model.atHeight;
+      var scale = displayHeight / model.atHeight;
 
       const groups = model.groups.map(
         group => ({
