@@ -51,7 +51,7 @@ const import_ = (app, importedState) => {
     toSend.layers =
         parsedState.layers.map(layer => {
             const layerModel = deepClone(layer);
-            layerModel.model = JSON.stringify(layer.model);
+            //layerModel.model = JSON.stringify(layer.model);
             return layerModel;
         });
     //console.log('sending for the import', toSend);
