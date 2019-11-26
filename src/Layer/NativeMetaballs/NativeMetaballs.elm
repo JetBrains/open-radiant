@@ -260,10 +260,8 @@ initial ( w, h ) =
                 , { x = 170, y = -70,  radius = 70 }
                 ]
             , gradient =
-                [ { color = ColorIII, stop = 0.2 }
-                , { color = ColorI,   stop = 0.3 }
-                , { color = ColorII,  stop = 0.5 }
-                , { color = ColorIII, stop = 0.8 }
+                [ { color = ColorI, stop = 0.0 }
+                , { color = ColorII, stop = 0.8 }
                 ]
             }
         ,
@@ -275,9 +273,7 @@ initial ( w, h ) =
                 , { x = 200, y = 100, radius = 25 }
                 ]
             , gradient =
-                [ { color = ColorII,  stop = 0.2 }
-                , { color = ColorIII, stop = 0.3 }
-                , { color = ColorII,  stop = 0.5 }
+                [ { color = ColorII,  stop = 0.3 }
                 , { color = ColorIII, stop = 0.7 }
                 ]
             }
@@ -290,9 +286,9 @@ initial ( w, h ) =
                 , { x = 250, y = -200, radius = 36 }
                 ]
             , gradient =
-                [ { color = ColorI,   stop = 0.5 }
-                , { color = ColorII,  stop = 0.6 }
-                , { color = ColorIII, stop = 0.7 }
+                [ { color = ColorIII,   stop = 0.4 }
+                , { color = ColorI,  stop = 0.8 }
+
                 ]
 
             }
@@ -306,11 +302,8 @@ initial ( w, h ) =
                 , { x = -740, y = 310,  radius = 20 }
                 ]
             , gradient =
-                [ { color = ColorIII, stop = 0.3 }
-                , { color = ColorII,  stop = 0.4 }
-                , { color = ColorII,  stop = 0.68 }
-                , { color = ColorIII, stop = 0.77 }
-                , { color = ColorIII, stop = 0.83 }
+                [ { color = ColorIII, stop = 0.5 }
+                , { color = ColorII, stop = 0.9 }
                 ]
             }
         ,
@@ -327,9 +320,8 @@ initial ( w, h ) =
                 , { x = -270, y = -70, radius = 50 }
                 ]
             , gradient =
-                [ { color = ColorIII, stop = 0.3 }
-                , { color = ColorII,  stop = 0.5 }
-                , { color = ColorI,   stop = 0.6 }
+                [ { color = ColorII, stop = 0.4 }
+                , { color = ColorIII,   stop = 0.6 }
                 ]
             }
         ,
@@ -342,11 +334,8 @@ initial ( w, h ) =
                 , { x = -570, y = -120, radius = 50 }
                 ]
             , gradient =
-                [ { color = ColorI,   stop = 0.2 }
-                , { color = ColorII,  stop = 0.35 }
-                , { color = ColorIII, stop = 0.55 }
-                , { color = ColorII,  stop = 0.75 }
-                , { color = ColorI,   stop = 1.0 }
+                [ { color = ColorI,   stop = 0.4 }
+                , { color = ColorII,   stop = 0.7 }
                 ]
             }
         ] |> List.map
