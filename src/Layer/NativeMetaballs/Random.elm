@@ -361,7 +361,7 @@ gradientGenerator
 gradientGenerator =
     let
         -- _ = Debug.log "palette" palette
-        palette = [ ColorI, ColorI, ColorI ]
+        palette = [ ColorI, ColorII, ColorIII ]
         paletteLen = List.length palette
         -- loopedPalette = [ 0, 1, 2, 3, 2, 1 ] -- just remember indices?
         loopedPalette = palette ++ (palette |> List.drop 1 |> List.reverse |> List.drop 1)
