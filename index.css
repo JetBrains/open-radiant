@@ -185,12 +185,54 @@ svg.text-layer {
 }
 
 
+.hash_url {
+    position: relative;
+    left: -5px;
+    text-align: center;
+    display: block;
+    height: 50px;
+    padding: 0 16px;
+    /* background: #167dff; */
+    /* background: #000; */
+    background: #fc2c99;
+
+    font-size: 12px;
+    color: #fff;
+    margin: 0 auto;
+    font-weight: 400;
+    line-height: 24px;
+    position: relative;
+    z-index: 1;
+    display: -webkit-inline-box;
+    display: -ms-inline-flexbox;
+    display: inline-flex;
+    -webkit-box-orient: horizontal;
+    -webkit-box-direction: normal;
+    -ms-flex-direction: row;
+    flex-direction: row;
+    -webkit-box-pack: center;
+    -ms-flex-pack: center;
+    justify-content: center;
+    -webkit-box-align: center;
+    -ms-flex-align: center;
+    align-items: center;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+    border-radius: 25px;
+    outline: none;
+    cursor: pointer;
+    white-space: nowrap;
+    text-decoration: underline;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: transparent;
+}
+
 .export_html5 {
     margin-right: 5px;
 
 }
 
-.export_url {
+.export_url, .hash_url {
     margin-left: 5px;
 }
 /*

@@ -766,7 +766,7 @@ view model =
                     Just sceneHash ->
                         a
                             [ href <| "/#" ++ SceneHash.toString sceneHash
-                            , class "export_url"
+                            , class "hash_url"
                             ]
                             [ text <| SceneHash.toString sceneHash
                             ]
