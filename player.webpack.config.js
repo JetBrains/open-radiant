@@ -49,6 +49,7 @@ const config = {
                 return 'var ' + varLetter + '=' + fragmentLetter + '?' + fragmentLetter + '.fragment:{}';
               }
             },
+            // $elm$core$String$startsWith, 'https://'
             {
               search: 'case 1:throw new Error("Browser.application programs cannot handle URLs like this:\\n\\n    "+document.location.href+"\\n\\nWhat is the root? The root of your file system? Try looking at this program with `elm reactor` or some other server.");case 2:',
               replace: 'case 2:'
@@ -60,6 +61,10 @@ const config = {
                 const toLocalhost = '\'http://localhost:8080/\'+' + href + '.substring(' + href + '.indexOf(\'index.html\'))';
                 return 'return ' + x + '(' + href + ').' + z + '||' + x + '(' + toLocalhost + ').' + z;
               }
+            },
+            {
+              search: 'A2($elm$core$String$startsWith, \'http://\', str)',
+              replace: 'A2($elm$core$String$startsWith, \'file:///\', str) ? A2($elm$url$Url$chompAfterProtocol, $elm$url$Url$Http, A2($elm$core$String$dropLeft, 8, str)) : A2($elm$core$String$startsWith, \'http://\', str)'
             }
           ]
       }])

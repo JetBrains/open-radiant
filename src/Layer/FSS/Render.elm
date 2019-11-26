@@ -15,7 +15,7 @@ import Math.Vector4 as Vec4 exposing (vec4, Vec4)
 import WebGL
 import WebGL.Settings exposing (Setting)
 
-import Model.Layer.Blend.WebGL  exposing (..)
+import Model.Layer.Blend.WebGL exposing (..)
 
 
 type alias Mesh = WebGL.Mesh Vertex
