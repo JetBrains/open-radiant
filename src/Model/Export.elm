@@ -92,10 +92,11 @@ encode model =
         , ( "mouse", encodeIntPair model.mouse )
         , ( "now", E.float model.now )
         , ( "palette",
-            model.product
-                |> Product.getPalette
-                |> Product.encodePalette
-                |> E.list E.string )
+                model.product
+                    |> Product.getPalette
+                    |> Product.encodePalette
+                    |> E.list E.string
+          )
         , ( "product", model.product |> Product.encode |> E.string )
         , ( "version", model.version |> Maybe.map Version.encode |> Maybe.withDefault E.null )
         ]

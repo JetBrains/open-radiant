@@ -105,11 +105,7 @@ update index ctx msg model =
         Update newModel -> -- called when random model was generated in any way
             ( newModel
             , informNativeMetaballsUpdate
-                { layer = Layer.indexToJs index
-                , size = ctx.size
-                , palette = ctx.palette |> Product.encodePalette
-                , model = FluidIE.encode ctx newModel
-                }
+                <| packUpdate index ctx newModel
             )
         ChangeVariety value ->
             let
@@ -145,6 +141,11 @@ absorb index ctx broadcastMsg model =
             ( model
             , generateEverything ctx model
             )
+        Broadcast.Import ->
+            ( model
+            , informNativeMetaballsUpdate
+                <| packUpdate index ctx model
+            )
         Broadcast.ChangeProduct product ->
             ( model
             , generateDynamics ctx model
@@ -152,11 +153,7 @@ absorb index ctx broadcastMsg model =
         Broadcast.TurnOn ->
             ( model
             , informNativeMetaballsUpdate
-                { layer = Layer.indexToJs index
-                , size = ctx.size
-                , palette = ctx.palette |> Product.encodePalette
-                , model = FluidIE.encode ctx model
-                }
+                <| packUpdate index ctx model
             )
         Broadcast.Pause ->
             ( model
@@ -381,6 +378,22 @@ generateStatics ctx model =
 generateEverything : Context -> Model -> Cmd Msg
 generateEverything ctx model =
     Fluid.generateEverything Update ctx model
+
+
+packUpdate
+     : Index
+    -> Context
+    -> Model
+    -> { layer : Layer.JsIndex
+       , size : ( Int, Int )
+       , palette : List Model.Product.Color
+       , model : E.Value }
+packUpdate index ctx model =
+    { layer = Layer.indexToJs index
+    , size = ctx.size
+    , palette = ctx.palette |> Product.encodePalette
+    , model = FluidIE.encode ctx model
+    }
 
 
 {- incoming -}

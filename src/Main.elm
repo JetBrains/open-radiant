@@ -343,7 +343,7 @@ update msg model =
                 , Nav.pushUrlFrom decodedModel
                 ]
                 -}
-            )
+            ) |> broadcastAll B.Import
 
         Export ->
             ( model

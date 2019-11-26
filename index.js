@@ -47,7 +47,7 @@ const prepareModelForImport = (model) => {
     toSend.layers =
         model.layers.map(layerDef => {
             const layerDef_ = deepClone(layerDef);
-            layerDef_.model = JSON.stringify(layerDef.model);
+            //layerDef_.model = JSON.stringify(layerDef.model);
             return layerDef_;
         });
 

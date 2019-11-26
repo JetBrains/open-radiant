@@ -160,7 +160,7 @@ encode ctx (Layer props model as layer) =
                 ]
             Nothing ->
                 [ ( "def", unknown |> E.string )
-                , ( "kind", unknown |> E.string)
+                , ( "kind", unknown |> E.string )
                 ]
         )
     |> E.object

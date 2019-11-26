@@ -24,6 +24,7 @@ type Msg
     = IFeelLucky
     | ChangeProduct Product
     | Resize (Int, Int)
+    | Import
     | TurnOn
     | TurnOff
     | Pause
