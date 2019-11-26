@@ -6,6 +6,8 @@ WORKDIR /app
 
 COPY . /app
 
+RUN mkdir -p ./storage
+
 RUN rm -Rf ./node_modules
 
 RUN npm install

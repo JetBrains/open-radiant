@@ -29,7 +29,7 @@
   "scripts": {
     "start": "./node_modules/.bin/webpack-dev-server --mode=development",
     "start:prod": "NODE_ENV=production ./node_modules/.bin/webpack-dev-server",
-    "server": "node ./server.js",
+    "server": "mkdir -p ./storage && node ./server.js",
     "build:elm": "elm-make ./src/Main.elm --output=build/Main.js",
     "build:uglify": "./node_modules/uglify-js/bin/uglifyjs ./build/Main.js --output ./build/Main.min.js",
     "build": "./node_modules/.bin/webpack --config ./webpack.config.js --output ./app.js --mode=production",
