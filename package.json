@@ -4,11 +4,9 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
-    "cors": "^2.8.5",
     "css-loader": "^2.1.1",
     "dat.gui": "^0.7.5",
     "elm-webpack-loader": "^6.0.1",
-    "express": "^4.17.1",
     "flat-surface-shader": "github:shamansir/flat-surface-shader",
     "fstream": ">=1.0.12",
     "jszip": "^3.2.1",
