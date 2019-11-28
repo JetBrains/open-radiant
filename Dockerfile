@@ -20,3 +20,5 @@ RUN npm run build && npm run build:player
 FROM nginx:1.15
 
 COPY --from=0 /app /usr/share/nginx/html
+
+CMD [ "npm", "run", "server" ]
