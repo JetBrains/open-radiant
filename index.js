@@ -15,12 +15,20 @@ const JSZipUtils = require('jszip-utils');
 const FileSaver = require('jszip/vendor/FileSaver');
 const timing = require('./timing.js');
 
+const isProduction = (process.env.NODE_ENV && (process.env.NODE_ENV == 'production'));
+
 // initialize Elm Application
 const App = require('./src/Main.elm');
 //const mountNode = document.getElementById('elm-target');
 const mountNode = document.getElementById('js-animation');
 // The third value on embed are the initial values for incomming ports into Elm
-const app = App.Elm.Main.init({ node: mountNode, flags: { forcedMode: null } });
+const app = App.Elm.Main.init(
+    { node: mountNode,
+      flags:
+        { forcedMode: null,
+          runningAt: isProduction ? 'production' : 'developement'
+        }
+    });
 
 const startGui = require('./gui.js');
 const buildFSS = require('./fss.js');

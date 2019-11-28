@@ -128,10 +128,11 @@ encodeForPort model =
 
 decodeFromPort
     :  Nav.Key
+    -> M.ServerUrl
     -> Context
     -> M.PortModel
     -> Result (List ModelDecodeError) M.Model
-decodeFromPort navKey ctx portModel =
+decodeFromPort navKey serverUrl ctx portModel =
     let
         couldBeDecodedLayers =
             List.map (Layer.decodeFromPort ctx) portModel.layers
@@ -155,7 +156,7 @@ decodeFromPort navKey ctx portModel =
                 mode =
                     modeResult
                         |> Result.withDefault Mode.Production
-                initialModel = M.init navKey mode
+                initialModel = M.init navKey serverUrl mode
                 decodedModel =
                     { initialModel
                     | background = portModel.background
@@ -192,8 +193,8 @@ decodeFromPort navKey ctx portModel =
                 |> Result.mapError (List.singleton << ProductDecodeError << D.errorToString))
 
 
-decode : Nav.Key -> Context -> M.CreateGui -> D.Decoder M.Model
-decode navKey ctx createGui =
+decode : Nav.Key -> M.ServerUrl -> Context -> M.CreateGui -> D.Decoder M.Model
+decode navKey serverUrl ctx createGui =
     let
         createModel
             background
@@ -209,7 +210,7 @@ decode navKey ctx createGui =
             maybeVersion =
             let
                 initialModel =
-                    M.init navKey ctx.mode
+                    M.init navKey serverUrl ctx.mode
                 sizeResult =
                     case maybeSizeRule of
                         Just sizeRuleStr -> SizeRule.decode sizeRuleStr
@@ -273,12 +274,13 @@ decode navKey ctx createGui =
 
 decodeFromString
      : Nav.Key
+    -> M.ServerUrl
     -> Context
     -> M.CreateGui
     -> String
     -> Result String M.Model
-decodeFromString navKey ctx createGui modelStr =
-    D.decodeString (decode navKey ctx createGui) modelStr
+decodeFromString navKey serverUrl ctx createGui modelStr =
+    D.decodeString (decode navKey serverUrl ctx createGui) modelStr
         |> Result.mapError D.errorToString
 
 

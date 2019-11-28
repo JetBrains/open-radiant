@@ -11,6 +11,7 @@ module Model.Core exposing
     , CreateGui
     , hasErrors, addError, addErrors
     , TimeDelta, Pos, Size
+    , ServerUrl(..)
     )
 
 
@@ -63,6 +64,9 @@ type alias TimeDelta = Float
 type alias Pos = (Int, Int)
 type alias Size = (Int, Int)
 type alias CreateGui = Model -> Gui.Model Msg
+
+
+type ServerUrl = ServerUrl String
 
 
 type Msg
@@ -132,6 +136,7 @@ type alias Model = -- TODO: Result Error { ... }
     , registry : Layer.Registry
     , version : Maybe Version
     , currentHash : Maybe Nav.SceneHash
+    , serverUrl : ServerUrl
     }
 
 
@@ -152,8 +157,8 @@ type alias PortModel =
     }
 
 
-init : Nav.Key -> AppMode -> Model
-init navKey mode =
+init : Nav.Key -> ServerUrl -> AppMode -> Model
+init navKey serverUrl mode =
     { background = "rgba(0, 0, 0, 0)" -- FIXME: get rid of this property thanks to Background layer
     , mode = mode
     , gui = Nothing
@@ -177,6 +182,7 @@ init navKey mode =
     , registry = Layer.registry
     , version = Just Version.current
     , currentHash = Nothing
+    , serverUrl = serverUrl
     }
 
 

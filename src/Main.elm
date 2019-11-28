@@ -90,11 +90,33 @@ initialMode : AppMode
 initialMode = Production
 
 
-type alias Flags = { forcedMode: Maybe String }
+type RunningAt
+    = AtProduction
+    | AtLocalProduction
+    | AtDevelopment
 
 
-serverUrl : String
-serverUrl = "http://localhost:3001"
+type alias Flags =
+    { forcedMode: Maybe String
+    , runningAt: Maybe String
+    }
+
+
+whereRunning : Maybe String -> RunningAt
+whereRunning maybeStr =
+    case maybeStr of
+        Just "production" -> AtLocalProduction
+        Just "development" -> AtDevelopment
+        _ -> AtDevelopment
+
+
+getServerUrl : RunningAt -> ServerUrl
+getServerUrl runningAt =
+    ServerUrl <|
+        case runningAt of
+            AtLocalProduction -> "http://radiant.jb.gg"
+            AtProduction -> "https://code2art.jetbrains.com/"
+            AtDevelopment -> "http://localhost" ++ ":3001"
 
 
 main : Program Flags Model Msg
@@ -122,6 +144,7 @@ init flags url navKey =
         initialModel =
             Model.init
                 navKey
+                (getServerUrl <| whereRunning flags.runningAt)
                 mode
         ( layers, commands ) =
             initialLayers initialModel.mode
@@ -570,7 +593,7 @@ update msg model =
             )
 
         ApplyRandomizer portModel ->
-            case IE.decodeFromPort model.navKey (getContext model) portModel of
+            case IE.decodeFromPort model.navKey model.serverUrl (getContext model) portModel of
                 Ok decodedPortModel ->
                     ( decodedPortModel
                     , Cmd.none
@@ -670,7 +693,11 @@ subscriptions model =
         , import_
             (\string ->
                 case string
-                    |> IE.decodeFromString model.navKey (getContext model) Gui.gui of
+                    |> IE.decodeFromString
+                            model.navKey
+                            model.serverUrl
+                            (getContext model)
+                            Gui.gui of
                     Ok decodedModel ->
                         Import decodedModel
                     Err err ->
@@ -798,7 +825,7 @@ view model =
 makeStoreRequest : Model -> Cmd Msg
 makeStoreRequest model =
     Http.post
-        { url = serverUrl ++ "/store"
+        { url = case model.serverUrl of ServerUrl serverUrl -> serverUrl ++ "/store"
         , body = IE.encode model |> Http.jsonBody
         , expect =
             Http.expectJson
@@ -811,14 +838,14 @@ makeStoreRequest model =
 requestToLoad : SceneHash -> Model -> Cmd Msg
 requestToLoad sceneHash model =
     Http.post
-        { url = serverUrl ++ "/load"
+        { url = case model.serverUrl of ServerUrl serverUrl -> serverUrl ++ "/load"
         , body = SceneHash.encode sceneHash |> Http.jsonBody
         , expect =
             Http.expectJson
                 (Result.map Import
                     -- >> Result.mapError (Debug.log "HttpError")
                     >> (Result.withDefault <| AddError "Failed to load model"))
-                <| IE.decode model.navKey (getContext model) Gui.gui
+                <| IE.decode model.navKey model.serverUrl (getContext model) Gui.gui
         }
 
 
