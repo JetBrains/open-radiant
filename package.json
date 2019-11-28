@@ -27,7 +27,7 @@
     "webpack-cli": "^3.3.4"
   },
   "scripts": {
-    "start": "npm run server && ./node_modules/.bin/webpack-dev-server --mode=development",
+    "start": "./node_modules/.bin/webpack-dev-server --mode=development",
     "start:prod": "NODE_ENV=production ./node_modules/.bin/webpack-dev-server",
     "server": "mkdir -p ./storage && node ./server.js",
     "build:elm": "elm-make ./src/Main.elm --output=build/Main.js",
