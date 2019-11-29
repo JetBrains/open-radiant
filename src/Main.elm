@@ -112,12 +112,7 @@ whereRunning maybeStr =
 
 getServerUrl : RunningAt -> ServerUrl
 getServerUrl runningAt =
-    ServerUrl <|
-        case runningAt of
-            AtLocalProduction -> "http://radiant.jb.gg"
-            AtProduction -> "https://code2art.jetbrains.com/"
-            AtDevelopment -> "http://localhost" ++ ":3001"
-
+    ServerUrl "http://radiant-server.jb.gg:8080"
 
 main : Program Flags Model Msg
 main =
