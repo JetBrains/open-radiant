@@ -784,6 +784,7 @@ view model =
                     [ type_ "button", class "export_png"
                     , Events.onClick SavePng, value "|> PNG" ]
                     [ text "Export to PNG" ]
+                {-
                 , case model.currentHash of
                     Just sceneHash ->
                         a
@@ -797,6 +798,7 @@ view model =
                             [ type_ "button", class "export_url"
                             , Events.onClick Store, value "|> URL" ]
                             [ text "Export as URL" ]
+                -}
                 , div [ H.class "spacebar_info" ] [ text "spacebar to hide controls, click to pause" ]
                 ]
             ) else div [] []
