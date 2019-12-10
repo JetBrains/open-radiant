@@ -20,10 +20,10 @@
     "loader-utils": "^1.2.3",
     "raw-loader": "^3.0.0",
     "replace-in-file-webpack-plugin": "^1.0.6",
+    "serialize-javascript": "^2.1.2",
     "style-loader": "^0.23.1",
     "uglify-js": "^3.6.0",
-    "webpack-cli": "^3.3.4",
-    "serialize-javascript": ">=2.1.2"
+    "webpack-cli": "^3.3.4"
   },
   "scripts": {
     "start": "./node_modules/.bin/webpack-dev-server --mode=development",
