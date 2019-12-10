@@ -1,4 +1,6 @@
-# Radiant - release and ads artwork generating and delivering
+# Radiant - Artwork generating and delivering
+
+[![team project](https://jb.gg/badges/team-flat-square.svg)](https://confluence.jetbrains.com/display/ALL/JetBrains+on+GitHub)
 
 # Development
 
