@@ -84,7 +84,11 @@ const import_ = (app, importedState) => {
 
 const runGenScene = () => {
     var node = document.getElementById("app");
-    var app = App.Elm.Main.init({ node: node, flags: { forcedMode: 'player' } });
+    var app = App.Elm.Main.init({ node: node, flags:
+        { forcedMode: 'player'
+        , runningAt: 'production'
+        }
+    });
 
     //console.log('runGenScene', window.jsGenScene, app);
 
