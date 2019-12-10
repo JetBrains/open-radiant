@@ -2,7 +2,31 @@
 
 [![team project](https://jb.gg/badges/team-flat-square.svg)](https://confluence.jetbrains.com/display/ALL/JetBrains+on+GitHub)
 
-# Development
+## In Action
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/FUOHMR5nPt0" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+Metarings
+
+![Metarings](https://d3nmt5vlzunoa1.cloudfront.net/wp-content/uploads/2019/12/image8.jpg)
+
+Myopia and biomorphs
+
+![Myopia and biomorphs](https://d3nmt5vlzunoa1.cloudfront.net/wp-content/uploads/2019/12/image4.jpg)
+
+Khokhloma
+
+![Khokhloma](https://d3nmt5vlzunoa1.cloudfront.net/wp-content/uploads/2019/12/image3.jpg)
+
+Chromatic Holes
+
+![Chromatic Holes](https://d3nmt5vlzunoa1.cloudfront.net/wp-content/uploads/2019/12/image7.jpg)
+
+ARRT!
+
+![ARRRT](https://d3nmt5vlzunoa1.cloudfront.net/wp-content/uploads/2019/12/image5.jpg)
+
+## Development
 
 Install Elm and Webpack:
 
@@ -24,9 +48,9 @@ If you want to build / minify, use:
 See `./package.json` and `Dockerfile` for
 
 
-# Navigation
+## Navigation
 
-## URL format:
+### URL format:
 
 ```
 http://<host>/
@@ -47,19 +71,19 @@ http://<host>/#<product>/<size_rule>.../<mode>
 etc.
 ```
 
-### Product:
+#### Product:
 
 Default: `jetbrains`
 
 Any of: `jetbrains`, `intellij-idea`, `phpstorm`, `pycharm`, `rubymine`, `webstorm`, `clion`, `datagrip`, `appcode`, `goland`, `resharper`, `resharper-cpp`, `dotcover`, `dotmemory`, `dotpeek`, `dottrace`, `rider`, `teamcity`, `youtrack`, `upsource`, `hub`, `kotlin`, `mps`
 
-### Mode:
+#### Mode:
 
 Default: `release`
 
 Any of: `dev`, `prod`, `release`, `ads`, `tron-<mode>`, `player`
 
-### Size Rule
+#### Size Rule
 
 Default: `dimensionless`
 
@@ -72,7 +96,7 @@ When just the size given, it's: `<width>x<height>` -> `custom:<width>x<height>`
 * `preset:<preset-id>:<width>x<height>` (preset with size)
 * `dimensionless` (try to find the fitting one, usually falls back to the current `viewport` size)
 
-#### Presets
+##### Presets
 
 * `PC`, `PCx1`, `PCx2` — Product Card
 * `SP`, `SPx1`, `SPx2` — Product Splash
@@ -89,7 +113,7 @@ When just the size given, it's: `<width>x<height>` -> `custom:<width>x<height>`
 * `LN` — LinkedIn
 * `BA:<width>x<height>` — Baidu
 
-### Examples:
+#### Examples:
 
 ```
 http://localhost:8080
