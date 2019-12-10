@@ -4,6 +4,10 @@
 
 ## In Action
 
+Video
+
+[![Radiant in Action](http://img.youtube.com/vi/FUOHMR5nPt0/0.jpg)](http://www.youtube.com/watch?v=FUOHMR5nPt0 "Radiant in Action")
+
 <iframe width="560" height="315" src="https://www.youtube.com/embed/FUOHMR5nPt0" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 Metarings
